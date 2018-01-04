@@ -1,0 +1,47 @@
+package uk.ac.ebi.tsc.portal.clouddeployment.model;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import uk.ac.ebi.tsc.portal.api.application.repo.ApplicationDeploymentParameter;
+
+import java.util.Collection;
+
+/**
+ * @author Jose A. Dianes <jdianes@ebi.ac.uk>
+ * @since v0.0.1
+ */
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class ApplicationManifest {
+
+    @JsonProperty
+    public String applicationName;
+
+    @JsonProperty
+    public String about;
+
+    @JsonProperty
+    public String contactEmail;
+
+    @JsonProperty
+    public String version;
+
+    @JsonProperty
+    public Collection<CloudProvider> cloudProviders;
+
+    @JsonProperty
+    public ImageSource imageSource;
+
+    @JsonProperty
+    public Collection<String> volumes;
+
+    @JsonProperty
+    public Collection<String> inputs;
+
+    @JsonProperty
+    public Collection<String> outputs;
+    
+    @JsonProperty
+    public Collection<String> deploymentParameters;
+
+}

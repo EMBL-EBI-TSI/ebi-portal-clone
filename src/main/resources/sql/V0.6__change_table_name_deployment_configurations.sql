@@ -1,0 +1,1 @@
+alter table  deployment_assigned_configuration rename to deployment_configuration;

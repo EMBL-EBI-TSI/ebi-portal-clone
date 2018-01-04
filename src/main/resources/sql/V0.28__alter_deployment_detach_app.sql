@@ -1,0 +1,1 @@
+alter table deployment drop constraint deployment_application_id_fkey;

@@ -1,0 +1,41 @@
+= BioExcel Portal API Web Services
+
+The Portal API web services as seen by external clients (e.g. Portal web applications).  
+
+== HOW-TO run  
+
+This project uses Spring-Boot and Maven. In order to run it, just run  
+
+ mvn spring-boot:run  
+
+The API entry point is the root http://localhost:8080[http://localhost:8080].  
+
+Right now there is a series of dummy users with some data. The user name is 'tsi' and the password is `password`.  
+
+=== Properties  
+
+In order for the API to be able to run `terraform` against OpenStack the following properties need to be set in the https://github.com/EMBL-EBI-TSI/be-portal-api/blob/master/src/main/resources/application.properties[application.properties] file.
+
+[source,Properties file]
+----
+    be.applications.root=  
+    os.user.name=  
+    os.password=  
+    os.tenancy.name=  
+    os.auth.url=  
+----
+
+== Design  
+
+The RESTful API is designed under the https://en.wikipedia.org/wiki/HATEOAS[HATEOAS] constraint in order to allow clients to be as decoupled as possible from its specification.
+
+Once API server is up and running, the different hypermedia links can be visited using the https://github.com/mikekelly/hal-browser[HAL Browser] deployed at http://localhost:8080/hal/browser.html[http://localhost:8080/hal/browser.html].
+
+== References  
+
+- A good intro to http://spring.io/guides/tutorials/bookmarks/[Building REST services with Spring]
+- One about to http://spring.io/guides/gs/accessing-data-jpa/[Accessing Data with JPA and Spring]
+- Wikipedia about https://en.wikipedia.org/wiki/HATEOAS[HATEOAS]
+- The https://github.com/mikekelly/hal-browser[HAL Browser]
+- http://projects.spring.io/spring-boot/[Spring Boot]
+- http://start.spring.io/[Spring Boot starter]

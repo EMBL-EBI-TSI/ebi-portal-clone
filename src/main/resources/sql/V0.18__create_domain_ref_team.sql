@@ -1,0 +1,1 @@
+alter table team add column domain_reference varchar(255) unique;

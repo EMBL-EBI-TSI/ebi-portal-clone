@@ -1,0 +1,3 @@
+alter table configuration_deployment_parameters drop constraint configuration_deployment_parameters_name_key;
+
+alter table configuration_deployment_parameters add unique(name, account_id);

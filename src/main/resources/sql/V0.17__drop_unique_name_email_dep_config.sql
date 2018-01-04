@@ -1,0 +1,2 @@
+alter table deployment_configuration 
+drop constraint deployment_configuration_name_owner_account_email_key;

@@ -1,0 +1,103 @@
+== Prerequisite
+
+These should be installed on the machine for running the api:
+* java
+* git
+* terraform
+* private/public keys (ssh access to git and serving https)
+
+See below for steps to install them for various operating systems, as of time of writing (February 2016), your mileage may vary...
+
+=== centos
+
+These are the steps taken to install the pre-requisite on a centos 7 machine:
+
+==== java
+
+  sudo yum install java
+
+===== git
+
+  sudo yum install git
+
+==== terraform
+
+Install terraform, as explained on https://www.terraform.io/intro/getting-started/install.html:
+  curl -LOk https://releases.hashicorp.com/terraform/0.6.12/terraform_0.6.12_linux_amd64.zip
+  sudo yum install unzip
+  sudo unzip terraform_0.6.12_linux_amd64.zip -d terraform-0.6.12
+  sudo ln -s /usr/lib/terraform-0.6.12/terraform /usr/bin/terraform
+
+=== windows
+
+==== java
+
+Follow instructions on: https://www.java.com/en/download/manual.jsp
+
+==== git
+
+Get it from: https://git-scm.com/download/win
+
+==== terraform
+
+* Download https://releases.hashicorp.com/terraform/0.6.11/terraform_0.6.11_windows_amd64.zip
+* Extract archive to local folder, put local folder on PATH
+
+== Building
+
+  mvn package
+
+== Running Locally
+
+  mvn spring-boot:run
+
+This starts an embedded tomcat server, listening on 8080 (http) and 8443 (https).
+
+== Deployment
+
+The building step above creates a self-executing jar, meaning it can be started via:
+  java -jar be-portal-api.jar
+
+This starts an embedded tomcat server, listening on 8080 (http) and 8443 (https).
+
+=== Customizing properties
+
+The simplest is to have an application.properties file at the same location of the jar, which contains the values you
+would like to change. These over-write the properties in the application.properties built into the jar.
+
+The list of properties to change are:
+* be.applications.root - where the applications will get cloned
+* be.volume.setup.root - where the volume definitions will get cloned
+* be.deployments.root - where each deployment state will get saved
+* be.friendly.origins - which clients are allowed to connect
+
+Open Stack credentials:
+* os.user.name
+* os.password
+* os.tenancy.name
+* os.auth.url
+
+AWS credentials:
+* aws.accessKey
+* aws.secretAccessKey
+
+=== HTTPS
+
+The default set-up comes with predefined keystore, which must be changed (with a new private/public key pair and
+certificate).
+
+To generate this new private key and keystore:
+  keytool -genkey -alias tsi-demo -keyalg RSA -keystore tsi-demo.jks
+  CN=<hostname>, OU=<unit>, O=<organisation>, L=<city>, ST=<region>, C=<country>
+
+The path to the new keystore is configured via application.properties:
+  server.ssl.key-store=path/to/keystore
+  server.ssl.key-store-password=changeit
+  server.ssl.key-password=chandittoo
+
+=== Logging
+
+The following properties (from application.properties) are helpful:
+logging.file=path/to/file.log
+logging.level.x.y.z.package=DEBUG
+

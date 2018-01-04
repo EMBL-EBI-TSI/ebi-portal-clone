@@ -1,0 +1,4 @@
+alter table deployment_application drop constraint deployment_application_name_account_id_key;
+alter table deployment_application drop constraint deployment_application_repo_path_key;
+
+
