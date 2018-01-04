@@ -1,6 +1,7 @@
 package uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service;
 
 import java.io.IOException;
+import java.math.BigInteger;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -96,7 +97,7 @@ public class CloudProviderParamsCopyService {
 			paramValues.put(field.getKey(), field.getValue());
 		});
 
-		Map<String, String> encyptedValues = encryptionService.encrypt(paramValues, salt, password);
+		Map<String, String> encyptedValues = encryptionService.encrypt(paramValues, salt, toHex(password));
 		for (CloudProviderParamsCopyField cloudProviderParametersField : cloudProviderParametersCopy.getFields()) {
 			cloudProviderParametersField.setValue(
 					encyptedValues.get(cloudProviderParametersField.getKey()));
@@ -131,7 +132,7 @@ public class CloudProviderParamsCopyService {
 			paramValues.put(field.getKey(), field.getValue());
 		});
 
-		Map<String, String> decryptedValues = encryptionService.decryptOne(paramValues, salt, password);
+		Map<String, String> decryptedValues = encryptionService.decryptOne(paramValues, salt, toHex(password));
 
 
 		CloudProviderParamsCopy decryptedCloudProviderParametersCopy =
@@ -178,5 +179,9 @@ public class CloudProviderParamsCopyService {
 
 	public void saveWithoutEncryption(CloudProviderParamsCopy cppCopy) {
 		this.cloudProviderParametersCopyRepository.save(cppCopy);
+	}
+	
+	private static String toHex(String arg) {
+		return String.format("%040x", new BigInteger(1, arg.getBytes()));
 	}
 }
