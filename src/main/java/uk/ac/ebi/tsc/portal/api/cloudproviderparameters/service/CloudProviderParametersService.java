@@ -381,7 +381,7 @@ public class CloudProviderParametersService {
 		}
 	}
 
-	private static String toHex(String arg) {
+	public String toHex(String arg) {
 		return String.format("%040x", new BigInteger(1, arg.getBytes()));
 	}
 
