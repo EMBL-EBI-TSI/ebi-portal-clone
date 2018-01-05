@@ -1,6 +1,5 @@
 package uk.ac.ebi.tsc.portal.api.encryptdecrypt.security;
 
-import java.math.BigInteger;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -18,10 +17,12 @@ public class EncryptionServiceImpl implements EncryptionService{
 
 		TextEncryptor encryptor = Encryptors.text(values[0].toString(), values[1].toString());
 
-		params.forEach((k,v) -> {
-			encryptedValues.put(k, encryptor.encrypt(v));
-		});
-
+		for(Map.Entry<String, String> entry : params.entrySet()){
+			String key = entry.getKey();
+			String value = entry.getValue();
+			encryptedValues.put(key, encryptor.encrypt(value));
+		}
+		
 		return encryptedValues;
 	}
 
@@ -31,12 +32,13 @@ public class EncryptionServiceImpl implements EncryptionService{
 		Map<String, String> decryptedValues = new HashMap<>();
 
 		TextEncryptor encryptor = Encryptors.text(values[0].toString(), values[1].toString());
-
-		params.forEach((k,v) -> {
-			decryptedValues.put(k,
-					encryptor.decrypt(v));
-		});
-
+		
+		for(Map.Entry<String, String> entry : params.entrySet()){
+			String key = entry.getKey();
+			String value = entry.getValue();
+			decryptedValues.put(key, encryptor.decrypt(value));
+		}
+		
 		return decryptedValues;
 	}
 
@@ -52,5 +54,4 @@ public class EncryptionServiceImpl implements EncryptionService{
 		return decryptedRes;
 
 	}
-
 }
