@@ -6,6 +6,11 @@ import java.util.List;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigDeploymentParamCopy;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigDeploymentParamCopyRepository;
 
+/**
+ * @author Jose A. Dianes <jdianes@ebi.ac.uk>
+ * @since v0.0.1
+ * @author Navis Raj <navis@ebi.ac.uk>
+ */
 public class ConfigDeploymentParamCopyService {
 
 	private final ConfigDeploymentParamCopyRepository configDeploymentParamCopyRepository;

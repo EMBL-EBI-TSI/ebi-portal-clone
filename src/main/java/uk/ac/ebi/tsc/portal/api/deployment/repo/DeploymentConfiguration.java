@@ -16,6 +16,11 @@ import javax.validation.constraints.NotNull;
 import org.hibernate.annotations.LazyCollection;
 import org.hibernate.annotations.LazyCollectionOption;
 
+/**
+ * @author Jose A. Dianes <jdianes@ebi.ac.uk>
+ * @since v0.0.1
+ * @author Navis Raj <navis@ebi.ac.uk>
+ */
 @Entity
 public class DeploymentConfiguration {
 

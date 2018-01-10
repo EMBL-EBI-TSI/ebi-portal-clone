@@ -1,24 +1,6 @@
 package uk.ac.ebi.tsc.portal.clouddeployment.application;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Date;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.Scanner;
-import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,9 +8,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import uk.ac.ebi.tsc.aap.client.repo.DomainService;
 import uk.ac.ebi.tsc.portal.api.application.repo.Application;
 import uk.ac.ebi.tsc.portal.api.application.repo.ApplicationOutput;
@@ -42,17 +21,8 @@ import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigDeploymentParamCopy;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigDeploymentParamsCopyRepository;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.Configuration;
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigDeploymentParamsCopyService;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.Deployment;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentAssignedInput;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentAssignedParameter;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentAttachedVolume;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentConfiguration;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentGeneratedOutput;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentRepository;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentStatusEnum;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentStatusRepository;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.*;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
-import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
 import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDeployerException;
 import uk.ac.ebi.tsc.portal.clouddeployment.model.ErrorFromTerraformOutput;
 import uk.ac.ebi.tsc.portal.clouddeployment.model.MachineSpecs;
@@ -65,10 +35,20 @@ import uk.ac.ebi.tsc.portal.clouddeployment.utils.SSHKeyGenerator;
 import uk.ac.ebi.tsc.portal.usage.deployment.model.DeploymentDocument;
 import uk.ac.ebi.tsc.portal.usage.deployment.model.ParameterDocument;
 import uk.ac.ebi.tsc.portal.usage.deployment.service.DeploymentIndexService;
+import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
+
+import java.io.*;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * @author Jose A. Dianes <jdianes@ebi.ac.uk>
  * @author Gianni Dalla Torre <giannidallatorre@gmail.com>
+ * @author Navis Raj <navis@ebi.ac.uk>
  * @since v0.0.1
  */
 @Component
@@ -103,7 +83,7 @@ public class ApplicationDeployerBash {
 
 	@Value("${elasticsearch.password}")
 	private String elasticSearchPassword;
-	
+
 	@Autowired
 	public ApplicationDeployerBash(DeploymentRepository deploymentRepository,
 			DeploymentStatusRepository deploymentStatusRepository,

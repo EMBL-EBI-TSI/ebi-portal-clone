@@ -6,11 +6,10 @@ import org.jose4j.json.internal.json_simple.parser.JSONParser;
 import org.jose4j.json.internal.json_simple.parser.ParseException;
 import org.springframework.hateoas.ResourceSupport;
 
-
-
 /**
- * @author Sijin J. He <sijin@ebi.ac.uk>
+ * @author Jose A. Dianes <jdianes@ebi.ac.uk>
  * @since v0.0.1
+ * @author Navis Raj <navis@ebi.ac.uk>
  */
 public class CloudProviderMetadataResource extends ResourceSupport {
 

@@ -13,10 +13,11 @@ import java.util.stream.Collectors;
 
 import static org.springframework.hateoas.mvc.ControllerLinkBuilder.methodOn;
 
+
 /**
- * 
- * @author navis
- *
+ * @author Jose A. Dianes <jdianes@ebi.ac.uk>
+ * @since v0.0.1
+ * @author Navis Raj <navis@ebi.ac.uk>
  */
 public class CloudProviderParametersCopyResource extends ResourceSupport {
 

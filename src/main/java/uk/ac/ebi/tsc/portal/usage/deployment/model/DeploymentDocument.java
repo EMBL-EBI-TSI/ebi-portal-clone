@@ -12,8 +12,8 @@ import java.util.LinkedList;
 /**
  * @author Jose A. Dianes <jdianes@ebi.ac.uk>
  * @since v0.0.1
- **/
-
+ * @author Navis Raj <navis@ebi.ac.uk>
+ */
 public class DeploymentDocument {
 
     private String user;

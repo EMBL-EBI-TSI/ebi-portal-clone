@@ -68,9 +68,11 @@ import uk.ac.ebi.tsc.portal.clouddeployment.utils.NamesPatternMatcher;
 import uk.ac.ebi.tsc.portal.security.TokenHandler;
 import uk.ac.ebi.tsc.portal.usage.deployment.service.DeploymentIndexService;
 
+
 /**
  * @author Jose A. Dianes <jdianes@ebi.ac.uk>
  * @since v0.0.1
+ * @author Navis Raj <navis@ebi.ac.uk>
  */
 @RestController
 @RequestMapping(value = "/configuration", produces = {MediaType.APPLICATION_JSON_VALUE})

@@ -15,6 +15,11 @@ import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+/**
+ * @author Jose A. Dianes <jdianes@ebi.ac.uk>
+ * @since v0.0.1
+ * @author Navis Raj <navis@ebi.ac.uk>
+ */
 public class TokenAuthenticationServiceTest {
 
     private TokenAuthenticationService subject;

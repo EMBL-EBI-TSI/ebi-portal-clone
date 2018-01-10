@@ -38,6 +38,11 @@ import uk.ac.ebi.tsc.portal.api.application.repo.ApplicationRepository;
 import uk.ac.ebi.tsc.portal.api.team.controller.TeamResource;
 import uk.ac.ebi.tsc.portal.api.team.repo.Team;
 
+/**
+ * @author Jose A. Dianes <jdianes@ebi.ac.uk>
+ * @since v0.0.1
+ * @author Navis Raj <navis@ebi.ac.uk>
+ */
 @ContextConfiguration
 @RunWith(SpringJUnit4ClassRunner.class)
 @WebAppConfiguration

@@ -1,14 +1,9 @@
 package uk.ac.ebi.tsc.portal.api.configuration.service;
 
 
-import java.io.IOException;
-import java.security.Principal;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,21 +13,15 @@ import uk.ac.ebi.tsc.aap.client.model.Domain;
 import uk.ac.ebi.tsc.aap.client.model.User;
 import uk.ac.ebi.tsc.aap.client.repo.DomainService;
 import uk.ac.ebi.tsc.portal.api.account.repo.Account;
-import uk.ac.ebi.tsc.portal.api.application.controller.ApplicationRestController;
-import uk.ac.ebi.tsc.portal.api.application.repo.Application;
-import uk.ac.ebi.tsc.portal.api.configuration.controller.ConfigurationDeploymentParametersResource;
-import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigDeploymentParamsCopy;
-import uk.ac.ebi.tsc.portal.api.configuration.repo.Configuration;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationDeploymentParameters;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationDeploymentParametersRepository;
-import uk.ac.ebi.tsc.portal.api.deployment.controller.DeploymentRestController;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.Deployment;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentConfiguration;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentStatusEnum;
-import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
 import uk.ac.ebi.tsc.portal.api.team.repo.Team;
-import uk.ac.ebi.tsc.portal.api.utils.SendMail;
 
+/**
+ * @author Jose A. Dianes <jdianes@ebi.ac.uk>
+ * @since v0.0.1
+ * @author Navis Raj <navis@ebi.ac.uk>
+ */
 public class ConfigurationDeploymentParametersService {
 
 	private static final Logger logger = LoggerFactory.getLogger(ConfigurationDeploymentParametersService.class);

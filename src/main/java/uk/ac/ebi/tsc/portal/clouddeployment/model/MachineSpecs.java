@@ -3,8 +3,8 @@ package uk.ac.ebi.tsc.portal.clouddeployment.model;
 /**
  * @author Jose A. Dianes <jdianes@ebi.ac.uk>
  * @since v0.0.1
+ * @author Navis Raj <navis@ebi.ac.uk>
  */
-
 public enum MachineSpecs {
 
     OS_EMBASSY_S1_NANO("s1.nano", 1, 1, 5),

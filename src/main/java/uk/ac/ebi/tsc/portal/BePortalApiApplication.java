@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 /**
  * @author Jose A. Dianes <jdianes@ebi.ac.uk>
  * @since v0.0.1
+ * @author Navis Raj <navis@ebi.ac.uk>
  */
 @SpringBootApplication
 @ComponentScan(basePackages = {"uk.ac.ebi.tsc.portal", "uk.ac.ebi.tsc.aap.client.repo","uk.ac.ebi.cloud.portal.service"})

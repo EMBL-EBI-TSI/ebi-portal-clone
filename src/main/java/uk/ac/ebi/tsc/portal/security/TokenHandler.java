@@ -27,6 +27,11 @@ import java.util.List;
 import java.util.Set;
 
 /**
+ * @author Jose A. Dianes <jdianes@ebi.ac.uk>
+ * @since v0.0.1
+ * @author Navis Raj <navis@ebi.ac.uk>
+ */
+/**
  * Extracts the user from a Json Web Token and matches to user account.
  */
 @Component

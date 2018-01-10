@@ -7,7 +7,11 @@ import org.springframework.context.annotation.Import;
 
 import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionServiceImpl;
 
-
+/**
+ * @author Jose A. Dianes <jdianes@ebi.ac.uk>
+ * @since v0.0.1
+ * @author Navis Raj <navis@ebi.ac.uk>
+ */
 @Configuration
 @Import(EncryptionServiceImpl.class)
 class EncryptionConfiguration{

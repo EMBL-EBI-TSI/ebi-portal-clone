@@ -34,6 +34,7 @@ import java.util.stream.Collectors;
 /**
  * @author Jose A. Dianes <jdianes@ebi.ac.uk>
  * @since v0.0.1
+ * @author Navis Raj <navis@ebi.ac.uk>
  */
 public class ConfigurationService {
 
@@ -322,12 +323,17 @@ public class ConfigurationService {
 		if((input.getSoftUsageLimit()!=null) && !((configuration.getSoftUsageLimit()!=null) && configuration.getSoftUsageLimit().equals(input.getSoftUsageLimit()))) {
 			logger.info("Updating soft usage limits with new value, as requested by user");
 			configuration.setSoftUsageLimit(input.getSoftUsageLimit());
+		} else if (input.getSoftUsageLimit()==null) {
+			logger.info("Resetting soft usage limits, as requested by user");
+			configuration.setSoftUsageLimit(null);
 		}
 		if((input.getHardUsageLimit()!=null) && !((configuration.getHardUsageLimit()!=null) && configuration.getHardUsageLimit().equals(input.getHardUsageLimit()))) {
 			logger.info("Updating hard usage limits with new value, as requested by user");
 			configuration.setHardUsageLimit(input.getHardUsageLimit());
+		} else if (input.getHardUsageLimit()==null) {
+			logger.info("Resetting hard usage limits, as requested by user");
+			configuration.setHardUsageLimit(null);
 		}
-
 		//updating deployment parameters if requested
 		ConfigDeploymentParamsCopy configDeploymentParamsCopy = configDeploymentParamsCopyService.findByConfigurationDeploymentParametersReference(configuration.getConfigDeployParamsReference());
 		if(!configDeploymentParamsCopy.getName().equals(input.getDeploymentParametersName())){

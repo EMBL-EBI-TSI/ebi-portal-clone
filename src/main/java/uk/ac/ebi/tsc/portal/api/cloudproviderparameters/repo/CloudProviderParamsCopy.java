@@ -21,6 +21,11 @@ import org.hibernate.annotations.LazyCollectionOption;
 
 import uk.ac.ebi.tsc.portal.api.account.repo.Account;
 
+/**
+ * @author Jose A. Dianes <jdianes@ebi.ac.uk>
+ * @since v0.0.1
+ * @author Navis Raj <navis@ebi.ac.uk>
+ */
 @Entity
 @Table(name="cloud_provider_params_copy")
 public class CloudProviderParamsCopy {

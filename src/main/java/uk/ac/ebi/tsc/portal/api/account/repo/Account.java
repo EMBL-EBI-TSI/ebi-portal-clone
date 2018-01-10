@@ -30,6 +30,7 @@ import uk.ac.ebi.tsc.portal.api.volumesetup.repo.VolumeSetup;
 /**
  * @author Jose A. Dianes <jdianes@ebi.ac.uk>
  * @since v0.0.1
+ * @author Navis Raj <navis@ebi.ac.uk>
  */
 @Entity
 @Order(Ordered.HIGHEST_PRECEDENCE)

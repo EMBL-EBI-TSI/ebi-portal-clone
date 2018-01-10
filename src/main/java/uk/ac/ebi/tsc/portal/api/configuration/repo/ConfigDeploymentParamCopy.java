@@ -6,9 +6,9 @@ import java.util.LinkedList;
 import javax.persistence.*;
 
 /**
- * 
- * @author navis
- *
+ * @author Jose A. Dianes <jdianes@ebi.ac.uk>
+ * @since v0.0.1
+ * @author Navis Raj <navis@ebi.ac.uk>
  */
 @Entity
 public class ConfigDeploymentParamCopy {

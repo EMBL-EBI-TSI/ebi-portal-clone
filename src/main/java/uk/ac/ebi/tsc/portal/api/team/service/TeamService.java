@@ -43,6 +43,11 @@ import uk.ac.ebi.tsc.portal.api.team.repo.Team;
 import uk.ac.ebi.tsc.portal.api.team.repo.TeamRepository;
 import uk.ac.ebi.tsc.portal.api.utils.SendMail;
 
+/**
+ * @author Jose A. Dianes <jdianes@ebi.ac.uk>
+ * @since v0.0.1
+ * @author Navis Raj <navis@ebi.ac.uk>
+ */
 public class TeamService {
 
 	private final TeamRepository teamRepository;

@@ -34,6 +34,12 @@ import uk.ac.ebi.tsc.portal.api.deployment.repo.Deployment;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
 import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
 
+
+/**
+ * @author Jose A. Dianes <jdianes@ebi.ac.uk>
+ * @since v0.0.1
+ * @author Navis Raj <navis@ebi.ac.uk>
+ */
 public class CloudProviderParamsCopyService {
 
 	private static final Logger logger = LoggerFactory.getLogger(CloudProviderParamsCopyService.class);

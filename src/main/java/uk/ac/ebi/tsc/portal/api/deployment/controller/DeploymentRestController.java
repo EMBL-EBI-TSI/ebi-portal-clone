@@ -107,8 +107,8 @@ import uk.ac.ebi.tsc.portal.usage.tracker.DeploymentStatusTracker;
 
 /**
  * @author Jose A. Dianes <jdianes@ebi.ac.uk>
- * @author Gianni Dalla Torre <giannidallatorre@gmail.com>
  * @since v0.0.1
+ * @author Navis Raj <navis@ebi.ac.uk>
  */
 @RestController
 @RequestMapping(value = "/deployment", produces = {MediaType.APPLICATION_JSON_VALUE})
@@ -135,7 +135,7 @@ public class DeploymentRestController {
 
 	@Value("${elasticsearch.password}")
 	private String elasticSearchPassword;
-	
+
 	private final DeploymentService deploymentService;
 
 	private final AccountService accountService;
@@ -163,7 +163,7 @@ public class DeploymentRestController {
 	private final CloudProviderParamsCopyService cloudProviderParametersCopyService;
 
 	private final ConfigDeploymentParamsCopyService configDeploymentParamsCopyService;
-	
+
 	@Autowired
 	DeploymentRestController(DeploymentRepository deploymentRepository,
 			DeploymentStatusRepository deploymentStatusRepository,
@@ -301,7 +301,7 @@ public class DeploymentRestController {
 		if(configuration != null) {
 			// check hard usage limit before proceeding any further
 			if (configuration.getHardUsageLimit()!= null && this.configurationService.getTotalConsumption(configuration, deploymentIndexService)>=configuration.getHardUsageLimit()) {
-				throw new UsageLimitsException(configuration.getName(), configuration.getHardUsageLimit());
+				throw new UsageLimitsException(configuration.getName(), configuration.getAccount().getEmail(), configuration.getHardUsageLimit());
 			}
 			String configurationDeploymentParametersName = this.configDeploymentParamsCopyService.findByConfigurationDeploymentParametersReference(configuration.getConfigDeployParamsReference()).getName();
 			ConfigDeploymentParamsCopy configDeploymentParamsCopy = this.configDeploymentParamsCopyService.findByName(configurationDeploymentParametersName);

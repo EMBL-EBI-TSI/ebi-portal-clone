@@ -23,8 +23,8 @@ import uk.ac.ebi.tsc.portal.usage.deployment.service.DeploymentIndexService;
 /**
  * @author Jose A. Dianes <jdianes@ebi.ac.uk>
  * @since v0.0.1
- **/
-
+ * @author Navis Raj <navis@ebi.ac.uk>
+ */
 public class DeploymentStatusUpdate implements Runnable {
 
 	private static final Logger logger = LoggerFactory.getLogger(DeploymentStatusUpdate.class);

@@ -14,6 +14,11 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.when;
 
+/**
+ * @author Jose A. Dianes <jdianes@ebi.ac.uk>
+ * @since v0.0.1
+ * @author Navis Raj <navis@ebi.ac.uk>
+ */
 @ContextConfiguration
 @RunWith(SpringJUnit4ClassRunner.class)
 @WebAppConfiguration

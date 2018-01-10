@@ -1,4 +1,20 @@
 package uk.ac.ebi.tsc.portal.api.configuration.controller;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
+
+import java.security.Principal;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import javax.servlet.http.HttpServletRequest;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -13,6 +29,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.util.ReflectionTestUtils;
+
 import uk.ac.ebi.tsc.aap.client.model.User;
 import uk.ac.ebi.tsc.aap.client.repo.DomainService;
 import uk.ac.ebi.tsc.portal.api.account.repo.Account;
@@ -25,22 +42,19 @@ import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigDeploymentParamsCopy;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.Configuration;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationDeploymentParameters;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationRepository;
-import uk.ac.ebi.tsc.portal.api.configuration.service.*;
+import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigDeploymentParamsCopyService;
+import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationDeploymentParametersNotFoundException;
+import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationDeploymentParametersService;
+import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationNotFoundException;
+import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationService;
 import uk.ac.ebi.tsc.portal.security.TokenHandler;
 
-import javax.servlet.http.HttpServletRequest;
-import java.security.Principal;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.*;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.mock;
-
-
+/**
+ * @author Jose A. Dianes <jdianes@ebi.ac.uk>
+ * @since v0.0.1
+ * @author Navis Raj <navis@ebi.ac.uk>
+ */
 @ContextConfiguration
 @RunWith(SpringJUnit4ClassRunner.class)
 @WebAppConfiguration
@@ -51,53 +65,53 @@ public class ConfigurationRestControllerTest {
 
 	@MockBean
 	private ConfigurationService configurationService;
-	
+
 	@MockBean
 	private ConfigurationRepository configurationRepository;
-	
+
 	@MockBean
 	private AccountService accountService;
-	
+
 	@MockBean
 	private ConfigurationDeploymentParametersService cdpsService;
-	
+
 	@MockBean
 	private CloudProviderParametersService cppService;
 	@MockBean
 	private CloudProviderParameters cpp;
-	
+
 	@MockBean
 	private Principal principal;
-	
+
 	@MockBean
 	private Account account;
-	
+
 	@MockBean
 	private HttpServletRequest request;
-	
+
 	@MockBean
 	private TokenHandler tokenHandler;
-	
+
 	@MockBean 
 	private DomainService domainService;
-	
+
 	@MockBean
 	private ConfigDeploymentParamsCopyService cdpsCopyService;
 
 	private String principalName = "principalName";
 	String tokenArray = "some token";
 	String token = "token" ;
-	
+
 	@MockBean
 	private CloudProviderParamsCopyService cppCopyService;
 	@MockBean
 	private CloudProviderParamsCopy cppCopy;
-	
+
 	private String cloudProviderType = "OSTACK";
-	
+
 	@Before
 	public void setUp(){
-		
+
 		ReflectionTestUtils.setField(subject, "configurationService", configurationService);
 		ReflectionTestUtils.setField(subject, "accountService", accountService);
 		ReflectionTestUtils.setField(subject, "configurationDeploymentParametersService", cdpsService);
@@ -111,13 +125,13 @@ public class ConfigurationRestControllerTest {
 		given(cppCopy.getCloudProvider()).willReturn(cloudProviderType);
 		given(cppCopyService.findByCloudProviderParametersReference(Mockito.anyString())).willReturn(cppCopy);
 	}
-	
+
 	/**
 	 * test if user can get back his set configurations
 	 */
 	@Test
 	public void testGetCurrentUserConfigurations(){
-		
+
 		getPrincipal();
 		getAccount();
 		Configuration configuration = mock(Configuration.class);
@@ -131,13 +145,13 @@ public class ConfigurationRestControllerTest {
 		Resources<ConfigurationResource> cdpsResourcesReturned = subject.getCurrentUserConfigurations(principal);
 		assertNotNull(cdpsResourcesReturned);
 	}	
-	
+
 	/**
 	 * test if user can get all the deployment parameters
 	 */
 	@Test
 	public void testGetAllDeploymentParameters(){
-		
+
 		getPrincipal();
 		getAccount();
 		List<ConfigurationDeploymentParameters> cdps = getDeploymentParameters();
@@ -147,13 +161,13 @@ public class ConfigurationRestControllerTest {
 		assertNotNull(cdpsResource);
 		assertEquals(cdpsResource.getContent().size(), 1);
 	}
-	
+
 	/**
 	 * test if user can get  deploymentparameters by its name
 	 */
 	@Test
 	public void testGetDeploymentParametersByName(){
-		
+
 		getPrincipal();
 		getAccount();
 		ConfigurationDeploymentParameters cdp = getDeploymentParameters().get(0);
@@ -163,37 +177,37 @@ public class ConfigurationRestControllerTest {
 		assertNotNull(cdpResource);
 		assertEquals(cdpResource.getContent().getName(), cdp.getName());
 	}
-	
+
 	/**
 	 * test that when configuration to be added was not added 
 	 * because it was not saved,'NullPointerException' is thrown
 	 */
 	@Test(expected = NullPointerException.class)
 	public void addConfigurationNotAdded(){
-		
+
 		getPrincipal();
 		getAccount();
 		ConfigurationResource input = getConfigurationResource();
 		given(cppService.findByNameAndAccountUsername(
-					input.getCloudProviderParametersName(), principal.getName())).willReturn(cpp);
+				input.getCloudProviderParametersName(), principal.getName())).willReturn(cpp);
 		ConfigurationDeploymentParameters cdp = getDeploymentParameters().get(0);
 		given(cdpsService.findByName(input.getDeploymentParametersName())).willReturn(cdp);
 		given(subject.add(principal, input)).willCallRealMethod();
 		ResponseEntity<?> response = subject.add(principal, input);
 	}
-	
+
 	/**
 	 * test that, when configuration to be added was not added 
 	 * because it was not saved,  http status 'created' is returned
 	 */
 	@Test
 	public void addConfigurationSuccessFullyAdded(){
-		
+
 		getPrincipal();
 		getAccount();
 		ConfigurationResource input = getConfigurationResource();
 		given(cppService.findByNameAndAccountUsername(
-					input.getCloudProviderParametersName(), principal.getName())).willReturn(cpp);
+				input.getCloudProviderParametersName(), principal.getName())).willReturn(cpp);
 		ConfigurationDeploymentParameters cdp = getDeploymentParameters().get(0);
 		given(cdpsService.findByName(input.getDeploymentParametersName())).willReturn(cdp);
 		ResponseEntity response =  mock(ResponseEntity.class);
@@ -202,10 +216,10 @@ public class ConfigurationRestControllerTest {
 		ResponseEntity<?> responseReturned = subject.add(principal, input);
 		assertThat(responseReturned.getStatusCode() , is(HttpStatus.CREATED));
 	}
-	
+
 	@Test(expected = InvalidConfigurationInputException.class)
 	public void addConfigurationInvalidName(){
-		
+
 		String configName = "a\\.\\.\\-b0";
 		getPrincipal();
 		getAccount();
@@ -221,8 +235,8 @@ public class ConfigurationRestControllerTest {
 		given(subject.add(principal, configResource)).willCallRealMethod();
 		ResponseEntity<?> responseReturned = subject.add(principal, configResource);
 	}
-	
-	
+
+
 	/**
 	 * test that when configuration to be added has no
 	 * 'cloudprovider' which was specified 'CloudProviderParametersNotFoundException'
@@ -230,33 +244,33 @@ public class ConfigurationRestControllerTest {
 	 */
 	@Test(expected = CloudProviderParametersNotFoundException.class)
 	public void addConfigurationNoCloudProvider(){
-		
+
 		getPrincipal();
 		getAccount();
 		ConfigurationResource input = getConfigurationResource();
 		given(cppService.findByNameAndAccountUsername(
-					input.getCloudProviderParametersName(), principal.getName())).willThrow(CloudProviderParametersNotFoundException.class);
+				input.getCloudProviderParametersName(), principal.getName())).willThrow(CloudProviderParametersNotFoundException.class);
 		given(subject.add(principal, input)).willCallRealMethod();
 		subject.add(principal, input);
 	}
-	
+
 	/**
 	 * that that delete operation has necessary information
 	 * supplied in method - response has no body but 
 	 * it just has headers , so check response is not null
 	 * 
 	 */
-	
+
 	/*@Test
 	public void testDeleteConfiguration() throws InvalidKeyException, NoSuchAlgorithmException, InvalidKeySpecException, NoSuchPaddingException, InvalidAlgorithmParameterException, BadPaddingException, IllegalBlockSizeException{
-		
+
 		getPrincipal();
 		getAccount();
 		String configurationName = "configName";
 		given(subject.delete(principal, configurationName)).willCallRealMethod();
 		assertNotNull(subject.delete(principal, configurationName));
 	}*/
-	
+
 	/**
 	 * that that delete operation has necessary information
 	 * supplied in method - response has no body but 
@@ -264,10 +278,10 @@ public class ConfigurationRestControllerTest {
 	 * @throws Exception 
 	 * 
 	 * */
-	
+
 	@Test
 	public void testDeleteDeploymentParameters() throws Exception{
-		
+
 		getPrincipal();
 		getAccount();
 		String deploymentParametersName = "dpName";
@@ -278,14 +292,14 @@ public class ConfigurationRestControllerTest {
 		assertNotNull(deleted);
 		assertTrue(deleted.getStatusCode().equals(HttpStatus.OK));
 	}
-	
+
 	/**
 	 * test that when configuration to be added has name
 	 * which has 0 characters, InvalidConfigurationInputException is thrown
 	 */
 	@Test(expected = InvalidConfigurationInputException.class)
 	public void addConfigurationBlankConfigurationName(){
-		
+
 		getPrincipal();
 		getAccount();
 		ConfigurationResource input = getInvalidConfigurationResource();
@@ -294,30 +308,30 @@ public class ConfigurationRestControllerTest {
 		given(subject.add(principal, input)).willCallRealMethod();
 		subject.add(principal, input);
 	}
-	
+
 	/**
 	 * test that when deploymentparameters to be added was not added 
 	 * because it was not saved, 'NullPointerException' is thrown
 	 */
 	@Test(expected = NullPointerException.class)
 	public void addDeploymentParametersNotAdded(){
-		
+
 		getPrincipal();
 		getAccount();
 		ConfigurationDeploymentParametersResource input = getDeploymentParametersResource();
 		given(subject.addDeploymentParameters(principal, input)).willCallRealMethod();
 		ResponseEntity<?> response = subject.addDeploymentParameters(principal, input);
 	}
-	
+
 	/**
 	 * test that when deploymentparameters to be added was successfully added 
 	 * http status 'created' is returned
 	 * 
 	 */
-	 
+
 	@Test
 	public void addDeploymentParametersSuccessFullyAdded(){
-		
+
 		getPrincipal();
 		getAccount();
 		ConfigurationDeploymentParametersResource input = getDeploymentParametersResource();
@@ -327,10 +341,10 @@ public class ConfigurationRestControllerTest {
 		ResponseEntity<?> responseReturned = subject.addDeploymentParameters(principal, input);
 		assertThat(responseReturned.getStatusCode() , is(HttpStatus.CREATED));
 	}
-	
+
 	@Test(expected = InvalidConfigurationDeploymentParametersException.class)
 	public void addDeploymentParametersInvalidName(){
-		
+
 		getPrincipal();
 		getAccount();
 		String cdpsName = "cdps..";
@@ -339,10 +353,10 @@ public class ConfigurationRestControllerTest {
 		given(subject.addDeploymentParameters(principal, input)).willCallRealMethod();
 		subject.addDeploymentParameters(principal, input);
 	}
-	
+
 	@Test
 	public void testGetSharedCdpByAccount(){
-		
+
 		getPrincipal();
 		getRequest();
 		getAccount();
@@ -357,10 +371,10 @@ public class ConfigurationRestControllerTest {
 		Resources resources = subject.getSharedConfigurationDeploymentParametersByAccount(request, principal);
 		assertEquals(1, resources.getContent().size());
 	}
-	
+
 	@Test
 	public void testGetSharedConfigurationByAccountReturnsEmpty(){
-		
+
 		getPrincipal();
 		getRequest();
 		getAccount();
@@ -374,10 +388,10 @@ public class ConfigurationRestControllerTest {
 		Resources resources = subject.getSharedConfigurationsByAccount(request, principal);
 		assertEquals(0, resources.getContent().size());
 	}
-	
+
 	@Test
 	public void testGetSharedConfigurationByAccount(){
-		
+
 		getPrincipal();
 		getRequest();
 		getAccount();
@@ -396,7 +410,7 @@ public class ConfigurationRestControllerTest {
 		Resources resources = subject.getSharedConfigurationsByAccount(request, principal);
 		assertEquals(1, resources.getContent().size());
 	}
-	
+
 	@Test
 	public void testGetSharedConfigurationByName(){
 		getPrincipal();
@@ -413,10 +427,10 @@ public class ConfigurationRestControllerTest {
 		ConfigurationResource resource = subject.getSharedByName(request, principal, configuration.getName());
 		assertEquals(resource.getName(), configuration.getName());
 	}
-	
+
 	@Test(expected = ConfigurationNotFoundException.class)
 	public void testGetSharedConfigurationByNameThrowsException(){
-		
+
 		getPrincipal();
 		getRequest();
 		getAccount();
@@ -429,10 +443,10 @@ public class ConfigurationRestControllerTest {
 		Mockito.when(subject.getSharedByName(request, principal, configuration.getName())).thenCallRealMethod();
 		subject.getSharedByName(request, principal, configuration.getName());
 	}
-	
+
 	@Test
 	public void testGetSharedCdpByAccountAndApplicationName(){
-		
+
 		getPrincipal();
 		getRequest();
 		getAccount();
@@ -447,10 +461,10 @@ public class ConfigurationRestControllerTest {
 		ConfigurationDeploymentParametersResource resource = subject.getSharedConfigurationDeploymentParametersByName(request, principal, cdp.getName());
 		assertTrue(resource.getName().equals(cdp.getName()));
 	}
-	
+
 	@Test(expected = ConfigurationDeploymentParametersNotFoundException.class)
 	public void testGetSharedCdpByAccountAndApplicationNameReturnsNull(){
-		
+
 		getPrincipal();
 		getRequest();
 		getAccount();
@@ -463,7 +477,7 @@ public class ConfigurationRestControllerTest {
 		Mockito.when(subject.getSharedConfigurationDeploymentParametersByName(request, principal, cdp.getName())).thenCallRealMethod();
 		ConfigurationDeploymentParametersResource resource = subject.getSharedConfigurationDeploymentParametersByName(request, principal, cdp.getName());
 	}
-	
+
 	@Test
 	public void testGetSharedCdpByAccountNullCdps(){
 		getPrincipal();
@@ -479,7 +493,7 @@ public class ConfigurationRestControllerTest {
 		Resources resources = subject.getSharedConfigurationDeploymentParametersByAccount(request, principal);
 		assertEquals(0, resources.getContent().size());
 	}
-	
+
 	@Test
 	public void testUpdate(){
 		getPrincipal();
@@ -500,16 +514,16 @@ public class ConfigurationRestControllerTest {
 		ResponseEntity<?> response = subject.update(principal, configResource, configName);
 		assertTrue(response.getStatusCode().equals(HttpStatus.OK));
 	}
-	
+
 	private void getPrincipal(){
 		given(principal.getName()).willReturn(principalName);
 	}
-	
+
 	private void getAccount(){
 		given(accountService.findByUsername(principalName)).willReturn(account);
 		given(account.getUsername()).willReturn(principalName);
 	}
-	
+
 	private List<ConfigurationDeploymentParameters> getDeploymentParameters(){
 		String cdpsName = "cdps";
 		List<ConfigurationDeploymentParameters> cdps = new ArrayList<>();
@@ -518,7 +532,7 @@ public class ConfigurationRestControllerTest {
 		cdps.add(one);
 		return cdps;
 	}
-	
+
 	private List<ConfigDeploymentParamsCopy> getDeploymentParametersCopy(){
 		String cdpsName = "cdps";
 		List<ConfigDeploymentParamsCopy> cdps = new ArrayList<>();
@@ -526,15 +540,15 @@ public class ConfigurationRestControllerTest {
 		cdps.add(one);
 		return cdps;
 	}
-	
+
 	private ConfigurationDeploymentParametersResource getDeploymentParametersResource(){
 		String cdpsName = "cdps";
 		ConfigurationDeploymentParameters one  = new ConfigurationDeploymentParameters(cdpsName, account);
 		ConfigurationDeploymentParametersResource cdpResource = new ConfigurationDeploymentParametersResource(one);
 		return cdpResource;
-		
+
 	}
-	
+
 	private List<Configuration> getConfigurations(){
 		String configName = "config";
 		String cppName = "cppName";
@@ -546,7 +560,7 @@ public class ConfigurationRestControllerTest {
 		configurations.add(one);
 		return configurations;
 	}
-	
+
 	private List<Configuration> getInvalidConfigurations(){
 		String configName = "";
 		String cppName = "cppName";
@@ -559,17 +573,17 @@ public class ConfigurationRestControllerTest {
 		configurations.add(one);
 		return configurations;
 	}
-	
+
 	private ConfigurationResource getConfigurationResource(){
 		ConfigurationResource configResource = new ConfigurationResource(getConfigurations().get(0), cppCopy);
 		return configResource ;
 	}
-	
+
 	private ConfigurationResource getInvalidConfigurationResource(){
 		ConfigurationResource configResource = new ConfigurationResource(getInvalidConfigurations().get(0), cppCopy);
 		return configResource ;
 	}
-	
+
 	private void getRequest(){
 		given(request.getHeader(HttpHeaders.AUTHORIZATION)).willReturn(tokenArray);
 	}

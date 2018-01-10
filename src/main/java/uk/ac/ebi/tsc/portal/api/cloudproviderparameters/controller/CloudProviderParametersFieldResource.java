@@ -3,9 +3,11 @@ package uk.ac.ebi.tsc.portal.api.cloudproviderparameters.controller;
 import org.springframework.hateoas.ResourceSupport;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParametersField;
 
+
 /**
  * @author Jose A. Dianes <jdianes@ebi.ac.uk>
  * @since v0.0.1
+ * @author Navis Raj <navis@ebi.ac.uk>
  */
 public class CloudProviderParametersFieldResource extends ResourceSupport {
 

@@ -56,6 +56,7 @@ import uk.ac.ebi.tsc.portal.clouddeployment.volume.VolumeDeployerBash;
 /**
  * @author Jose A. Dianes <jdianes@ebi.ac.uk>
  * @since v0.0.1
+ * @author Navis Raj <navis@ebi.ac.uk>
  */
 @RestController
 @RequestMapping(value = "/volumeinstance", produces = {MediaType.APPLICATION_JSON_VALUE})

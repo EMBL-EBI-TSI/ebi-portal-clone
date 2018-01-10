@@ -79,9 +79,9 @@ import uk.ac.ebi.tsc.portal.api.team.service.TeamService;
 import uk.ac.ebi.tsc.portal.security.TokenHandler;
 
 /**
- * @author Mary Navis Raj <navis@ebi.ac.uk>
  * @author Jose A. Dianes <jdianes@ebi.ac.uk>
  * @since v0.0.1
+ * @author Navis Raj <navis@ebi.ac.uk>
  */
 @RestController
 @RequestMapping(value = "/team", produces = {MediaType.APPLICATION_JSON_VALUE})

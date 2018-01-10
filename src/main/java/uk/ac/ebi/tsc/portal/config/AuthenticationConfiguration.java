@@ -16,6 +16,7 @@ import uk.ac.ebi.tsc.portal.api.account.repo.AccountRepository;
 /**
  * @author Jose A. Dianes <jdianes@ebi.ac.uk>
  * @since v0.0.1
+ * @author Navis Raj <navis@ebi.ac.uk>
  */
 @Configuration
 @ComponentScan(basePackages = "uk.ac.ebi.tsc.portal.api")

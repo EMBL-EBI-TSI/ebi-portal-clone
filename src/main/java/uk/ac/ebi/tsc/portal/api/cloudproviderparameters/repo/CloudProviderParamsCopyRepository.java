@@ -7,6 +7,11 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+/**
+ * @author Jose A. Dianes <jdianes@ebi.ac.uk>
+ * @since v0.0.1
+ * @author Navis Raj <navis@ebi.ac.uk>
+ */
 @Repository
 public interface CloudProviderParamsCopyRepository extends JpaRepository<CloudProviderParamsCopy, Long>{
 	//find by name alone would not give you the right record, use name and reference combination.

@@ -63,12 +63,10 @@ import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDownloaderExce
 import uk.ac.ebi.tsc.portal.security.TokenHandler;
 
 /**
- * 
- * @author navis 
- * @email <navis@ebi.ac.uk>
- *
+ * @author Jose A. Dianes <jdianes@ebi.ac.uk>
+ * @since v0.0.1
+ * @author Navis Raj <navis@ebi.ac.uk>
  */
-
 @RunWith(SpringJUnit4ClassRunner.class)
 @WebAppConfiguration
 public class CloudProviderParameterRestControllerTest {
