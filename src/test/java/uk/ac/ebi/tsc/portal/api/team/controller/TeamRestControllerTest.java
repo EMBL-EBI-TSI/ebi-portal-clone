@@ -812,7 +812,6 @@ public class TeamRestControllerTest {
 		given(toRemove.getId()).willReturn(1L);
 		assertTrue(toRemove.getSharedWithTeams().size() == 1);
 		assertTrue(team.getCppBelongingToTeam().size() == 1);
-		given(cppService.toHex(Mockito.anyString())).willReturn("something");
 		given(cppService.findByNameAndAccountUsername(name, principalName)).willCallRealMethod();
 		given(cppRepository.findByNameAndAccountUsername(name, principalName)).willReturn(Optional.of(toRemove));
 		given(toRemove.getAccount().getUsername()).willReturn(principalName);
