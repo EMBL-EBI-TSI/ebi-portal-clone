@@ -19,7 +19,7 @@ import static org.springframework.hateoas.mvc.ControllerLinkBuilder.linkTo;
  */
 public class DeploymentResource extends ResourceSupport {
 
-    private Long id;
+	private Long id;
     public String reference;
     public String accountUsername;
     public String accountGivenName;
@@ -34,6 +34,7 @@ public class DeploymentResource extends ResourceSupport {
     public java.sql.Timestamp deployedTime;
     public java.sql.Timestamp  failedTime;
     public java.sql.Timestamp  destroyedTime;
+    public java.sql.Timestamp  lastNotificationTime;
     public CloudProviderParametersCopyResource cloudProviderParametersCopy;
     public Collection<DeploymentAttachedVolumeResource> attachedVolumes;
     public Collection<DeploymentAssignedInputResource> assignedInputs;
@@ -59,6 +60,7 @@ public class DeploymentResource extends ResourceSupport {
         this.deployedTime = deployment.getDeployedTime();
         this.failedTime = deployment.getFailedTime();
         this.destroyedTime = deployment.getDestroyedTime();
+        this.lastNotificationTime = deployment.getLastNotificationTime();
         this.cloudProviderParametersCopy = cloudProviderParametersCopy != null ?
         		new CloudProviderParametersCopyResource(cloudProviderParametersCopy): new CloudProviderParametersCopyResource();
         this.userSshKey = deployment.getUserSshKey();
@@ -76,6 +78,8 @@ public class DeploymentResource extends ResourceSupport {
         ).collect(Collectors.toList());
         this.configurationName = deployment.getDeploymentConfiguration() != null ? deployment.getDeploymentConfiguration().getName()
         		: null;
+        this.configurationAccountUsername = deployment.getDeploymentConfiguration() != null ? deployment.getDeploymentConfiguration().getOwnerAccountUsername()
+                : null;
         this.add(
             linkTo(AccountRestController.class)
                 .slash(deployment.getAccount().getUsername())
@@ -182,6 +186,10 @@ public class DeploymentResource extends ResourceSupport {
 
     public Timestamp getDestroyedTime() {
         return destroyedTime;
+    }
+
+    public Timestamp getLastNotificationTime() {
+        return lastNotificationTime;
     }
 
     public void setConfigurationAccountUsername(String configurationAccountUsername) {

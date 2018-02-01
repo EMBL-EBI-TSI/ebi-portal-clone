@@ -1,0 +1,1 @@
+alter table deployment add column last_notification_time timestamp;

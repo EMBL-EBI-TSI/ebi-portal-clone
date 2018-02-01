@@ -504,9 +504,12 @@ public class DeploymentRestController {
 		userDeployments.stream().forEach( d -> {
 			logger.debug("There are " + d.getGeneratedOutputs().size() + " generated outputs for deployment " + d.getReference());
 		});
+		
 		List<DeploymentResource> deploymentResourceList = new ArrayList<>();
+		
 		userDeployments.forEach(deployment -> {
-			if(deployment.getCloudProviderParametersReference() != null){
+			deploymentResourceList.add(new DeploymentResource(deployment, null));
+			/*if(deployment.getCloudProviderParametersReference() != null){
 				try{
 					CloudProviderParamsCopy cppCopy = this.cloudProviderParametersCopyService.findByCloudProviderParametersReference(deployment.getCloudProviderParametersReference());
 					deploymentResourceList.add(new DeploymentResource(deployment, cppCopy));
@@ -515,7 +518,7 @@ public class DeploymentRestController {
 				}
 			}else{
 				deploymentResourceList.add(new DeploymentResource(deployment, null));
-			}
+			}*/
 		});
 
 		return new Resources<>(deploymentResourceList);

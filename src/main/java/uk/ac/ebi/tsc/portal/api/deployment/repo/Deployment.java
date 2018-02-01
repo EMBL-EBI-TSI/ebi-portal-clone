@@ -8,6 +8,8 @@ import uk.ac.ebi.tsc.portal.api.account.repo.Account;
 
 import javax.persistence.*;
 import javax.validation.constraints.NotNull;
+
+import java.sql.Timestamp;
 import java.util.Collection;
 import java.util.LinkedList;
 
@@ -19,7 +21,7 @@ import java.util.LinkedList;
 @Entity
 public class Deployment{
 
-    @ManyToOne
+	@ManyToOne
     private Account account;
 
     @Id
@@ -74,7 +76,9 @@ public class Deployment{
     private java.sql.Timestamp  failedTime;
  
     private java.sql.Timestamp  destroyedTime;
-    
+
+    private java.sql.Timestamp  lastNotificationTime;
+
     private String userSshKey;
     
     Deployment() { 
@@ -231,7 +235,15 @@ public class Deployment{
 		this.cloudProviderParametersReference = cloudProviderParametersReference;
 	}
 
-	public String getUserSshKey() {
+    public Timestamp getLastNotificationTime() {
+        return lastNotificationTime;
+    }
+
+    public void setLastNotificationTime(Timestamp lastNotificationTime) {
+        this.lastNotificationTime = lastNotificationTime;
+    }
+
+    public String getUserSshKey() {
 		return userSshKey;
 	}
 
