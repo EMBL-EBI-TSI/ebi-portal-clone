@@ -76,6 +76,7 @@ import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
 import uk.ac.ebi.tsc.portal.api.team.repo.Team;
 import uk.ac.ebi.tsc.portal.api.team.repo.TeamRepository;
 import uk.ac.ebi.tsc.portal.api.team.service.TeamService;
+import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployerBash;
 import uk.ac.ebi.tsc.portal.security.TokenHandler;
 
 /**
@@ -109,8 +110,6 @@ public class TeamRestController {
 
 	private final DeploymentConfigurationService deploymentConfigurationService;
 
-	private final DeploymentRestController deploymentRestController;
-
 	private final CloudProviderParamsCopyService cloudProviderParametersCopyService;
 
 	@Autowired
@@ -127,11 +126,11 @@ public class TeamRestController {
 			DeploymentRestController deploymentRestController,
 			CloudProviderParamsCopyRepository cloudProviderParametersCopyRepository,
 			EncryptionService encryptionService,
+			ApplicationDeployerBash applicationDeployerBash,
 			@Value("${ecp.security.salt}") final String salt, 
 			@Value("${ecp.security.password}") final String password){
 		this.cloudProviderParametersCopyService = new CloudProviderParamsCopyService(cloudProviderParametersCopyRepository, encryptionService,
 				salt, password);
-		this.teamService = new TeamService(teamRepository, accountRepository, domainService);
 		this.accountService = new AccountService(accountRepository);
 		this.applicationService = new ApplicationService(applicationRepository, domainService);
 		this.cloudProviderParametersService = new CloudProviderParametersService(cppRepository, domainService, 
@@ -140,8 +139,9 @@ public class TeamRestController {
 		this.deploymentService = new DeploymentService(deploymentRepository, deploymentStatusRepository);
 		this.configurationService = new ConfigurationService(configRepository, domainService, 
 				cloudProviderParametersService, configDepParamsService, cloudProviderParametersCopyService, deploymentService);
-		this.deploymentConfigurationService = new DeploymentConfigurationService(deploymentConfigurationRepository);
-		this.deploymentRestController = deploymentRestController;
+		this.deploymentConfigurationService = new DeploymentConfigurationService(deploymentConfigurationRepository); 
+		this.teamService = new TeamService(teamRepository, accountRepository, domainService, deploymentService, cloudProviderParametersCopyService,
+				deploymentConfigurationService, applicationDeployerBash);
 	}
 
 	@RequestMapping(method=RequestMethod.GET)
@@ -180,7 +180,7 @@ public class TeamRestController {
 					+ " Names may end with or contain '.' ,'_', '-' or spaces inbetween them.");
 		}
 
-		Team team = teamService.constructTeam(principal, teamResource, accountService, request.getHeader(HttpHeaders.AUTHORIZATION).split(" ")[1] );
+		Team team = teamService.constructTeam(principal.getName(), teamResource, accountService, request.getHeader(HttpHeaders.AUTHORIZATION).split(" ")[1] );
 
 		if(team != null){
 			logger.info("Team and domain created successfully");
@@ -232,9 +232,7 @@ public class TeamRestController {
 			boolean teamDeleted = teamService.deleteTeam(
 					team, 
 					request.getHeader(HttpHeaders.AUTHORIZATION).split(" ")[1],
-					principal,
 					deploymentService, 
-					deploymentRestController,
 					cloudProviderParametersCopyService,
 					configurationService);
 			if(teamDeleted){
@@ -254,11 +252,16 @@ public class TeamRestController {
 		if(teamResource.getName() == null || teamResource.getName().isEmpty()){
 			throw new TeamNameInvalidInputException("Team name should not be empty");
 		}
-
+  
 		try{
 			logger.info("Checking if user is team owner");
 			this.teamService.findByNameAndAccountUsername(teamResource.getName(), principal.getName());
-			boolean memberAdded  = teamService.addMemberToTeam(request, principal, teamResource);// get the team
+			String token = request.getHeader(HttpHeaders.AUTHORIZATION).split(" ")[1];
+			String baseURL = this.composeBaseURL(request);
+			boolean memberAdded  = teamService.addMemberToTeam(
+					token,
+					teamResource,
+					baseURL);
 			if(memberAdded){
 				return new ResponseEntity<>("User  was added to team and domain " + teamResource.getName(), HttpStatus.OK);
 			}else{
@@ -302,15 +305,14 @@ public class TeamRestController {
 		try{
 			logger.info("Checking if user is team owner");
 			Team team = this.teamService.findByNameAndAccountUsername(teamName, principal.getName());
-			boolean memberRemoved = teamService.removeMemberFromTeam(request, principal, teamName, userEmail);
+			boolean memberRemoved = teamService.removeMemberFromTeam(
+					request.getHeader(HttpHeaders.AUTHORIZATION).split(" ")[1], teamName, userEmail);
 			if(memberRemoved){
 				teamService.stopDeploymentsOfRemovedUser(team, 
 						userEmail,
 						deploymentService,
 						configurationService, 
-						configDepParamsService, 
-						deploymentRestController, 
-						principal);
+						configDepParamsService);
 				return new ResponseEntity<>("User " + userEmail + " was deleted from team " + teamName, HttpStatus.OK);
 			}else{
 				throw new TeamMemberNotRemovedException(teamName);
@@ -491,7 +493,7 @@ public class TeamRestController {
 
 			//stop deployments using shared credential
 			CloudProviderParameters toUnshare = cloudProviderParameters;
-			this.teamService.stopDeploymentsUsingGivenTeamSharedCloudProvider(team, principal, deploymentService, deploymentRestController, toUnshare);
+			this.teamService.stopDeploymentsUsingGivenTeamSharedCloudProvider(team, deploymentService, toUnshare);
 
 			// Update team
 			team.setCppBelongingToTeam(
@@ -588,7 +590,7 @@ public class TeamRestController {
 			logger.info("User " + principal.getName() + " owns both entities...");
 
 			//stop deployments using shared deployment parameters
-			this.teamService.stopDeploymentsUsingGivenTeamSharedConfigurationDeploymentParameter(team, principal, deploymentService, deploymentConfigurationService, deploymentRestController, configurationDeploymentParameters, configurationService);
+			this.teamService.stopDeploymentsUsingGivenTeamSharedConfigurationDeploymentParameter(team, deploymentService, deploymentConfigurationService, configurationDeploymentParameters, configurationService);
 
 			logger.info("Removing the shared deployment parameters from team");
 
@@ -687,7 +689,7 @@ public class TeamRestController {
 			logger.info("User " + principal.getName() + " owns both entities...");
 
 			//stop deployments using shared configuration
-			this.teamService.stopDeploymentsUsingGivenTeamSharedConfiguration(team, principal, deploymentService, deploymentConfigurationService, deploymentRestController, configuration);
+			this.teamService.stopDeploymentsUsingGivenTeamSharedConfiguration(team, deploymentService, deploymentConfigurationService, configuration);
 
 			logger.info("Removing configuration from team");
 
@@ -720,7 +722,7 @@ public class TeamRestController {
 		}
 
 		try{
-			this.teamService.addMemberOnRequest(request, teamResource);
+			this.teamService.addMemberOnRequest(this.composeBaseURL(request), teamResource);
 		}catch(IndexOutOfBoundsException e){
 			throw new RuntimeException("User is already a member of the team");
 		}
@@ -728,6 +730,34 @@ public class TeamRestController {
 		return new ResponseEntity<>("User  request was successfully sent to team owner " + teamResource.getName(), HttpStatus.OK);
 	}
 
+
+	public String composeBaseURL(HttpServletRequest request) {
+		
+		String baseURL = this.getBaseURL(request);
+		if(baseURL.contains(".api")){
+			//for dev
+			baseURL = baseURL.replace(".api", "");	
+			logger.info("Base URL, removed api is " + baseURL);
+		}else{
+			if(baseURL.contains("api")){
+				//for master
+				baseURL = baseURL.replace("api.", "");	
+				logger.info("Base URL, removed api is " + baseURL);
+			}
+		}
+		return baseURL;
+	}
+	
+	public String getBaseURL(HttpServletRequest request) {
+
+		StringBuffer url = request.getRequestURL();
+		String uri = request.getRequestURI();
+		String ctx = request.getContextPath();
+		String base = url.substring(0, url.length() - uri.length() + ctx.length()) + "/";
+		return base;
+
+	}
+	
 	//functionality to be included in aap side
 	/*@RequestMapping(value="/leave", method=RequestMethod.POST)
 	public ResponseEntity<?> leaveTeam(HttpServletRequest request, Principal principal, @RequestBody TeamResource teamResource){
@@ -742,11 +772,9 @@ public class TeamRestController {
 
 			boolean removedUser = teamService.leaveTeam(
 					request, 
-					principal, 
 					deploymentService,
 					configurationService, 
 					configDepParamsService, 
-					deploymentRestController,
 					teamResource
 					);
 

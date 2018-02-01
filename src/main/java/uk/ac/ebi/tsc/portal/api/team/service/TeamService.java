@@ -1,20 +1,19 @@
 package uk.ac.ebi.tsc.portal.api.team.service;
 
 import java.io.IOException;
-import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import javax.servlet.http.HttpServletRequest;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.HttpClientErrorException;
 
 import uk.ac.ebi.tsc.aap.client.model.Domain;
@@ -31,8 +30,9 @@ import uk.ac.ebi.tsc.portal.api.configuration.repo.Configuration;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationDeploymentParameters;
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationDeploymentParametersService;
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationService;
-import uk.ac.ebi.tsc.portal.api.deployment.controller.DeploymentRestController;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.Deployment;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentApplication;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentApplicationCloudProvider;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentConfiguration;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentStatusEnum;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentConfigurationService;
@@ -42,6 +42,8 @@ import uk.ac.ebi.tsc.portal.api.team.controller.TeamResource;
 import uk.ac.ebi.tsc.portal.api.team.repo.Team;
 import uk.ac.ebi.tsc.portal.api.team.repo.TeamRepository;
 import uk.ac.ebi.tsc.portal.api.utils.SendMail;
+import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployerBash;
+import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDeployerException;
 
 /**
  * @author Jose A. Dianes <jdianes@ebi.ac.uk>
@@ -53,15 +55,30 @@ public class TeamService {
 	private final TeamRepository teamRepository;
 	private final AccountService accountService;
 	private final DomainService domainService;
+	private final DeploymentService deploymentService;
+	private final CloudProviderParamsCopyService cloudProviderParametersCopyService;
+	private final DeploymentConfigurationService deploymentConfigurationService;
+	private final ApplicationDeployerBash applicationDeployerBash;
 
 	private static final Logger logger = LoggerFactory.getLogger(TeamService.class);
 
 	@Autowired
-	public TeamService(TeamRepository teamRepository, AccountRepository accountRepository, 
-			DomainService domainService){
+	public TeamService(TeamRepository teamRepository,
+			AccountRepository accountRepository, 
+			DomainService domainService,
+			DeploymentService deploymentService,
+			CloudProviderParamsCopyService cloudProviderParametersCopyService,
+			DeploymentConfigurationService deploymentConfigurationService,
+			ApplicationDeployerBash applicationDeployerBash
+			){
 		this.teamRepository = teamRepository;
 		this.accountService = new AccountService(accountRepository);
 		this.domainService = domainService;
+		this.deploymentService = deploymentService ;
+		this.cloudProviderParametersCopyService = cloudProviderParametersCopyService;
+		this.deploymentConfigurationService = deploymentConfigurationService;
+		this.applicationDeployerBash = applicationDeployerBash;
+
 	}
 
 	public Team findByName(String name){
@@ -93,13 +110,17 @@ public class TeamService {
 		return this.teamRepository.findByDomainReference(domainReference).orElseThrow(() -> new TeamNotFoundException("with domain reference " + domainReference));
 	}
 
-	public Team constructTeam(Principal principal, TeamResource teamResource, AccountService accountService, String token) throws UserNotFoundException{
+	public Team constructTeam(
+			String userName,
+			TeamResource teamResource, 
+			AccountService accountService,
+			String token) throws UserNotFoundException{
 
 		Team team = null;
 		Domain newDomain = null;
 		try{
 			logger.info("In TeamService: Creating domain... ");
-			String name = "TEAM_"+ teamResource.getName().toUpperCase()+"_PORTAL_" + principal.getName().toUpperCase();
+			String name = "TEAM_"+ teamResource.getName().toUpperCase()+"_PORTAL_" + userName.toUpperCase();
 			newDomain = domainService.createDomain(name, "Domain TEAM_"+teamResource.getName()+"_PORTAL"+" created" , token);
 
 		}catch(Exception e){
@@ -113,7 +134,7 @@ public class TeamService {
 			team = new Team();
 			team.setName(teamResource.getName());
 			team.setDomainReference(newDomain.getDomainReference());
-			team.setAccount(accountService.findByUsername(principal.getName()));
+			team.setAccount(accountService.findByUsername(userName));
 			Account ownerAccount = team.getAccount();
 			if (teamResource.getMemberAccountEmails()!=null) {
 				Set<Account> memberAccounts = teamResource.getMemberAccountEmails().stream()
@@ -137,7 +158,10 @@ public class TeamService {
 
 	}
 
-	public boolean removeMemberFromTeam(HttpServletRequest request, Principal principal, String teamName, String userEmail) {
+	public boolean removeMemberFromTeam(
+			String token,
+			String teamName, 
+			String userEmail) {
 
 		Account toRemove = null;
 		Team team = null;
@@ -148,7 +172,6 @@ public class TeamService {
 		toRemove = accountService.findByEmail(userEmail);
 		if(team.getDomainReference() != null){
 			try{
-				String token = request.getHeader(HttpHeaders.AUTHORIZATION).split(" ")[1];
 				//remove member from domain 
 				logger.info("In TeamService: update the domain, removing user" );
 				Domain domain = domainService.getDomainByReference(team.getDomainReference(), token );
@@ -162,8 +185,11 @@ public class TeamService {
 					Domain updatedDomain = null;
 					if(toRemoveUser != null){
 						logger.info("In TeamService: removing user who is a member of  domain");
-						updatedDomain = domainService.removeUserFromDomain( new User(null, toRemove.getEmail(), toRemove.getUsername(), null), domain, 
-								request.getHeader(HttpHeaders.AUTHORIZATION).split(" ")[1] );		
+						updatedDomain = domainService.removeUserFromDomain( 
+								new User(null,
+										toRemove.getEmail(), toRemove.getUsername(), null), 
+								domain, 
+								token);		
 					}else{
 						logger.info("In TeamService: user is not a member of  domain, removing user from team");
 						toRemove.getMemberOfTeams().remove(team);
@@ -226,7 +252,10 @@ public class TeamService {
 		return false;
 	}
 
-	public boolean addMemberToTeam(HttpServletRequest request, Principal principal, TeamResource teamResource) {
+	public boolean addMemberToTeam(
+			String token,
+			TeamResource teamResource,
+			String baseURL) {
 
 		logger.info("In TeamService: Getting the team to which member is to be added");
 		Team team = this.findByName(teamResource.getName());
@@ -240,21 +269,25 @@ public class TeamService {
 			Collection<Account> yetToBeMembers = yetToBeMemberEmails.stream().map(
 					email -> accountService.findByEmail(email)).collect(Collectors.toSet());
 			if(team.getDomainReference() != null){
-				String token = request.getHeader(HttpHeaders.AUTHORIZATION).split(" ")[1];
 				try{
-					// update domain and accounts
 					yetToBeMembers.stream().forEach(
 							account -> {
 								String accountEmail = account.getEmail();
 								logger.info("In TeamService: Checking if user is already a member of domain, else adding to domain");
 								try{
 									logger.info("In TeamService: Getting domain");
-									Domain domain = domainService.getDomainByReference(team.getDomainReference(), request.getHeader(HttpHeaders.AUTHORIZATION).split(" ")[1] );
+									Domain domain = domainService.getDomainByReference(
+											team.getDomainReference(),
+											token);
 									if(domain != null){
 										domain.setDomainReference(domain.getDomainReference());
 										try{
 											logger.info("In TeamService: adding user to domain");
-											Domain updatedDomain = domainService.addUserToDomain(domain, new User(null, account.getEmail(), account.getUsername() , null), request.getHeader(HttpHeaders.AUTHORIZATION).split(" ")[1] );
+											Domain updatedDomain = domainService.addUserToDomain(
+													domain, 
+													new User(null, account.getEmail(), account.getUsername() , null),
+													token
+													);
 											if(updatedDomain != null){
 												User addedUser = domainService.getAllUsersFromDomain(updatedDomain.getDomainReference(), token)
 														.stream()
@@ -268,18 +301,6 @@ public class TeamService {
 													if(!team.getAccount().getId().equals(account.getId())){
 														account.getMemberOfTeams().add(team);
 														account = this.accountService.save(account);
-														String baseURL = this.getBaseURL(request);
-														if(baseURL.contains(".api")){
-															//for dev
-															baseURL = baseURL.replace(".api", "");	
-															logger.info("Base URL, is " + baseURL);
-														}else{
-															if(baseURL.contains("api")){
-																//for master
-																baseURL = baseURL.replace("api.", "");	
-																logger.info("Base URL, is " + baseURL);
-															}
-														}
 														String loginURL = baseURL + "login";
 														String teamURL = baseURL + "team" + "/" + team.getName() ;
 														String message = "User " + team.getAccount().getGivenName() + 
@@ -299,7 +320,7 @@ public class TeamService {
 														team.getAccountsBelongingToTeam().add(account);
 														this.save(team);
 													}
-	
+
 												}
 											}
 
@@ -347,19 +368,18 @@ public class TeamService {
 		return false;
 	}
 
-	public boolean deleteTeam(Team team, 
+	public boolean deleteTeam(
+			Team team, 
 			String token, 
-			Principal principal,
 			DeploymentService deploymentService,
-			DeploymentRestController deploymentRestController, 
 			CloudProviderParamsCopyService cloudProviderParametersCopyService, 
 			ConfigurationService configurationService) {
 
 		logger.info("In TeamService: deleting team ");
-		
-		this.stopDeploymentsUsingTeamSharedCloudProvider(team, principal, deploymentService, deploymentRestController, cloudProviderParametersCopyService);
-		this.stopDeploymentsUsingTeamSharedConfigurationDeploymentParameters(team, principal, deploymentService, deploymentRestController, configurationService);
-		this.stopDeploymentsUsingTeamSharedConfigurations(team, principal, deploymentService, deploymentRestController);
+
+		this.stopDeploymentsUsingTeamSharedCloudProvider(team, deploymentService, cloudProviderParametersCopyService);
+		this.stopDeploymentsUsingTeamSharedConfigurationDeploymentParameters(team, deploymentService, configurationService);
+		this.stopDeploymentsUsingTeamSharedConfigurations(team, deploymentService);
 
 		if(team.getDomainReference() != null){
 			try{
@@ -402,18 +422,10 @@ public class TeamService {
 		}
 	}
 
-	public String getBaseURL(HttpServletRequest request) {
-
-		StringBuffer url = request.getRequestURL();
-		String uri = request.getRequestURI();
-		String ctx = request.getContextPath();
-		String base = url.substring(0, url.length() - uri.length() + ctx.length()) + "/";
-		return base;
-
-	}
-
-	public void stopDeploymentsUsingTeamSharedCloudProvider(Team team, Principal principal, DeploymentService deploymentService,
-			DeploymentRestController deploymentRestController, CloudProviderParamsCopyService cppCopyService ){
+	public void stopDeploymentsUsingTeamSharedCloudProvider(
+			Team team, 
+			DeploymentService deploymentService,
+			CloudProviderParamsCopyService cppCopyService ){
 
 		logger.info("Stopping deployments of team members(not team owner's), using team's shared cloud parameters, "
 				+ "before deleting team.");
@@ -433,7 +445,7 @@ public class TeamService {
 							logger.info("Found deployments in running/starting status, using the cloud provider '" +
 									cpp.getName() + "' shared with team '" + team.getName() + "'." );
 							try{
-								deploymentRestController.stopDeploymentByReference(principal, deployment.getReference());
+								this.stopDeploymentByReference(deployment.getAccount().getUsername(), deployment.getReference());
 								toNotify.add(deployment.getAccount().getEmail());
 							}catch(Exception e){
 								logger.error("Failed to stop deployment, using team's shared cloud credentials.");
@@ -458,9 +470,9 @@ public class TeamService {
 		}
 	}
 
-	public void stopDeploymentsUsingTeamSharedConfigurationDeploymentParameters(Team team, Principal principal,
+	public void stopDeploymentsUsingTeamSharedConfigurationDeploymentParameters(
+			Team team, 
 			DeploymentService deploymentService,
-			DeploymentRestController deploymentRestController,
 			ConfigurationService configurationService){
 
 		logger.info("Stopping deployments of team members(not team owner's), using team's shared configuration"
@@ -483,7 +495,7 @@ public class TeamService {
 								logger.info("Found deployments in running/starting status, using the configuration deployment parameter '" +
 										cdp.getName() + "' shared with team '" + team.getName() + "'." );
 								try{
-									deploymentRestController.stopDeploymentByReference(principal, deployment.getReference());
+									this.stopDeploymentByReference(deployment.getAccount().getUsername(), deployment.getReference());
 									toNotify.add(deployment.getAccount().getEmail());
 								}catch(Exception e){
 									logger.error("Failed to stop deployment, using team's shared configuration deployment parameters.");
@@ -510,8 +522,9 @@ public class TeamService {
 		}
 	}
 
-	public void stopDeploymentsUsingTeamSharedConfigurations(Team team, Principal principal, DeploymentService deploymentService,
-			DeploymentRestController deploymentRestController ){
+	public void stopDeploymentsUsingTeamSharedConfigurations(
+			Team team, 
+			DeploymentService deploymentService){
 
 		logger.info("Stopping deployments of team members(not team owner's), using team's shared configurations"
 				+ ", before deleting team.");
@@ -531,7 +544,7 @@ public class TeamService {
 							logger.info("Found deployments in running/starting status, using the configuration '" +
 									configuration.getName() + "' shared with team '" + team.getName() + "'." );
 							try{
-								deploymentRestController.stopDeploymentByReference(principal, deployment.getReference());
+								this.stopDeploymentByReference(deployment.getAccount().getUsername(), deployment.getReference());
 								toNotify.add(deployment.getAccount().getEmail());
 							}catch(Exception e){
 								logger.error("Failed to stop deployment, using team's shared configurations.");
@@ -561,9 +574,8 @@ public class TeamService {
 			String userEmail, 
 			DeploymentService deploymentService,
 			ConfigurationService configurationService,
-			ConfigurationDeploymentParametersService deploymentParametersService,
-			DeploymentRestController deploymentRestController,
-			Principal principal) {
+			ConfigurationDeploymentParametersService deploymentParametersService
+			) {
 
 
 		Account removedAccount  = accountService.findByEmail(userEmail);
@@ -602,7 +614,7 @@ public class TeamService {
 				try{
 					if(deployment.deploymentStatus.getStatus().equals(DeploymentStatusEnum.RUNNING)
 							|| deployment.deploymentStatus.getStatus().equals(DeploymentStatusEnum.STARTING)){
-						deploymentRestController.stopDeploymentByReference(principal, deployment.getReference());
+						this.stopDeploymentByReference(deployment.getAccount().getUsername(), deployment.getReference());
 						toNotify.add(deployment.getAccount().getEmail());
 					}
 				}catch(Exception e){
@@ -626,8 +638,8 @@ public class TeamService {
 
 	}
 
-	public void stopDeploymentsUsingGivenTeamSharedCloudProvider(Team team, Principal principal,
-			DeploymentService deploymentService, DeploymentRestController deploymentRestController,
+	public void stopDeploymentsUsingGivenTeamSharedCloudProvider(Team team,
+			DeploymentService deploymentService,
 			CloudProviderParameters toUnshare) {
 
 		logger.info("Stopping deployments of team members(not owner's) on unsharing a cloud credential.");
@@ -649,13 +661,13 @@ public class TeamService {
 		if(team.getCppBelongingToTeam().stream().map(cpp -> cpp.getId()).collect(Collectors.toList()).contains(toUnshare.getId())){
 			deployments.forEach(deployment -> {
 				if(deployment.getAccount().getId() != toUnshare.getAccount().getId() && 
-					memberAccounts.stream().map(account -> account.getId()).collect(Collectors.toList()).contains(deployment.getAccount().getId())){
+						memberAccounts.stream().map(account -> account.getId()).collect(Collectors.toList()).contains(deployment.getAccount().getId())){
 					try{
 						if(deployment.deploymentStatus.getStatus().equals(DeploymentStatusEnum.RUNNING)
 								|| deployment.deploymentStatus.getStatus().equals(DeploymentStatusEnum.STARTING)){
 							logger.info("Found deployments in running/starting status, using the cloud provider parameter '" +
 									toUnshare.getName() + "' shared with team '" + team.getName() + "'." );
-							deploymentRestController.stopDeploymentByReference(principal, deployment.getReference());
+							this.stopDeploymentByReference(deployment.getAccount().getUsername(), deployment.getReference());
 							toNotify.add(deployment.getAccount().getEmail());
 						}
 					}catch(Exception e){
@@ -673,16 +685,16 @@ public class TeamService {
 					SendMail.send(toNotify, "Deployments destroyed", message );
 				}catch(IOException e){
 					logger.error("Failed to send, deployments destroyed notification to the members of the team "
-							 + "from which cloud credential '" + toUnshare.getName() + "' was unshared" );
+							+ "from which cloud credential '" + toUnshare.getName() + "' was unshared" );
 				}
 			}
 		}
-		
+
 	}
 
-	public void stopDeploymentsUsingGivenTeamSharedConfigurationDeploymentParameter(Team team, Principal principal,
-			DeploymentService deploymentService, DeploymentConfigurationService deploymentConfigurationService,
-			DeploymentRestController deploymentRestController,
+	public void stopDeploymentsUsingGivenTeamSharedConfigurationDeploymentParameter(Team team,
+			DeploymentService deploymentService, 
+			DeploymentConfigurationService deploymentConfigurationService,
 			ConfigurationDeploymentParameters toUnshare,
 			ConfigurationService configurationService) {
 
@@ -708,7 +720,7 @@ public class TeamService {
 									|| deployment.deploymentStatus.getStatus().equals(DeploymentStatusEnum.STARTING)){
 								logger.info("Found deployments in running/starting status, using the configuration '" +
 										configuration.getName() + "' shared with team '" + team.getName() + "'." );
-								deploymentRestController.stopDeploymentByReference(principal, deployment.getReference());
+								this.stopDeploymentByReference(deployment.getAccount().getUsername(), deployment.getReference());
 								toNotify.add(deployment.getAccount().getEmail());
 							}
 
@@ -728,15 +740,15 @@ public class TeamService {
 					SendMail.send(toNotify, "Deployments destroyed", message );
 				}catch(IOException e){
 					logger.error("Failed to send, deployments destroyed notification to the members of the team "
-							 + "from which configuration deployment parameter'" + toUnshare.getName() + "' was unshared" );
+							+ "from which configuration deployment parameter'" + toUnshare.getName() + "' was unshared" );
 				}
 			}
 		}
 	}
 
-	public void stopDeploymentsUsingGivenTeamSharedConfiguration(Team team, Principal principal,
-			DeploymentService deploymentService, DeploymentConfigurationService deploymentConfigurationService,
-			DeploymentRestController deploymentRestController,
+	public void stopDeploymentsUsingGivenTeamSharedConfiguration(Team team, 
+			DeploymentService deploymentService, 
+			DeploymentConfigurationService deploymentConfigurationService,
 			Configuration toUnshare) {
 
 		logger.info("Stopping deployments of team members(not owner's) on unsharing a configuration.");
@@ -761,7 +773,7 @@ public class TeamService {
 								|| deployment.deploymentStatus.getStatus().equals(DeploymentStatusEnum.STARTING)){
 							logger.info("Found deployments in running/starting status, using the configuration '" +
 									toUnshare.getName() + "' shared with team '" + team.getName() + "'." );
-							deploymentRestController.stopDeploymentByReference(principal, deployment.getReference());
+							this.stopDeploymentByReference(deployment.getAccount().getUsername(), deployment.getReference());
 							toNotify.add(deployment.getAccount().getEmail());
 						}
 					}catch(Exception e){
@@ -778,7 +790,7 @@ public class TeamService {
 					SendMail.send(toNotify, "Deployments destroyed", message );
 				}catch(IOException e){
 					logger.error("Failed to send, deployments destroyed notification to the members of the team "
-							 + "from which configuration deployment parameter'" + toUnshare.getName() + "' was unshared" );
+							+ "from which configuration deployment parameter'" + toUnshare.getName() + "' was unshared" );
 				}
 			}
 
@@ -786,36 +798,21 @@ public class TeamService {
 
 	}
 
-	public String composeBaseURL(HttpServletRequest request) {
-		
-		String baseURL = this.getBaseURL(request);
-		if(baseURL.contains(".api")){
-			//for dev
-			baseURL = baseURL.replace(".api", "");	
-			logger.info("Base URL, removed api is " + baseURL);
-		}else{
-			if(baseURL.contains("api")){
-				//for master
-				baseURL = baseURL.replace("api.", "");	
-				logger.info("Base URL, removed api is " + baseURL);
-			}
-		}
-		return baseURL;
-	}
-
-	public boolean leaveTeam(HttpServletRequest request, Principal principal,
-			DeploymentService deploymentService, ConfigurationService configurationService, 
+	public boolean leaveTeam(
+			String token,
+			DeploymentService deploymentService, 
+			ConfigurationService configurationService, 
 			ConfigurationDeploymentParametersService configDepParamsService, 
-			DeploymentRestController deploymentRestController, TeamResource teamResource) throws Exception {
-		
+			TeamResource teamResource) throws Exception {
+
 		try{
-			
+
 			Team team = this.findByName(teamResource.getName());
 
 			Set<String> memberAccountEmails = team.getAccountsBelongingToTeam().stream().
 					map(Account::getEmail).
 					collect(Collectors.toSet());
-			
+
 			String memberToLeaveEmail = (String) teamResource.getMemberAccountEmails().toArray()[0];
 			List<String> toNotify = new ArrayList();
 			toNotify.add(memberToLeaveEmail);
@@ -827,16 +824,18 @@ public class TeamService {
 					throw new Exception("Team owner cannot leave the team, but he can delete the team");
 				}else{
 					logger.info("Removing member from team");
-					boolean memberRemoved = this.removeMemberFromTeam(request, principal, team.getName(), memberToLeaveEmail);
+					boolean memberRemoved = this.removeMemberFromTeam(
+							token,
+							team.getName(), 
+							memberToLeaveEmail);
 					try{
 						if(memberRemoved){
 							this.stopDeploymentsOfRemovedUser(team, 
 									memberToLeaveEmail,
 									deploymentService,
 									configurationService, 
-									configDepParamsService, 
-									deploymentRestController, 
-									principal);
+									configDepParamsService
+									);
 							String message = "You have been removed from the team " + "'"+team.getName()+"'" + ".\n\n";
 							SendMail.send(toNotify, "Request to leave team " + team.getName(), message );
 							return memberRemoved;
@@ -857,11 +856,13 @@ public class TeamService {
 			logger.error("In leaveTeam: Could not find team '"+teamResource.getName()+"'.");
 			throw e;
 		}
-		
+
 	}
 
-	public void addMemberOnRequest(HttpServletRequest request, TeamResource teamResource) throws IOException {
-		
+	public void addMemberOnRequest(
+			String baseURL,
+			TeamResource teamResource) throws IOException {
+
 		Team team = this.findByName(teamResource.getName());
 
 		Set<String> memberAccountEmails = team.getAccountsBelongingToTeam().stream().map(Account::getEmail).collect(Collectors.toSet());
@@ -874,7 +875,6 @@ public class TeamService {
 		List<String> toNotify = new ArrayList();
 		toNotify.add(team.getAccount().getEmail());
 
-		String baseURL = this.composeBaseURL(request);
 		String loginURL = baseURL + "login";
 		String teamURL = baseURL + "team" + "/" + team.getName() ;
 
@@ -886,6 +886,63 @@ public class TeamService {
 				+ "and use the email " + yetToBeMember.getEmail() + " to add member.\n\n";
 
 		SendMail.send(toNotify, "Request to join team " + team.getName(), message );
-		
+
 	}
+
+	public ResponseEntity<?> stopDeploymentByReference(
+			String userName,
+			String reference) throws IOException, ApplicationDeployerException {
+
+		logger.info("Stopping deployment '" + reference + "'");
+
+		Account account = this.accountService.findByUsername(userName);
+		Deployment theDeployment = this.deploymentService.findByReference(reference);
+
+		// get credentials decrypted through the service layer
+		CloudProviderParamsCopy theCloudProviderParametersCopy;
+		theCloudProviderParametersCopy = this.cloudProviderParametersCopyService.findByCloudProviderParametersReference(theDeployment.getCloudProviderParametersReference());
+
+		DeploymentConfiguration deploymentConfiguration = null;
+		if(theDeployment.getDeploymentConfiguration() != null){
+			deploymentConfiguration = this.deploymentConfigurationService.findByDeployment(theDeployment);
+		}
+
+		// Update status
+		theDeployment.getDeploymentStatus().setStatus(DeploymentStatusEnum.DESTROYING);
+		this.deploymentService.save(theDeployment);
+
+		// Proceed to destroy
+		this.applicationDeployerBash.destroy(
+				theDeployment.getDeploymentApplication().getRepoPath(),
+				theDeployment.getReference(),
+				this.getCloudProviderPathFromDeploymentApplication(
+						theDeployment.getDeploymentApplication(), theCloudProviderParametersCopy.getCloudProvider()),
+				theDeployment.getAssignedInputs(),
+				theDeployment.getAssignedParameters(),
+				theDeployment.getAttachedVolumes(),
+				deploymentConfiguration,
+				theCloudProviderParametersCopy
+				);
+
+		// Prepare response
+		HttpHeaders httpHeaders = new HttpHeaders();
+
+		return new ResponseEntity<>(null, httpHeaders, HttpStatus.OK);
+	}
+
+	public static String getCloudProviderPathFromDeploymentApplication(DeploymentApplication deploymentApplication, String cloudProvider) {
+
+		logger.info("Getting the path of the cloud provider from deploymentApplication");
+		Iterator<DeploymentApplicationCloudProvider> it = deploymentApplication.getCloudProviders().iterator();
+
+		while ( it.hasNext() ) {
+			DeploymentApplicationCloudProvider cp = it.next();
+			if (cloudProvider.equals(cp.getName())) {
+				return cp.getPath();
+			}
+		}
+
+		return null;
+	}
+
 }

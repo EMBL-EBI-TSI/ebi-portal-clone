@@ -199,7 +199,6 @@ public class DeploymentRestController {
 				volumeInstanceStatusRepository);
 		this.cloudProviderParametersService = new CloudProviderParametersService(cloudProviderParametersRepository, domainService, 
 				cloudProviderParametersCopyService, encryptionService, salt, password);
-		this.teamService = new TeamService(teamRepository, accountRepository, domainService);
 		this.applicationDeployerBash = applicationDeployerBash;
 		this.deploymentStatusTracker = deploymentStatusTracker;
 		this.deploymentStatusTracker.start(0, UPDATE_TRACKER_PERIOD);
@@ -211,6 +210,8 @@ public class DeploymentRestController {
 		this.deploymentConfigurationService = new DeploymentConfigurationService(deploymentConfigurationRepository);
 		this.deploymentApplicationService = new DeploymentApplicationService(deploymentApplicationRepository);
 		this.configDeploymentParamsCopyService = new ConfigDeploymentParamsCopyService(configDeploymentParamsCopyRepository);
+		this.teamService = new TeamService(teamRepository, accountRepository, domainService,
+				deploymentService, cloudProviderParametersCopyService, deploymentConfigurationService, applicationDeployerBash);
 
 	}
 
