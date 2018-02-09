@@ -1,0 +1,37 @@
+*.class
+
+# OS generated files #
+.DS_Store
+ehthumbs.db
+Icon?
+Thumbs.db
+
+# Mobile Tools for Java (J2ME)
+.mtj.tmp/
+
+# Package Files #
+*.jar
+*.war
+*.ear
+
+# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+hs_err_pid*
+
+# Editor-specific 
+.idea/
+*.iml
+
+# deployments
+target/
+db/
+be_applications/
+my_ip.txt
+terraform.tfstate
+terraform.tfstate.backup
+
+# Python virtual environment
+venv/
+
+data/elasticsearch/nodes/0/_state/global-1.st
+
+data/elasticsearch/nodes/0/node.lock
