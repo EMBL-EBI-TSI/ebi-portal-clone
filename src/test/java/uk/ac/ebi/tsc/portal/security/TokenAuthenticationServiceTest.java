@@ -4,8 +4,16 @@ import org.junit.Test;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import uk.ac.ebi.tsc.aap.client.repo.DomainService;
 import uk.ac.ebi.tsc.portal.api.account.repo.Account;
 import uk.ac.ebi.tsc.portal.api.account.repo.AccountRepository;
+import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParamsCopyRepository;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentConfigurationRepository;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentRepository;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentStatusRepository;
+import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
+import uk.ac.ebi.tsc.portal.api.team.repo.TeamRepository;
+import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployerBash;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.Optional;
@@ -26,6 +34,15 @@ public class TokenAuthenticationServiceTest {
 
     private TokenHandler mockHandler;
     private AccountRepository mockAccountRepo = mock(AccountRepository.class);
+    private DeploymentRepository mockDeploymentRepository = mock(DeploymentRepository.class);
+    private DeploymentConfigurationRepository mockDeploymentConfigurationRepository = mock(DeploymentConfigurationRepository.class);
+    private DeploymentStatusRepository mockDeploymentStatusRepository = mock(DeploymentStatusRepository.class);
+    private CloudProviderParamsCopyRepository mockCloudProviderParamsCopyRepository = mock(CloudProviderParamsCopyRepository.class);
+    private TeamRepository mockTeamRepository = mock(TeamRepository.class);
+    private ApplicationDeployerBash mockApplicationDeployerBash = mock(ApplicationDeployerBash.class);
+    private DomainService mockDomainService = mock(DomainService.class);
+    private EncryptionService mockEncryptionService = mock(EncryptionService.class);
+
 
     UserDetailsService mockService;
 
@@ -42,9 +59,22 @@ public class TokenAuthenticationServiceTest {
         when(mockHandler.parseUserNameFromToken("pretend-valid-token")).thenReturn("pretend-user");
 
         Account mockAccount = mock(Account.class);
-
+        when(mockAccount.getEmail()).thenReturn("user@domain.com");
         when(mockAccountRepo.findByUsername("pretend-user")).thenReturn(Optional.of(mockAccount));
-        subject = new TokenAuthenticationService(mockHandler, mockAccountRepo);
+
+        subject = new TokenAuthenticationService(
+                mockHandler,
+                mockAccountRepo,
+                mockDeploymentRepository,
+                mockDeploymentStatusRepository,
+                mockDeploymentConfigurationRepository,
+                mockCloudProviderParamsCopyRepository,
+                mockTeamRepository,
+                mockApplicationDeployerBash,
+                mockDomainService,
+                mockEncryptionService,
+                "salt",
+                "password");
     }
 
     @Test

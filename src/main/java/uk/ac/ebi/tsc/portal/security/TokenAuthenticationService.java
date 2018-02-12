@@ -4,14 +4,28 @@ package uk.ac.ebi.tsc.portal.security;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
+import uk.ac.ebi.tsc.aap.client.repo.DomainService;
 import uk.ac.ebi.tsc.portal.api.account.repo.Account;
 import uk.ac.ebi.tsc.portal.api.account.repo.AccountRepository;
 import uk.ac.ebi.tsc.portal.api.account.service.AccountService;
+import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParamsCopyRepository;
+import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParamsCopyService;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentConfigurationRepository;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentRepository;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentStatusRepository;
+import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentConfigurationService;
+import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
+import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
+import uk.ac.ebi.tsc.portal.api.team.repo.Team;
+import uk.ac.ebi.tsc.portal.api.team.repo.TeamRepository;
+import uk.ac.ebi.tsc.portal.api.team.service.TeamService;
+import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployerBash;
 
 import javax.servlet.http.HttpServletRequest;
 import java.sql.Date;
@@ -34,11 +48,38 @@ public class TokenAuthenticationService {
 
     private final TokenHandler tokenHandler;
     private final AccountService accountService;
+    private final TeamService teamService;
+    private final DeploymentService deploymentService;
+    private final CloudProviderParamsCopyService cloudProviderParamsCopyService;
+    private final DeploymentConfigurationService deploymentConfigurationService;
+    private final ApplicationDeployerBash applicationDeployerBash;
 
     @Autowired
-    public TokenAuthenticationService(TokenHandler tokenHandler, AccountRepository accountRepository) {
+    public TokenAuthenticationService(TokenHandler tokenHandler,
+                                      AccountRepository accountRepository,
+                                      DeploymentRepository deploymentRepository,
+                                      DeploymentStatusRepository deploymentStatusRepository,
+                                      DeploymentConfigurationRepository deploymentConfigurationRepository,
+                                      CloudProviderParamsCopyRepository cloudProviderParamsCopyRepository,
+                                      TeamRepository teamRepository,
+                                      ApplicationDeployerBash applicationDeployerBash,
+                                      DomainService domainService,
+                                      EncryptionService encryptionService,
+                                      @Value("${ecp.security.salt}") final String salt,
+                                      @Value("${ecp.security.password}") final String password) {
         this.tokenHandler = tokenHandler;
         this.accountService = new AccountService(accountRepository);
+        this.applicationDeployerBash = applicationDeployerBash;
+        this.deploymentService = new DeploymentService(deploymentRepository, deploymentStatusRepository);
+        this.cloudProviderParamsCopyService = new CloudProviderParamsCopyService(
+                cloudProviderParamsCopyRepository,
+                encryptionService,
+                salt, password);
+        this.deploymentConfigurationService = new DeploymentConfigurationService(deploymentConfigurationRepository);
+        this.teamService = new TeamService(
+                teamRepository, accountRepository, domainService, this.deploymentService,
+                this.cloudProviderParamsCopyService, this.deploymentConfigurationService,
+                this.applicationDeployerBash);
     }
 
     Authentication getAuthentication(HttpServletRequest request) {
@@ -69,12 +110,27 @@ public class TokenAuthenticationService {
                 theAccount.setUsername(userName);
                 theAccount.setGivenName(name);
                 this.accountService.save(theAccount);
+                // Add user to their organisation teams if needed
+                if (theAccount.getEmail().endsWith("@ebi.ac.uk")) {
+                    // Get EBI team
+                    Team emblEbiTeam = this.teamService.findByName("EMBL-EBI");
+                    // Add member to team
+                    teamService.addMemberToTeamNoEmail(token, emblEbiTeam, theAccount);
+                }
                 // Return the user authentication
                 return new UserAuthentication(tokenHandler.loadUserFromTokenSub(token));
             } catch (UsernameNotFoundException usernameNotFoundException) { // Not found by given name...
                 try { // Try to find user by sub name claim
                     UserDetails user = tokenHandler.loadUserFromTokenSub(token);
                     logger.trace("user details by sub {}", user.getUsername());
+                    // Add user to their organisation teams if needed
+                    Account theAccount = this.accountService.findByUsername(user.getUsername());
+                    if (theAccount.getEmail().endsWith("@ebi.ac.uk")) {
+                        // Get EBI team
+                        Team emblEbiTeam = this.teamService.findByName("EMBL-EBI");
+                        // Add member to team
+                        teamService.addMemberToTeamNoEmail(token, emblEbiTeam, theAccount);
+                    }
                     // Return the user authentication
                     return new UserAuthentication(user);
                 } catch (UsernameNotFoundException anotherUsernameNotFoundException) { // User not found at all
@@ -95,6 +151,13 @@ public class TokenAuthenticationService {
                                 null
                         );
                         this.accountService.save(newAccount);
+                        // Add user to their organisation teams if needed
+                        if (email.endsWith("@ebi.ac.uk")) {
+                            // Get EBI team
+                            Team emblEbiTeam = this.teamService.findByName("EMBL-EBI");
+                            // Add member to team
+                            teamService.addMemberToTeamNoEmail(token, emblEbiTeam, newAccount);
+                        }
                         // Return the user authentication
                         return new UserAuthentication(tokenHandler.loadUserFromTokenSub(token));
                     } catch (Exception sql) {
