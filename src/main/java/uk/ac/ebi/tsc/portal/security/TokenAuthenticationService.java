@@ -22,6 +22,7 @@ import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentStatusRepository;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentConfigurationService;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
 import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
+import uk.ac.ebi.tsc.portal.api.team.controller.TeamNotFoundException;
 import uk.ac.ebi.tsc.portal.api.team.repo.Team;
 import uk.ac.ebi.tsc.portal.api.team.repo.TeamRepository;
 import uk.ac.ebi.tsc.portal.api.team.service.TeamService;
@@ -112,10 +113,14 @@ public class TokenAuthenticationService {
                 this.accountService.save(theAccount);
                 // Add user to their organisation teams if needed
                 if (theAccount.getEmail().endsWith("@ebi.ac.uk")) {
-                    // Get EBI team
-                    Team emblEbiTeam = this.teamService.findByName("EMBL-EBI");
-                    // Add member to team
-                    teamService.addMemberToTeamNoEmail(token, emblEbiTeam, theAccount);
+                    try {
+                        // Get EBI team
+                        Team emblEbiTeam = this.teamService.findByName("EMBL-EBI");
+                        // Add member to team
+                        teamService.addMemberToTeamNoEmail(token, emblEbiTeam, theAccount);
+                    } catch (TeamNotFoundException tnfe) {
+                        logger.info("Team EMBL-EBI not found. Can't add user " + theAccount.getEmail());
+                    }
                 }
                 // Return the user authentication
                 return new UserAuthentication(tokenHandler.loadUserFromTokenSub(token));
@@ -126,10 +131,14 @@ public class TokenAuthenticationService {
                     // Add user to their organisation teams if needed
                     Account theAccount = this.accountService.findByUsername(user.getUsername());
                     if (theAccount.getEmail().endsWith("@ebi.ac.uk")) {
-                        // Get EBI team
-                        Team emblEbiTeam = this.teamService.findByName("EMBL-EBI");
-                        // Add member to team
-                        teamService.addMemberToTeamNoEmail(token, emblEbiTeam, theAccount);
+                        try {
+                            // Get EBI team
+                            Team emblEbiTeam = this.teamService.findByName("EMBL-EBI");
+                            // Add member to team
+                            teamService.addMemberToTeamNoEmail(token, emblEbiTeam, theAccount);
+                        } catch (TeamNotFoundException tnfe) {
+                            logger.info("Team EMBL-EBI not found. Can't add user " + theAccount.getEmail());
+                        }
                     }
                     // Return the user authentication
                     return new UserAuthentication(user);
@@ -152,11 +161,15 @@ public class TokenAuthenticationService {
                         );
                         this.accountService.save(newAccount);
                         // Add user to their organisation teams if needed
-                        if (email.endsWith("@ebi.ac.uk")) {
-                            // Get EBI team
-                            Team emblEbiTeam = this.teamService.findByName("EMBL-EBI");
-                            // Add member to team
-                            teamService.addMemberToTeamNoEmail(token, emblEbiTeam, newAccount);
+                        if (newAccount.getEmail().endsWith("@ebi.ac.uk")) {
+                            try {
+                                // Get EBI team
+                                Team emblEbiTeam = this.teamService.findByName("EMBL-EBI");
+                                // Add member to team
+                                teamService.addMemberToTeamNoEmail(token, emblEbiTeam, newAccount);
+                            } catch (TeamNotFoundException tnfe) {
+                                logger.info("Team EMBL-EBI not found. Can't add user " + newAccount.getEmail());
+                            }
                         }
                         // Return the user authentication
                         return new UserAuthentication(tokenHandler.loadUserFromTokenSub(token));
