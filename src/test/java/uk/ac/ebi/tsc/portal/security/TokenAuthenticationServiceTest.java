@@ -5,6 +5,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import uk.ac.ebi.tsc.aap.client.repo.DomainService;
+import uk.ac.ebi.tsc.aap.client.repo.TokenService;
 import uk.ac.ebi.tsc.portal.api.account.repo.Account;
 import uk.ac.ebi.tsc.portal.api.account.repo.AccountRepository;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParamsCopyRepository;
@@ -42,7 +43,7 @@ public class TokenAuthenticationServiceTest {
     private ApplicationDeployerBash mockApplicationDeployerBash = mock(ApplicationDeployerBash.class);
     private DomainService mockDomainService = mock(DomainService.class);
     private EncryptionService mockEncryptionService = mock(EncryptionService.class);
-
+    private TokenService mockTokenService = mock(TokenService.class);
 
     UserDetailsService mockService;
 
@@ -72,9 +73,12 @@ public class TokenAuthenticationServiceTest {
                 mockTeamRepository,
                 mockApplicationDeployerBash,
                 mockDomainService,
+                mockTokenService,
                 mockEncryptionService,
                 "salt",
-                "password");
+                "password",
+                "aap.ecp.user",
+                "aap.ecp.password");
     }
 
     @Test

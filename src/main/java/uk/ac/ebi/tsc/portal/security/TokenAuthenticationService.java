@@ -11,6 +11,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import uk.ac.ebi.tsc.aap.client.repo.DomainService;
+import uk.ac.ebi.tsc.aap.client.repo.TokenService;
 import uk.ac.ebi.tsc.portal.api.account.repo.Account;
 import uk.ac.ebi.tsc.portal.api.account.repo.AccountRepository;
 import uk.ac.ebi.tsc.portal.api.account.service.AccountService;
@@ -54,6 +55,10 @@ public class TokenAuthenticationService {
     private final CloudProviderParamsCopyService cloudProviderParamsCopyService;
     private final DeploymentConfigurationService deploymentConfigurationService;
     private final ApplicationDeployerBash applicationDeployerBash;
+    private final String ecpAapUsername;
+    private final String ecpAapPassword;
+    private final TokenService tokenService;
+
 
     @Autowired
     public TokenAuthenticationService(TokenHandler tokenHandler,
@@ -65,10 +70,16 @@ public class TokenAuthenticationService {
                                       TeamRepository teamRepository,
                                       ApplicationDeployerBash applicationDeployerBash,
                                       DomainService domainService,
+                                      TokenService tokenService,
                                       EncryptionService encryptionService,
                                       @Value("${ecp.security.salt}") final String salt,
-                                      @Value("${ecp.security.password}") final String password) {
+                                      @Value("${ecp.security.password}") final String password,
+                                      @Value("${ecp.aap.username}") final String ecpAapUsername,
+                                      @Value("${ecp.aap.password}") final String ecpAapPassword) {
+        this.ecpAapUsername = ecpAapUsername;
+        this.ecpAapPassword = ecpAapPassword;
         this.tokenHandler = tokenHandler;
+        this.tokenService = tokenService;
         this.accountService = new AccountService(accountRepository);
         this.applicationDeployerBash = applicationDeployerBash;
         this.deploymentService = new DeploymentService(deploymentRepository, deploymentStatusRepository);
@@ -101,6 +112,9 @@ public class TokenAuthenticationService {
             }
             logger.trace("Got token {}", token);
 
+            // Get ECP AAP account token
+            String ecpAapToken = tokenService.getAAPToken(this.ecpAapUsername, this.ecpAapPassword);
+
             try { // Try to find user by token name claim
                 UserDetails user = tokenHandler.loadUserFromTokenName(token);
                 logger.trace("user details by sub {}", user.getUsername());
@@ -117,7 +131,7 @@ public class TokenAuthenticationService {
                         // Get EBI team
                         Team emblEbiTeam = this.teamService.findByName("EMBL-EBI");
                         // Add member to team
-                        teamService.addMemberToTeamNoEmail(token, emblEbiTeam, theAccount);
+                        teamService.addMemberToTeamNoEmail(ecpAapToken, emblEbiTeam, theAccount);
                     } catch (TeamNotFoundException tnfe) {
                         logger.info("Team EMBL-EBI not found. Can't add user " + theAccount.getEmail());
                     }
@@ -135,7 +149,7 @@ public class TokenAuthenticationService {
                             // Get EBI team
                             Team emblEbiTeam = this.teamService.findByName("EMBL-EBI");
                             // Add member to team
-                            teamService.addMemberToTeamNoEmail(token, emblEbiTeam, theAccount);
+                            teamService.addMemberToTeamNoEmail(ecpAapToken, emblEbiTeam, theAccount);
                         } catch (TeamNotFoundException tnfe) {
                             logger.info("Team EMBL-EBI not found. Can't add user " + theAccount.getEmail());
                         }
@@ -166,7 +180,7 @@ public class TokenAuthenticationService {
                                 // Get EBI team
                                 Team emblEbiTeam = this.teamService.findByName("EMBL-EBI");
                                 // Add member to team
-                                teamService.addMemberToTeamNoEmail(token, emblEbiTeam, newAccount);
+                                teamService.addMemberToTeamNoEmail(ecpAapToken, emblEbiTeam, newAccount);
                             } catch (TeamNotFoundException tnfe) {
                                 logger.info("Team EMBL-EBI not found. Can't add user " + newAccount.getEmail());
                             }
