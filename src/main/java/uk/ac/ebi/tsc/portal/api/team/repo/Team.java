@@ -41,28 +41,28 @@ public class Team {
             inverseJoinColumns=@JoinColumn(name="account_id", referencedColumnName="id")
     )
     public Set<Account> accountsBelongingToTeam = new HashSet<>();
-    
+
     @ManyToMany
     @JoinTable(name="team_shared_applications",
             joinColumns=@JoinColumn(name="team_id", referencedColumnName="id"),
             inverseJoinColumns=@JoinColumn(name="application_id", referencedColumnName="id")
     )
     public Set<Application> applicationsBelongingToTeam = new HashSet<>();
-    
+
     @ManyToMany
     @JoinTable(name="team_shared_cloud_provider_parameters",
             joinColumns=@JoinColumn(name="team_id", referencedColumnName="id"),
             inverseJoinColumns=@JoinColumn(name="cloud_provider_parameters_id", referencedColumnName="id")
     )
     public Set<CloudProviderParameters> cppBelongingToTeam = new HashSet<>();
-    
+
     @ManyToMany
     @JoinTable(name="team_shared_config_dep_params",
             joinColumns=@JoinColumn(name="team_id", referencedColumnName="id"),
             inverseJoinColumns=@JoinColumn(name="config_deploy_params_id", referencedColumnName="id")
     )
     public Set<ConfigurationDeploymentParameters> configDepParamsBelongingToTeam = new HashSet<>();
-    
+
     @ManyToMany
     @JoinTable(name="team_shared_configurations",
             joinColumns=@JoinColumn(name="team_id", referencedColumnName="id"),
