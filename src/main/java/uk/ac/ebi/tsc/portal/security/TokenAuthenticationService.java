@@ -112,8 +112,6 @@ public class TokenAuthenticationService {
             }
             logger.trace("Got token {}", token);
 
-            // Get ECP AAP account token
-            String ecpAapToken = tokenService.getAAPToken(this.ecpAapUsername, this.ecpAapPassword);
 
             try { // Try to find user by token name claim
                 UserDetails user = tokenHandler.loadUserFromTokenName(token);
@@ -127,6 +125,9 @@ public class TokenAuthenticationService {
                 this.accountService.save(theAccount);
                 // Add user to their organisation teams if needed
                 if (theAccount.getEmail().endsWith("@ebi.ac.uk")) {
+                    // Get ECP AAP account token
+                    String ecpAapToken = tokenService.getAAPToken(this.ecpAapUsername, this.ecpAapPassword);
+
                     try {
                         // Get EBI team
                         Team emblEbiTeam = this.teamService.findByName("EMBL-EBI");
@@ -145,6 +146,9 @@ public class TokenAuthenticationService {
                     // Add user to their organisation teams if needed
                     Account theAccount = this.accountService.findByUsername(user.getUsername());
                     if (theAccount.getEmail().endsWith("@ebi.ac.uk")) {
+                        // Get ECP AAP account token
+                        String ecpAapToken = tokenService.getAAPToken(this.ecpAapUsername, this.ecpAapPassword);
+
                         try {
                             // Get EBI team
                             Team emblEbiTeam = this.teamService.findByName("EMBL-EBI");
@@ -176,6 +180,9 @@ public class TokenAuthenticationService {
                         this.accountService.save(newAccount);
                         // Add user to their organisation teams if needed
                         if (newAccount.getEmail().endsWith("@ebi.ac.uk")) {
+                            // Get ECP AAP account token
+                            String ecpAapToken = tokenService.getAAPToken(this.ecpAapUsername, this.ecpAapPassword);
+
                             try {
                                 // Get EBI team
                                 Team emblEbiTeam = this.teamService.findByName("EMBL-EBI");
