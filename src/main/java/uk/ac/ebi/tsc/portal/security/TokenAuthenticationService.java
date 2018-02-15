@@ -124,19 +124,7 @@ public class TokenAuthenticationService {
                 theAccount.setGivenName(name);
                 this.accountService.save(theAccount);
                 // Add user to their organisation teams if needed
-                if (theAccount.getEmail().endsWith("@ebi.ac.uk")) {
-                    // Get ECP AAP account token
-                    String ecpAapToken = tokenService.getAAPToken(this.ecpAapUsername, this.ecpAapPassword);
-
-                    try {
-                        // Get EBI team
-                        Team emblEbiTeam = this.teamService.findByName("EMBL-EBI");
-                        // Add member to team
-                        teamService.addMemberToTeamNoEmail(ecpAapToken, emblEbiTeam, theAccount);
-                    } catch (TeamNotFoundException tnfe) {
-                        logger.info("Team EMBL-EBI not found. Can't add user " + theAccount.getEmail());
-                    }
-                }
+                this.addAccountToDefaultTeamsByEmail(theAccount);
                 // Return the user authentication
                 return new UserAuthentication(tokenHandler.loadUserFromTokenSub(token));
             } catch (UsernameNotFoundException usernameNotFoundException) { // Not found by given name...
@@ -145,19 +133,7 @@ public class TokenAuthenticationService {
                     logger.trace("user details by sub {}", user.getUsername());
                     // Add user to their organisation teams if needed
                     Account theAccount = this.accountService.findByUsername(user.getUsername());
-                    if (theAccount.getEmail().endsWith("@ebi.ac.uk")) {
-                        // Get ECP AAP account token
-                        String ecpAapToken = tokenService.getAAPToken(this.ecpAapUsername, this.ecpAapPassword);
-
-                        try {
-                            // Get EBI team
-                            Team emblEbiTeam = this.teamService.findByName("EMBL-EBI");
-                            // Add member to team
-                            teamService.addMemberToTeamNoEmail(ecpAapToken, emblEbiTeam, theAccount);
-                        } catch (TeamNotFoundException tnfe) {
-                            logger.info("Team EMBL-EBI not found. Can't add user " + theAccount.getEmail());
-                        }
-                    }
+                    this.addAccountToDefaultTeamsByEmail(theAccount);
                     // Return the user authentication
                     return new UserAuthentication(user);
                 } catch (UsernameNotFoundException anotherUsernameNotFoundException) { // User not found at all
@@ -179,19 +155,7 @@ public class TokenAuthenticationService {
                         );
                         this.accountService.save(newAccount);
                         // Add user to their organisation teams if needed
-                        if (newAccount.getEmail().endsWith("@ebi.ac.uk")) {
-                            // Get ECP AAP account token
-                            String ecpAapToken = tokenService.getAAPToken(this.ecpAapUsername, this.ecpAapPassword);
-
-                            try {
-                                // Get EBI team
-                                Team emblEbiTeam = this.teamService.findByName("EMBL-EBI");
-                                // Add member to team
-                                teamService.addMemberToTeamNoEmail(ecpAapToken, emblEbiTeam, newAccount);
-                            } catch (TeamNotFoundException tnfe) {
-                                logger.info("Team EMBL-EBI not found. Can't add user " + newAccount.getEmail());
-                            }
-                        }
+                        this.addAccountToDefaultTeamsByEmail(newAccount);
                         // Return the user authentication
                         return new UserAuthentication(tokenHandler.loadUserFromTokenSub(token));
                     } catch (Exception sql) {
@@ -205,6 +169,34 @@ public class TokenAuthenticationService {
             logger.error(e.getMessage());
             logger.trace("", e);
             return null;
+        }
+    }
+
+    public void addAccountToDefaultTeamsByEmail(Account account) {
+        if (account.getEmail().endsWith("@ebi.ac.uk")) {
+            // Get ECP AAP account token
+            String ecpAapToken = this.tokenService.getAAPToken(this.ecpAapUsername, this.ecpAapPassword);
+
+            try {
+                // Get EBI team
+                Team emblEbiTeam = this.teamService.findByName("EMBL-EBI");
+                // Add member to team
+                teamService.addMemberToTeamNoEmail(ecpAapToken, emblEbiTeam, account);
+            } catch (TeamNotFoundException tnfe) {
+                logger.info("Team EMBL-EBI not found. Can't add user " + account.getEmail());
+            }
+        } else if (account.getEmail().endsWith("@embl.de")) {
+            // Get ECP AAP account token
+            String ecpAapToken = tokenService.getAAPToken(this.ecpAapUsername, this.ecpAapPassword);
+
+            try {
+                // Get EMBL team
+                Team emblTeam = this.teamService.findByName("EMBL");
+                // Add member to team
+                teamService.addMemberToTeamNoEmail(ecpAapToken, emblTeam, account);
+            } catch (TeamNotFoundException tnfe) {
+                logger.info("Team EMBL not found. Can't add user " + account.getEmail());
+            }
         }
     }
 
