@@ -1,6 +1,8 @@
 
 package uk.ac.ebi.tsc.portal.api.team.repo;
 
+import org.hibernate.annotations.LazyCollection;
+import org.hibernate.annotations.LazyCollectionOption;
 import uk.ac.ebi.tsc.portal.api.account.repo.Account;
 import uk.ac.ebi.tsc.portal.api.application.repo.Application;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParameters;
@@ -31,35 +33,36 @@ public class Team {
     @ManyToOne
     @JoinColumn (name = "owner_account_id",referencedColumnName = "id")
     public Account account;
-    
+
+	@LazyCollection(LazyCollectionOption.FALSE)
     @ManyToMany
     @JoinTable(name="account_team",
             joinColumns=@JoinColumn(name="team_id", referencedColumnName="id"),
             inverseJoinColumns=@JoinColumn(name="account_id", referencedColumnName="id")
     )
     public Set<Account> accountsBelongingToTeam = new HashSet<>();
-    
+
     @ManyToMany
     @JoinTable(name="team_shared_applications",
             joinColumns=@JoinColumn(name="team_id", referencedColumnName="id"),
             inverseJoinColumns=@JoinColumn(name="application_id", referencedColumnName="id")
     )
     public Set<Application> applicationsBelongingToTeam = new HashSet<>();
-    
+
     @ManyToMany
     @JoinTable(name="team_shared_cloud_provider_parameters",
             joinColumns=@JoinColumn(name="team_id", referencedColumnName="id"),
             inverseJoinColumns=@JoinColumn(name="cloud_provider_parameters_id", referencedColumnName="id")
     )
     public Set<CloudProviderParameters> cppBelongingToTeam = new HashSet<>();
-    
+
     @ManyToMany
     @JoinTable(name="team_shared_config_dep_params",
             joinColumns=@JoinColumn(name="team_id", referencedColumnName="id"),
             inverseJoinColumns=@JoinColumn(name="config_deploy_params_id", referencedColumnName="id")
     )
     public Set<ConfigurationDeploymentParameters> configDepParamsBelongingToTeam = new HashSet<>();
-    
+
     @ManyToMany
     @JoinTable(name="team_shared_configurations",
             joinColumns=@JoinColumn(name="team_id", referencedColumnName="id"),

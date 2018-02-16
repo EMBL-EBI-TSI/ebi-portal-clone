@@ -1,4 +1,4 @@
-# ecp_public_repo
+# cloud-portal-public-repo
 
 => For the application to be setup, follow the comments in application.properties.
 

@@ -1,30 +1,25 @@
 package uk.ac.ebi.tsc.portal.api.account.repo;
 
-import java.sql.Date;
-import java.util.HashSet;
-import java.util.Set;
-
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.ManyToMany;
-import javax.persistence.OneToMany;
-
+import org.hibernate.annotations.LazyCollection;
+import org.hibernate.annotations.LazyCollectionOption;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
-
-/**
- * @author Jose A. Dianes <jdianes@ebi.ac.uk>
- * @since v0.0.1
- **/
-
 import uk.ac.ebi.tsc.portal.api.application.repo.Application;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParameters;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationDeploymentParameters;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.Deployment;
 import uk.ac.ebi.tsc.portal.api.team.repo.Team;
 import uk.ac.ebi.tsc.portal.api.volumesetup.repo.VolumeSetup;
+
+import javax.persistence.*;
+import java.sql.Date;
+import java.util.HashSet;
+import java.util.Set;
+
+/**
+ * @author Jose A. Dianes <jdianes@ebi.ac.uk>
+ * @since v0.0.1
+ **/
 
 
 /**
@@ -73,7 +68,8 @@ public class Account {
     
     @OneToMany(mappedBy ="account")
     private Set<Team> ownedTeams = new HashSet<>();
-    
+
+    @LazyCollection(LazyCollectionOption.FALSE)
     @ManyToMany(mappedBy="accountsBelongingToTeam")
     private Set<Team> memberOfTeams = new HashSet<>();
     

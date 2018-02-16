@@ -1,13 +1,5 @@
 package uk.ac.ebi.tsc.portal.api.team.service;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,7 +7,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.HttpClientErrorException;
-
 import uk.ac.ebi.tsc.aap.client.model.Domain;
 import uk.ac.ebi.tsc.aap.client.model.User;
 import uk.ac.ebi.tsc.aap.client.repo.DomainService;
@@ -30,11 +21,7 @@ import uk.ac.ebi.tsc.portal.api.configuration.repo.Configuration;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationDeploymentParameters;
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationDeploymentParametersService;
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationService;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.Deployment;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentApplication;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentApplicationCloudProvider;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentConfiguration;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentStatusEnum;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.*;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentConfigurationService;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
 import uk.ac.ebi.tsc.portal.api.team.controller.TeamNotFoundException;
@@ -45,9 +32,11 @@ import uk.ac.ebi.tsc.portal.api.utils.SendMail;
 import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployerBash;
 import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDeployerException;
 
+import java.io.IOException;
+import java.util.*;
+import java.util.stream.Collectors;
+
 /**
- * @author Jose A. Dianes <jdianes@ebi.ac.uk>
- * @since v0.0.1
  * @author Navis Raj <navis@ebi.ac.uk>
  */
 public class TeamService {
@@ -358,6 +347,86 @@ public class TeamService {
 				}catch(Exception e){
 					logger.info("In TeamService: team has no domain reference, adding member failed " + e.getMessage());
 				}
+			}
+		}
+
+		int memberCountAfterAdding = team.getAccountsBelongingToTeam().size();
+		if( memberCountBeforeAdding == (memberCountAfterAdding-1)){
+			return true;
+		}
+		return false;
+	}
+
+	public boolean addMemberToTeamNoEmail(String token, Team team, Account account) {
+
+		logger.info("Adding " + account.getReference() + " (" + account.getEmail() + ") to team " + team.getName());
+
+		int memberCountBeforeAdding = team.getAccountsBelongingToTeam().size();
+		if(team != null){
+			String accountReference = account.getReference();
+			boolean isMember = team.getAccountsBelongingToTeam().stream().anyMatch(
+					a -> a.getReference().equals(accountReference)
+			);
+
+			if (!isMember) {
+				if (team.getDomainReference() != null) {
+					String accountEmail = account.getEmail();
+					logger.info("Checking if user is already a member of domain, else adding to domain");
+					try {
+						logger.info("Getting domain");
+						Domain domain = domainService.getDomainByReference(
+								team.getDomainReference(),
+								token);
+						if (domain != null) {
+							try {
+								logger.info("adding user to domain");
+								Domain updatedDomain = domainService.addUserToDomain(
+										domain,
+										new User(null, account.getEmail(), account.getUsername(), null),
+										token
+								);
+								if (updatedDomain != null) {
+									User addedUser = domainService.getAllUsersFromDomain(updatedDomain.getDomainReference(), token)
+											.stream()
+											.filter(u -> u.getEmail().equals(accountEmail))
+											.findAny()
+											.orElse(null);
+
+									if (addedUser != null) {
+										logger.info("user added to domain, updating account and team");
+										//update account if not team owner
+										if (!team.getAccount().getId().equals(account.getId())) {
+											account.getMemberOfTeams().add(team);
+											account = this.accountService.save(account);
+										}
+										// update team, add member if not team owner
+										if (!team.getAccount().getId().equals(account.getId())) {
+											team.getAccountsBelongingToTeam().add(account);
+											this.save(team);
+										}
+
+									}
+								}
+
+							} catch (Exception e) {
+								logger.error("Failed to add user to domain " + e.getMessage());
+							}
+						}
+					} catch (Exception e) {
+						logger.error("Failed to get domain to add member " + e.getMessage());
+					}
+
+				} else {
+					logger.info("team has no domain reference, updating account and team");
+					// update account
+					account.getMemberOfTeams().add(team);
+					account = this.accountService.save(account);
+					// update team
+					team.getAccountsBelongingToTeam().add(account);
+					this.save(team);
+				}
+			} else {
+				logger.info("Account " + account.getEmail() + " is already a member of team " + team.getName());
 			}
 		}
 
