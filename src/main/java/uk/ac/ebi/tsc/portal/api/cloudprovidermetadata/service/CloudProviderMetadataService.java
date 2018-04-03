@@ -2,6 +2,7 @@ package uk.ac.ebi.tsc.portal.api.cloudprovidermetadata.service;
 
 import org.openstack4j.api.OSClient.OSClientV2;
 import org.openstack4j.api.OSClient.OSClientV3;
+import org.openstack4j.api.client.IOSClientBuilder;
 import org.openstack4j.model.common.Identifier;
 import org.openstack4j.model.compute.Flavor;
 import org.openstack4j.model.network.Network;
@@ -122,10 +123,10 @@ public class CloudProviderMetadataService {
 
 	private OSClientV3 authenticateV3(CloudProviderMetadataResource input) {
 		Identifier domainIdentifier = Identifier.byName(input.getDomainName());
-		return OSFactory.builderV3()
-				.endpoint(input.getEndpoint())
-				.credentials(input.getUsername(), input.getPassword(), domainIdentifier)
-				.authenticate();
+		IOSClientBuilder.V3 endpoint = OSFactory.builderV3().endpoint(input.getEndpoint());
+		if(input.getTenantName()!=null && !input.getTenantName().isEmpty())
+			endpoint.scopeToProject(Identifier.byName(input.getTenantName()), domainIdentifier);
+		return endpoint.credentials(input.getUsername(), input.getPassword(), domainIdentifier).authenticate();
 	}
 
 	private List<String> getIPPoolsV2(CloudProviderMetadataResource input) {
