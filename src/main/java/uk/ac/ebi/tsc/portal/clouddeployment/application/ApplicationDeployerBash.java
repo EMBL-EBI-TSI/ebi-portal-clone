@@ -309,7 +309,7 @@ public class ApplicationDeployerBash {
 					Deployment theDeployment = deploymentService.findByReference(reference);
 
 					String output = getOutputFromFile(logs);
-					logger.info(output);
+					logger.debug(output);
 					// Read terraform state file
 					ObjectMapper mapper = new ObjectMapper();
 					TerraformState terraformState;
@@ -403,7 +403,7 @@ public class ApplicationDeployerBash {
 			throw new ApplicationDeployerException(errorOutput);
 		} else {
 			String output = InputStreamLogger.logInputStream(p.getInputStream());
-			logger.info(output);
+			logger.debug(output);
 			return terraformStateFromString(output, outputs);
 		}
 
