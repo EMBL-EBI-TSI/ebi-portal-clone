@@ -292,7 +292,7 @@ public class ApplicationServiceTest {
 	private void mockApplications(){
 		Collection applications = new LinkedList<>();
 		applications.add(applicationMock);
-		when(applicationMock.getName()).thenReturn(appName);when(applicationRepositoryMock.findByAccountUsername(username, any(Sort.class))).thenReturn(applications);
+		when(applicationMock.getName()).thenReturn(appName);when(applicationRepositoryMock.findByAccountUsernameAndSort(username, any(Sort.class))).thenReturn(applications);
 		when(applicationRepositoryMock.findByAccountUsernameAndName(username, appName)).thenReturn(Optional.of(applicationMock));
 		when(applicationRepositoryMock.findByAccountUsernameAndName(username, appnotpresent)).thenThrow(ApplicationNotFoundException.class);
 	}

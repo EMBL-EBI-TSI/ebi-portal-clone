@@ -15,6 +15,6 @@ import java.util.Optional;
 @Repository
 public interface ApplicationRepository extends JpaRepository<Application, Long> {
     Optional<Application> findById(Long id);
-    Collection<Application> findByAccountUsername(String username, Sort sort);
+    Collection<Application> findByAccountUsernameAndSort(String username, Sort sort);
     Optional<Application> findByAccountUsernameAndName(String username, String name);
 }

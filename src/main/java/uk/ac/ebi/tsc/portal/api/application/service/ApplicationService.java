@@ -40,7 +40,7 @@ public class ApplicationService {
 	}
 
 	public Collection<Application> findByAccountUsername(String username, Sort sort) {
-		return applicationRepository.findByAccountUsername(username, sort);
+		return applicationRepository.findByAccountUsernameAndSort(username, sort);
 	}
 
 	public Application findByAccountUsernameAndName(String username, String name) {

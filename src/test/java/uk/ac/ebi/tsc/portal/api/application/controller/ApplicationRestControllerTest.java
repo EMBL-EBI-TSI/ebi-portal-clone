@@ -282,7 +282,7 @@ public class ApplicationRestControllerTest {
 		Application accountMockApp = mock(Application.class);
 		Set<Application> accountApplications = new HashSet<>();
 		accountApplications.add(accountMockApp);
-		when(mockApplicationRepo.findByAccountUsername(username, any(Sort.class))).thenReturn(accountApplications);
+		when(mockApplicationRepo.findByAccountUsernameAndSort(username, any(Sort.class))).thenReturn(accountApplications);
 		when(applicationService.findByAccountUsername(username, any(Sort.class))).thenReturn(accountApplications);
 		getApplicationResource(accountMockApp);
 		Resources<ApplicationResource> applicationList = subject.getAllApplications(principalMock, any(Sort.class));
@@ -302,7 +302,7 @@ public class ApplicationRestControllerTest {
 		when(principalMock.getName()).thenReturn(username);
 		when(accountMock.getUsername()).thenReturn(username);
 		when(accountService.findByUsername(username)).thenReturn(accountMock);
-		when(mockApplicationRepo.findByAccountUsername(username, any(Sort.class))).thenReturn(new HashSet<>());
+		when(mockApplicationRepo.findByAccountUsernameAndSort(username, any(Sort.class))).thenReturn(new HashSet<>());
 		when(applicationService.findByAccountUsername(username, any(Sort.class))).thenReturn(new HashSet<>());
 		Resources<ApplicationResource> applicationList = subject.getAllApplications(principalMock, any(Sort.class));
 		assertNotNull(applicationList);
