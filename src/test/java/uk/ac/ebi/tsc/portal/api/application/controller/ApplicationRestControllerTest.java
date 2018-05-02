@@ -111,7 +111,7 @@ public class ApplicationRestControllerTest {
 		when(mockAccountRepo.findByUsername("username")).thenReturn(Optional.of(accountMock));
 		when(accountMock.getApplications()).thenReturn((Set<Application>) mock(Set.class));
 
-		Resources<ApplicationResource> resources = subject.getAllApplications(principalMock, any(Sort.class));
+		Resources<ApplicationResource> resources = subject.getAllApplications(principalMock, new Sort("name.asc"));
 		assertNotNull(resources);
 	}
 
@@ -276,16 +276,17 @@ public class ApplicationRestControllerTest {
 		ReflectionTestUtils.setField(subject, "applicationService", applicationService);
 		ReflectionTestUtils.setField(subject, "accountService", accountService);
 		String username = "username";
+		Sort sortMock = mock(Sort.class);
 		when(principalMock.getName()).thenReturn(username);
 		when(accountMock.getUsername()).thenReturn(username);
 		when(accountService.findByUsername(username)).thenReturn(accountMock);
 		Application accountMockApp = mock(Application.class);
 		Set<Application> accountApplications = new HashSet<>();
 		accountApplications.add(accountMockApp);
-		when(mockApplicationRepo.findByAccountUsernameAndSort(username, any(Sort.class))).thenReturn(accountApplications);
-		when(applicationService.findByAccountUsername(username, any(Sort.class))).thenReturn(accountApplications);
+		when(mockApplicationRepo.findByAccountUsernameAndSort(username, sortMock)).thenReturn(accountApplications);
+		when(applicationService.findByAccountUsername(username, sortMock)).thenReturn(accountApplications);
 		getApplicationResource(accountMockApp);
-		Resources<ApplicationResource> applicationList = subject.getAllApplications(principalMock, any(Sort.class));
+		Resources<ApplicationResource> applicationList = subject.getAllApplications(principalMock, sortMock);
 		assertNotNull(applicationList);
 		assertEquals(1, applicationList.getContent().size());
 	}
@@ -299,12 +300,13 @@ public class ApplicationRestControllerTest {
 		ReflectionTestUtils.setField(subject, "applicationService", applicationService);
 		ReflectionTestUtils.setField(subject, "accountService", accountService);
 		String username = "username";
+
 		when(principalMock.getName()).thenReturn(username);
 		when(accountMock.getUsername()).thenReturn(username);
 		when(accountService.findByUsername(username)).thenReturn(accountMock);
-		when(mockApplicationRepo.findByAccountUsernameAndSort(username, any(Sort.class))).thenReturn(new HashSet<>());
-		when(applicationService.findByAccountUsername(username, any(Sort.class))).thenReturn(new HashSet<>());
-		Resources<ApplicationResource> applicationList = subject.getAllApplications(principalMock, any(Sort.class));
+		when(mockApplicationRepo.findByAccountUsernameAndSort(username, new Sort("name.asc"))).thenReturn(new HashSet<>());
+		when(applicationService.findByAccountUsername(username, new Sort("sort.name"))).thenReturn(new HashSet<>());
+		Resources<ApplicationResource> applicationList = subject.getAllApplications(principalMock, new Sort("name.asc"));
 		assertNotNull(applicationList);
 		assertEquals(0, applicationList.getContent().size());
 	}
