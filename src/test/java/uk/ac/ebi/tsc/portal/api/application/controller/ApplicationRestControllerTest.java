@@ -1,34 +1,13 @@
 
 package uk.ac.ebi.tsc.portal.api.application.controller;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import java.io.File;
-import java.io.IOException;
-import java.security.Principal;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Optional;
-import java.util.Properties;
-import java.util.Set;
-
-import javax.servlet.http.HttpServletRequest;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+import org.springframework.data.domain.Sort;
 import org.springframework.hateoas.Resources;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -36,7 +15,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.util.ReflectionTestUtils;
-
 import uk.ac.ebi.tsc.aap.client.model.User;
 import uk.ac.ebi.tsc.aap.client.repo.DomainService;
 import uk.ac.ebi.tsc.portal.api.account.repo.Account;
@@ -46,7 +24,6 @@ import uk.ac.ebi.tsc.portal.api.application.repo.Application;
 import uk.ac.ebi.tsc.portal.api.application.repo.ApplicationRepository;
 import uk.ac.ebi.tsc.portal.api.application.service.ApplicationNotFoundException;
 import uk.ac.ebi.tsc.portal.api.application.service.ApplicationService;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.Deployment;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentApplication;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentApplicationRepository;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentApplicationService;
@@ -56,6 +33,19 @@ import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDownloader;
 import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDownloaderException;
 import uk.ac.ebi.tsc.portal.clouddeployment.model.ApplicationManifest;
 import uk.ac.ebi.tsc.portal.security.TokenHandler;
+
+import javax.servlet.http.HttpServletRequest;
+import java.io.File;
+import java.io.IOException;
+import java.security.Principal;
+import java.util.*;
+
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.*;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * @author Jose A. Dianes <jdianes@ebi.ac.uk>
@@ -121,7 +111,7 @@ public class ApplicationRestControllerTest {
 		when(mockAccountRepo.findByUsername("username")).thenReturn(Optional.of(accountMock));
 		when(accountMock.getApplications()).thenReturn((Set<Application>) mock(Set.class));
 
-		Resources<ApplicationResource> resources = subject.getAllApplications(principalMock);
+		Resources<ApplicationResource> resources = subject.getAllApplications(principalMock, any(Sort.class));
 		assertNotNull(resources);
 	}
 
@@ -222,9 +212,9 @@ public class ApplicationRestControllerTest {
 		when(principalMock.getName()).thenReturn(username);
 		getApplicationResource(applicationMock);
 		Mockito.when(applicationService.getSharedApplicationsByAccount(
-				Mockito.any(Account.class), 
-				Mockito.any(String.class),
-				Mockito.any(User.class))).thenReturn(applications);
+				any(Account.class),
+				any(String.class),
+				any(User.class))).thenReturn(applications);
 		Resources<ApplicationResource> applicationList = subject.getSharedApplicationByAccount(request, principalMock);
 		assertNotNull(applicationList);
 		assertEquals(1, applicationList.getContent().size());
@@ -292,10 +282,10 @@ public class ApplicationRestControllerTest {
 		Application accountMockApp = mock(Application.class);
 		Set<Application> accountApplications = new HashSet<>();
 		accountApplications.add(accountMockApp);
-		when(mockApplicationRepo.findByAccountUsername(username)).thenReturn(accountApplications);
-		when(applicationService.findByAccountUsername(username)).thenReturn(accountApplications);
+		when(mockApplicationRepo.findByAccountUsername(username, any(Sort.class))).thenReturn(accountApplications);
+		when(applicationService.findByAccountUsername(username, any(Sort.class))).thenReturn(accountApplications);
 		getApplicationResource(accountMockApp);
-		Resources<ApplicationResource> applicationList = subject.getAllApplications(principalMock);
+		Resources<ApplicationResource> applicationList = subject.getAllApplications(principalMock, any(Sort.class));
 		assertNotNull(applicationList);
 		assertEquals(1, applicationList.getContent().size());
 	}
@@ -312,9 +302,9 @@ public class ApplicationRestControllerTest {
 		when(principalMock.getName()).thenReturn(username);
 		when(accountMock.getUsername()).thenReturn(username);
 		when(accountService.findByUsername(username)).thenReturn(accountMock);
-		when(mockApplicationRepo.findByAccountUsername(username)).thenReturn(new HashSet<>());
-		when(applicationService.findByAccountUsername(username)).thenReturn(new HashSet<>());
-		Resources<ApplicationResource> applicationList = subject.getAllApplications(principalMock);
+		when(mockApplicationRepo.findByAccountUsername(username, any(Sort.class))).thenReturn(new HashSet<>());
+		when(applicationService.findByAccountUsername(username, any(Sort.class))).thenReturn(new HashSet<>());
+		Resources<ApplicationResource> applicationList = subject.getAllApplications(principalMock, any(Sort.class));
 		assertNotNull(applicationList);
 		assertEquals(0, applicationList.getContent().size());
 	}
@@ -331,7 +321,7 @@ public class ApplicationRestControllerTest {
 		getApplicationResource(application);
 		Set<Application> applications = new HashSet<>();
 		applications.add(application);
-		when(applicationService.getSharedApplicationsByAccount(Mockito.any(Account.class), Mockito.anyString(), Mockito.any(User.class))).thenReturn(applications);
+		when(applicationService.getSharedApplicationsByAccount(any(Account.class), Mockito.anyString(), any(User.class))).thenReturn(applications);
 		Resources resources = subject.getSharedApplicationByAccount(request, principalMock);
 		assertEquals(resources.getContent().size(), 1);
 	}
@@ -347,7 +337,7 @@ public class ApplicationRestControllerTest {
 		String appName = "name";
 		Application application = mockApplication("repoUri", "repoPath", appName);
 		when(applicationService.findByAccountUsernameAndName(Mockito.anyString(), Mockito.anyString())).thenReturn(application);
-		when(applicationService.getSharedApplicationByApplicationName(Mockito.any(Account.class), Mockito.anyString(), Mockito.any(User.class), Mockito.anyString())).thenReturn(application);
+		when(applicationService.getSharedApplicationByApplicationName(any(Account.class), Mockito.anyString(), any(User.class), Mockito.anyString())).thenReturn(application);
 		ApplicationResource resources = subject.getSharedByName(request, principalMock, "application");
 		assertTrue(resources.getId() != null);
 	}
@@ -361,7 +351,7 @@ public class ApplicationRestControllerTest {
 		ReflectionTestUtils.setField(applicationService, "domainService", domainService);
 		this.getRequest();
 		when(applicationService.findByAccountUsernameAndName(Mockito.anyString(), Mockito.anyString())).thenReturn(null);
-		when(applicationService.getSharedApplicationByApplicationName(Mockito.any(Account.class), Mockito.anyString(), Mockito.any(User.class), Mockito.anyString())).thenReturn(null);
+		when(applicationService.getSharedApplicationByApplicationName(any(Account.class), Mockito.anyString(), any(User.class), Mockito.anyString())).thenReturn(null);
 		ApplicationResource resources = subject.getSharedByName(request, principalMock, "application");
 	}
 	
