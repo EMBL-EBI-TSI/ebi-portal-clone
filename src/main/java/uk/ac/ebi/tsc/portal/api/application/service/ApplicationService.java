@@ -1,13 +1,9 @@
 package uk.ac.ebi.tsc.portal.api.application.service;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-
+import org.springframework.data.domain.Sort;
 import uk.ac.ebi.tsc.aap.client.model.Domain;
 import uk.ac.ebi.tsc.aap.client.model.User;
 import uk.ac.ebi.tsc.aap.client.repo.DomainService;
@@ -15,6 +11,10 @@ import uk.ac.ebi.tsc.portal.api.account.repo.Account;
 import uk.ac.ebi.tsc.portal.api.application.repo.Application;
 import uk.ac.ebi.tsc.portal.api.application.repo.ApplicationRepository;
 import uk.ac.ebi.tsc.portal.api.team.repo.Team;
+
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * @author Jose A. Dianes <jdianes@ebi.ac.uk>
@@ -39,8 +39,8 @@ public class ApplicationService {
 		return this.applicationRepository.save(application);
 	}
 
-	public Collection<Application> findByAccountUsername(String username) {
-		return applicationRepository.findByAccountUsername(username);
+	public Collection<Application> findByAccountUsername(String username, Sort sort) {
+		return applicationRepository.findByAccountUsername(username, sort);
 	}
 
 	public Application findByAccountUsernameAndName(String username, String name) {

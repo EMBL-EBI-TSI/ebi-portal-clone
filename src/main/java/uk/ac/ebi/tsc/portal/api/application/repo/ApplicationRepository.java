@@ -1,5 +1,6 @@
 package uk.ac.ebi.tsc.portal.api.application.repo;
 
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -14,6 +15,6 @@ import java.util.Optional;
 @Repository
 public interface ApplicationRepository extends JpaRepository<Application, Long> {
     Optional<Application> findById(Long id);
-    Collection<Application> findByAccountUsername(String username);
+    Collection<Application> findByAccountUsername(String username, Sort sort);
     Optional<Application> findByAccountUsernameAndName(String username, String name);
 }
