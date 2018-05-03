@@ -293,7 +293,7 @@ public class DeploymentRestControllerTest {
 		Set applicationCollection = new HashSet<>();
 		applicationCollection.add(applicationMock);
 
-		when(mockApplicationRepo.findByAccountUsernameAndSort(accountUserName, new Sort("sort.name"))).thenReturn(applicationCollection);
+		when(mockApplicationRepo.findByAccountUsername(accountUserName, new Sort("sort.name"))).thenReturn(applicationCollection);
 		when(deploymentResourceMock.getApplicationAccountUsername()).thenReturn(accountUserName);
 		when(deploymentResourceMock.getApplicationName()).thenReturn(appName);
 		when(mockApplicationRepo.findByAccountUsernameAndName(accountUserName, appName))
