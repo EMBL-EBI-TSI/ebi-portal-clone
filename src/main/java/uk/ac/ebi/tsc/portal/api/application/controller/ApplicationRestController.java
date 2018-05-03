@@ -1,30 +1,17 @@
 package uk.ac.ebi.tsc.portal.api.application.controller;
 
-import java.io.IOException;
-import java.net.URI;
-import java.security.Principal;
-import java.util.List;
-import java.util.Properties;
-import java.util.stream.Collectors;
-
-import javax.servlet.http.HttpServletRequest;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Sort;
 import org.springframework.hateoas.Link;
 import org.springframework.hateoas.Resources;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RestController;
-
+import org.springframework.web.bind.annotation.*;
 import uk.ac.ebi.tsc.aap.client.repo.DomainService;
 import uk.ac.ebi.tsc.portal.api.account.repo.Account;
 import uk.ac.ebi.tsc.portal.api.account.repo.AccountRepository;
@@ -40,6 +27,14 @@ import uk.ac.ebi.tsc.portal.api.team.repo.TeamRepository;
 import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDownloader;
 import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDownloaderException;
 import uk.ac.ebi.tsc.portal.security.TokenHandler;
+
+import javax.servlet.http.HttpServletRequest;
+import java.io.IOException;
+import java.net.URI;
+import java.security.Principal;
+import java.util.List;
+import java.util.Properties;
+import java.util.stream.Collectors;
 
 /**
  * @author Jose A. Dianes <jdianes@ebi.ac.uk>
@@ -116,12 +111,12 @@ public class ApplicationRestController {
 	}
 
 	@RequestMapping(method = RequestMethod.GET)
-	public Resources<ApplicationResource> getAllApplications(Principal principal) {
+	public Resources<ApplicationResource> getAllApplications(Principal principal, Sort sort) {
 		logger.info("Application list requested by user " + principal.getName());
 
 		Account account = this.accountService.findByUsername(principal.getName());
 		List<ApplicationResource> applicationResourceList =
-				this.applicationService.findByAccountUsername(account.getUsername())
+				this.applicationService.findByAccountUsername(account.getUsername(), sort)
 				.stream()
 				.map(ApplicationResource::new)
 				.collect(Collectors.toList());

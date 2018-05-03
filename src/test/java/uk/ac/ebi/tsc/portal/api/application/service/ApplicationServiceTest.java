@@ -1,34 +1,16 @@
 package uk.ac.ebi.tsc.portal.api.application.service;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import java.security.Principal;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-
-import javax.servlet.http.HttpServletRequest;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpHeaders;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
-
 import uk.ac.ebi.tsc.aap.client.model.Domain;
 import uk.ac.ebi.tsc.aap.client.model.User;
 import uk.ac.ebi.tsc.aap.client.repo.DomainService;
@@ -37,6 +19,16 @@ import uk.ac.ebi.tsc.portal.api.application.repo.Application;
 import uk.ac.ebi.tsc.portal.api.application.repo.ApplicationRepository;
 import uk.ac.ebi.tsc.portal.api.team.controller.TeamResource;
 import uk.ac.ebi.tsc.portal.api.team.repo.Team;
+
+import javax.servlet.http.HttpServletRequest;
+import java.security.Principal;
+import java.util.*;
+
+import static org.junit.Assert.*;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * @author Jose A. Dianes <jdianes@ebi.ac.uk>
@@ -100,7 +92,7 @@ public class ApplicationServiceTest {
 	@Test
 	public void testFindByAccountUsername(){
 		mockApplications();
-		Collection<Application> applications = testCandidate.findByAccountUsername(username);
+		Collection<Application> applications = testCandidate.findByAccountUsername(username, new Sort("name.asc"));
 		assertEquals(applications.size(), 1);
 	}
 
@@ -300,7 +292,7 @@ public class ApplicationServiceTest {
 	private void mockApplications(){
 		Collection applications = new LinkedList<>();
 		applications.add(applicationMock);
-		when(applicationMock.getName()).thenReturn(appName);when(applicationRepositoryMock.findByAccountUsername(username)).thenReturn(applications);
+		when(applicationMock.getName()).thenReturn(appName);when(applicationRepositoryMock.findByAccountUsername(username, new Sort("name.asc"))).thenReturn(applications);
 		when(applicationRepositoryMock.findByAccountUsernameAndName(username, appName)).thenReturn(Optional.of(applicationMock));
 		when(applicationRepositoryMock.findByAccountUsernameAndName(username, appnotpresent)).thenThrow(ApplicationNotFoundException.class);
 	}
