@@ -143,9 +143,10 @@ public class TokenHandler {
             String userReference = jwtClaims.getSubject();
             String nickname = jwtClaims.getStringClaimValue("nickname");
             String email = jwtClaims.getStringClaimValue("email");
+            String fullName = jwtClaims.getStringClaimValue("name");
             List<String> domains = jwtClaims.getStringListClaimValue("domains");
             domains.forEach(name->domainsSet.add(new Domain(name,null,null)));
-            return new User(nickname, email, userReference,domainsSet);
+            return new User(nickname, email, userReference, fullName, domainsSet);
         } catch (InvalidJwtException | MalformedClaimException e) {
             logger.debug("cannot parse token", e);
             throw new RuntimeException("Cannot parse token", e);
