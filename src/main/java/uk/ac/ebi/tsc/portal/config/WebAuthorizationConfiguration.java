@@ -7,8 +7,8 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
+import uk.ac.ebi.tsc.portal.security.EcpAuthenticationService;
 import uk.ac.ebi.tsc.portal.security.StatelessAuthenticationFilter;
-import uk.ac.ebi.tsc.portal.security.TokenAuthenticationService;
 
 /**
  * @author Jose A. Dianes <jdianes@ebi.ac.uk>
@@ -20,7 +20,7 @@ import uk.ac.ebi.tsc.portal.security.TokenAuthenticationService;
 public class WebAuthorizationConfiguration extends WebSecurityConfigurerAdapter {
 
     @Autowired
-    private TokenAuthenticationService tokenAuthenticationService;
+    private EcpAuthenticationService tokenAuthenticationService;
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {

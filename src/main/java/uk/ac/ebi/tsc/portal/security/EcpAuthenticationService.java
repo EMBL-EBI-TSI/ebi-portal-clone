@@ -30,7 +30,7 @@ import java.sql.Date;
 import java.util.UUID;
 
 /**
- * Extracts user authentication details from Token using AAP domains API
+ * Extracts user authentication details from Token using AAP API
  *
  * @author Jose A Dianes  <jdianes@ebi.ac.uk>
  * @since 09/05/2018.
@@ -38,7 +38,7 @@ import java.util.UUID;
 @Component
 public class EcpAuthenticationService extends uk.ac.ebi.tsc.aap.client.security.TokenAuthenticationService {
 
-    private static final Logger logger = LoggerFactory.getLogger(TokenAuthenticationService.class);
+    private static final Logger logger = LoggerFactory.getLogger(EcpAuthenticationService.class);
     private static final String TOKEN_HEADER_KEY = "Authorization";
     private static final String TOKEN_HEADER_VALUE_PREFIX = "Bearer ";
 

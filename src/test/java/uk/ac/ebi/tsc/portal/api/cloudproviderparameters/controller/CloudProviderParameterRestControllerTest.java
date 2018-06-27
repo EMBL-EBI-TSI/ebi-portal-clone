@@ -80,7 +80,7 @@ public class CloudProviderParameterRestControllerTest {
 	Principal principalMock;
 	CloudProviderParameters cppMock;
 	DomainService domainService;
-	TokenHandler tokenHandler;
+	uk.ac.ebi.tsc.aap.client.security.TokenHandler tokenHandler;
 	HttpServletRequest request;
 	CloudProviderParametersService cppService;
 	CloudProviderParamsCopyService cppCopyService;
@@ -118,7 +118,7 @@ public class CloudProviderParameterRestControllerTest {
 		domainService = mock(DomainService.class);
 		cppService = mock(CloudProviderParametersService.class);
 		accountService = mock(AccountService.class);
-		tokenHandler = mock(TokenHandler.class);
+		tokenHandler = mock(uk.ac.ebi.tsc.aap.client.security.TokenHandler.class);
 		request = mock(HttpServletRequest.class);
 		deploymentStatusRepository = mock(DeploymentStatusRepository.class);
 		deploymentRestController = mock(DeploymentRestController.class);

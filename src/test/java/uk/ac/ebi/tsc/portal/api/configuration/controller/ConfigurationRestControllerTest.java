@@ -90,7 +90,7 @@ public class ConfigurationRestControllerTest {
 	private HttpServletRequest request;
 
 	@MockBean
-	private TokenHandler tokenHandler;
+	private uk.ac.ebi.tsc.aap.client.security.TokenHandler tokenHandler;
 
 	@MockBean 
 	private DomainService domainService;
