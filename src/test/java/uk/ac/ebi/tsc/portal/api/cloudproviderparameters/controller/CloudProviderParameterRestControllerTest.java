@@ -60,7 +60,6 @@ import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentRepository;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentStatusRepository;
 import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
 import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDownloaderException;
-import uk.ac.ebi.tsc.portal.security.TokenHandler;
 
 /**
  * @author Jose A. Dianes <jdianes@ebi.ac.uk>
