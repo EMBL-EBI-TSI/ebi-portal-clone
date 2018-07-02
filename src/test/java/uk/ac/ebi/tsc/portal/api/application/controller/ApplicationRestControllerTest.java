@@ -65,7 +65,7 @@ public class ApplicationRestControllerTest {
 	ApplicationService applicationService = mock(ApplicationService.class);
 	AccountService accountService = mock(AccountService.class);
 	DomainService domainService = mock(DomainService.class);
-	TokenHandler tokenHandler = mock(TokenHandler.class);
+	uk.ac.ebi.tsc.aap.client.security.TokenHandler tokenHandler = mock(uk.ac.ebi.tsc.aap.client.security.TokenHandler.class);
 	HttpServletRequest request = mock(HttpServletRequest.class);
 	DeploymentApplicationService deploymentApplicationService = mock(DeploymentApplicationService.class);
 	DeploymentApplicationRepository deploymentApplicationRepo = mock(DeploymentApplicationRepository.class);

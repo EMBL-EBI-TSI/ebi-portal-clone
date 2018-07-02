@@ -8,7 +8,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import uk.ac.ebi.tsc.aap.client.repo.DomainService;
 import uk.ac.ebi.tsc.aap.client.repo.TokenService;
@@ -41,7 +40,8 @@ import java.util.UUID;
 /**
  * Checks whether a request contains a valid Json Web Token, from a valid user
  */
-@Component
+//@Component
+@Deprecated
 public class TokenAuthenticationService {
 
     private static final Logger logger = LoggerFactory.getLogger(TokenAuthenticationService.class);

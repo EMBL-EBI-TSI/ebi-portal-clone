@@ -1,16 +1,5 @@
 package uk.ac.ebi.tsc.portal.api.configuration.controller;
 
-import java.io.IOException;
-import java.security.Principal;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
-import javax.servlet.http.HttpServletRequest;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,13 +10,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
-
 import uk.ac.ebi.tsc.aap.client.repo.DomainService;
 import uk.ac.ebi.tsc.portal.api.account.repo.Account;
 import uk.ac.ebi.tsc.portal.api.account.repo.AccountRepository;
@@ -40,22 +24,8 @@ import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderPar
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParametersService;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParamsCopyNotFoundException;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParamsCopyService;
-import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigDeploymentParamCopyRepository;
-import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigDeploymentParamsCopy;
-import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigDeploymentParamsCopyRepository;
-import uk.ac.ebi.tsc.portal.api.configuration.repo.Configuration;
-import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationDeploymentParameterRepository;
-import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationDeploymentParameters;
-import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationDeploymentParametersRepository;
-import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationRepository;
-import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigDeploymentParamCopyService;
-import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigDeploymentParamsCopyNotFoundException;
-import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigDeploymentParamsCopyService;
-import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationDeploymentParameterService;
-import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationDeploymentParametersNotFoundException;
-import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationDeploymentParametersService;
-import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationNotFoundException;
-import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationService;
+import uk.ac.ebi.tsc.portal.api.configuration.repo.*;
+import uk.ac.ebi.tsc.portal.api.configuration.service.*;
 import uk.ac.ebi.tsc.portal.api.deployment.controller.DeploymentResource;
 import uk.ac.ebi.tsc.portal.api.deployment.controller.DeploymentRestController;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.Deployment;
@@ -65,8 +35,13 @@ import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
 import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
 import uk.ac.ebi.tsc.portal.api.team.repo.Team;
 import uk.ac.ebi.tsc.portal.clouddeployment.utils.NamesPatternMatcher;
-import uk.ac.ebi.tsc.portal.security.TokenHandler;
 import uk.ac.ebi.tsc.portal.usage.deployment.service.DeploymentIndexService;
+
+import javax.servlet.http.HttpServletRequest;
+import java.io.IOException;
+import java.security.Principal;
+import java.util.*;
+import java.util.stream.Collectors;
 
 
 /**
@@ -86,7 +61,7 @@ public class ConfigurationRestController {
 	private final ConfigurationDeploymentParametersService configurationDeploymentParametersService;
 	private final ConfigurationDeploymentParameterService configurationDeploymentParameterService;
 	private final DeploymentService deploymentService;
-	private TokenHandler tokenHandler;
+	private uk.ac.ebi.tsc.aap.client.security.TokenHandler tokenHandler;
 	private final DeploymentRestController deploymentRestController;
 	private final CloudProviderParamsCopyService cloudProviderParametersCopyService;
 	private final ConfigDeploymentParamsCopyService configDeploymentParamsCopyService;
@@ -111,7 +86,7 @@ public class ConfigurationRestController {
 			ConfigurationDeploymentParametersRepository configurationDeploymentParametersRepository,
 			ConfigurationDeploymentParameterRepository configurationDeploymentParameterRepository,
 			DomainService domainService,
-			TokenHandler tokenHandler,
+									   uk.ac.ebi.tsc.aap.client.security.TokenHandler tokenHandler,
 			DeploymentRepository deploymentRepository,
 			DeploymentStatusRepository deploymentStatusRepository,
 			DeploymentRestController deploymentRestController,

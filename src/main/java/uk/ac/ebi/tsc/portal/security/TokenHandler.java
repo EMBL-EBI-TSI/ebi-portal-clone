@@ -12,8 +12,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.stereotype.Component;
-
 import uk.ac.ebi.tsc.aap.client.model.Domain;
 import uk.ac.ebi.tsc.aap.client.model.User;
 
@@ -34,7 +32,8 @@ import java.util.Set;
 /**
  * Extracts the user from a Json Web Token and matches to user account.
  */
-@Component
+//@Component
+@Deprecated
 public class TokenHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(TokenHandler.class);
@@ -143,9 +142,10 @@ public class TokenHandler {
             String userReference = jwtClaims.getSubject();
             String nickname = jwtClaims.getStringClaimValue("nickname");
             String email = jwtClaims.getStringClaimValue("email");
+            String fullName = jwtClaims.getStringClaimValue("name");
             List<String> domains = jwtClaims.getStringListClaimValue("domains");
             domains.forEach(name->domainsSet.add(new Domain(name,null,null)));
-            return new User(nickname, email, userReference,domainsSet);
+            return new User(nickname, email, userReference, fullName, domainsSet);
         } catch (InvalidJwtException | MalformedClaimException e) {
             logger.debug("cannot parse token", e);
             throw new RuntimeException("Cannot parse token", e);
