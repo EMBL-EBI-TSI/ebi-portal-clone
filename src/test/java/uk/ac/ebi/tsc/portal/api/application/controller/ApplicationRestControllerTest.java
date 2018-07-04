@@ -32,7 +32,6 @@ import uk.ac.ebi.tsc.portal.api.team.repo.TeamRepository;
 import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDownloader;
 import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDownloaderException;
 import uk.ac.ebi.tsc.portal.clouddeployment.model.ApplicationManifest;
-import uk.ac.ebi.tsc.portal.security.TokenHandler;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.File;

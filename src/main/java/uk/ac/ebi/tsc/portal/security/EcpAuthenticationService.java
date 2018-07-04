@@ -6,7 +6,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 import uk.ac.ebi.tsc.aap.client.repo.DomainService;
-import uk.ac.ebi.tsc.aap.client.repo.TokenService;
 import uk.ac.ebi.tsc.portal.api.account.repo.Account;
 import uk.ac.ebi.tsc.portal.api.account.repo.AccountRepository;
 import uk.ac.ebi.tsc.portal.api.account.service.AccountService;
@@ -30,17 +29,19 @@ import java.sql.Date;
 import java.util.UUID;
 
 /**
- * Extracts user authentication details from Token using AAP API
+ * Extracts user authentication details from Token using AAP domains API
  *
  * @author Jose A Dianes  <jdianes@ebi.ac.uk>
  * @since 09/05/2018.
  */
 @Component
-public class EcpAuthenticationService extends uk.ac.ebi.tsc.aap.client.security.TokenAuthenticationService {
+public class EcpAuthenticationService {
 
     private static final Logger logger = LoggerFactory.getLogger(EcpAuthenticationService.class);
     private static final String TOKEN_HEADER_KEY = "Authorization";
     private static final String TOKEN_HEADER_VALUE_PREFIX = "Bearer ";
+
+    uk.ac.ebi.tsc.aap.client.security.TokenAuthenticationService tokenAuthenticationService;
 
     private final AccountService accountService;
     private final TeamService teamService;
@@ -52,7 +53,7 @@ public class EcpAuthenticationService extends uk.ac.ebi.tsc.aap.client.security.
     private final String ecpAapPassword;
 
 
-    public EcpAuthenticationService(uk.ac.ebi.tsc.aap.client.security.TokenHandler tokenHandler,
+    public EcpAuthenticationService(uk.ac.ebi.tsc.aap.client.security.TokenAuthenticationService tokenAuthenticationService,
                                     AccountRepository accountRepository,
                                     DeploymentRepository deploymentRepository,
                                     DeploymentStatusRepository deploymentStatusRepository,
@@ -61,13 +62,12 @@ public class EcpAuthenticationService extends uk.ac.ebi.tsc.aap.client.security.
                                     TeamRepository teamRepository,
                                     ApplicationDeployerBash applicationDeployerBash,
                                     DomainService domainService,
-                                    TokenService tokenService,
                                     EncryptionService encryptionService,
                                     @Value("${ecp.security.salt}") final String salt,
                                     @Value("${ecp.security.password}") final String password,
                                     @Value("${ecp.aap.username}") final String ecpAapUsername,
                                     @Value("${ecp.aap.password}") final String ecpAapPassword) {
-        super(tokenHandler);
+        this.tokenAuthenticationService = tokenAuthenticationService;
         this.ecpAapUsername = ecpAapUsername;
         this.ecpAapPassword = ecpAapPassword;
         this.accountService = new AccountService(accountRepository);
@@ -92,7 +92,7 @@ public class EcpAuthenticationService extends uk.ac.ebi.tsc.aap.client.security.
      * @return
      */
     public Authentication getAuthentication(HttpServletRequest request) {
-        Authentication authentication = super.getAuthentication(request);
+        Authentication authentication = this.tokenAuthenticationService.getAuthentication(request);
         if (authentication == null) {
             return null;
         }
@@ -110,11 +110,11 @@ public class EcpAuthenticationService extends uk.ac.ebi.tsc.aap.client.security.
         try { // Try to find user by token name claim (legacy ECP accounts)
             logger.trace("Looking for account by token 'name' claim {}", user.getUserName());
             // get the account
-            Account theAccount = this.accountService.findByUsername(user.getUserName());
+            account = this.accountService.findByUsername(user.getUserName());
             // Update the account username with the token sub claim
-            theAccount.setUsername(user.getUsername()); // TODO - check with @ameliec
-            theAccount.setGivenName(user.getUserName());
-            this.accountService.save(theAccount);
+            account.setUsername(user.getUsername()); // TODO - check with @ameliec
+            account.setGivenName(user.getUserName());
+            this.accountService.save(account);
         } catch (UserNotFoundException userNameNotFoundException) {
             try { // Try with sub claim (currently used)
                 logger.trace("Looking for account by token 'sub' claim {}", user.getUsername());

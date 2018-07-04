@@ -47,7 +47,6 @@ import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationDeploymentPar
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationDeploymentParametersService;
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationNotFoundException;
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationService;
-import uk.ac.ebi.tsc.portal.security.TokenHandler;
 
 
 /**
