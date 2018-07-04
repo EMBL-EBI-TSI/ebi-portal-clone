@@ -19,6 +19,7 @@ import javax.servlet.http.HttpServletRequest;
 import java.util.Optional;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -91,7 +92,14 @@ public class EcpAuthenticationServiceTest {
 
     }
 
-
+    @Test public void
+    detects_invalid_jwt() {
+        HttpServletRequest request = withAuthorizationHeader("Bearer pretend-invalid-token");
+        when(request.getHeader("Authorization").
+                equals("Bearer pretend-invalid-token")).thenReturn(null);
+        Authentication auth = subject.getAuthentication(request);
+        assertNull(auth);
+    }
 
     private HttpServletRequest withAuthorizationHeader(String value) {
         HttpServletRequest request = mock(HttpServletRequest.class);
