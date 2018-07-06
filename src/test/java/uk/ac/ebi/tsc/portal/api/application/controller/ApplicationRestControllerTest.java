@@ -32,7 +32,6 @@ import uk.ac.ebi.tsc.portal.api.team.repo.TeamRepository;
 import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDownloader;
 import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDownloaderException;
 import uk.ac.ebi.tsc.portal.clouddeployment.model.ApplicationManifest;
-import uk.ac.ebi.tsc.portal.security.TokenHandler;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.File;
@@ -65,7 +64,7 @@ public class ApplicationRestControllerTest {
 	ApplicationService applicationService = mock(ApplicationService.class);
 	AccountService accountService = mock(AccountService.class);
 	DomainService domainService = mock(DomainService.class);
-	TokenHandler tokenHandler = mock(TokenHandler.class);
+	uk.ac.ebi.tsc.aap.client.security.TokenHandler tokenHandler = mock(uk.ac.ebi.tsc.aap.client.security.TokenHandler.class);
 	HttpServletRequest request = mock(HttpServletRequest.class);
 	DeploymentApplicationService deploymentApplicationService = mock(DeploymentApplicationService.class);
 	DeploymentApplicationRepository deploymentApplicationRepo = mock(DeploymentApplicationRepository.class);

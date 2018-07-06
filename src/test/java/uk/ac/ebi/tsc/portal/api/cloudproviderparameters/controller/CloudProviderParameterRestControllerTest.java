@@ -60,7 +60,6 @@ import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentRepository;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentStatusRepository;
 import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
 import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDownloaderException;
-import uk.ac.ebi.tsc.portal.security.TokenHandler;
 
 /**
  * @author Jose A. Dianes <jdianes@ebi.ac.uk>
@@ -80,7 +79,7 @@ public class CloudProviderParameterRestControllerTest {
 	Principal principalMock;
 	CloudProviderParameters cppMock;
 	DomainService domainService;
-	TokenHandler tokenHandler;
+	uk.ac.ebi.tsc.aap.client.security.TokenHandler tokenHandler;
 	HttpServletRequest request;
 	CloudProviderParametersService cppService;
 	CloudProviderParamsCopyService cppCopyService;
@@ -118,7 +117,7 @@ public class CloudProviderParameterRestControllerTest {
 		domainService = mock(DomainService.class);
 		cppService = mock(CloudProviderParametersService.class);
 		accountService = mock(AccountService.class);
-		tokenHandler = mock(TokenHandler.class);
+		tokenHandler = mock(uk.ac.ebi.tsc.aap.client.security.TokenHandler.class);
 		request = mock(HttpServletRequest.class);
 		deploymentStatusRepository = mock(DeploymentStatusRepository.class);
 		deploymentRestController = mock(DeploymentRestController.class);

@@ -47,7 +47,6 @@ import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationDeploymentPar
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationDeploymentParametersService;
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationNotFoundException;
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationService;
-import uk.ac.ebi.tsc.portal.security.TokenHandler;
 
 
 /**
@@ -90,7 +89,7 @@ public class ConfigurationRestControllerTest {
 	private HttpServletRequest request;
 
 	@MockBean
-	private TokenHandler tokenHandler;
+	private uk.ac.ebi.tsc.aap.client.security.TokenHandler tokenHandler;
 
 	@MockBean 
 	private DomainService domainService;

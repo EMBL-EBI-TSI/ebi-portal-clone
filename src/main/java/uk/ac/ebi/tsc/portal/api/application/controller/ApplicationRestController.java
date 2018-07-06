@@ -26,7 +26,6 @@ import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentApplicationService;
 import uk.ac.ebi.tsc.portal.api.team.repo.TeamRepository;
 import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDownloader;
 import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDownloaderException;
-import uk.ac.ebi.tsc.portal.security.TokenHandler;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
@@ -56,7 +55,7 @@ public class ApplicationRestController {
 
 	private ApplicationDownloader applicationDownloader;
 	
-	private TokenHandler tokenHandler;
+	private uk.ac.ebi.tsc.aap.client.security.TokenHandler tokenHandler;
 	
 	private final DeploymentApplicationService deploymentApplicationService;
 
@@ -66,7 +65,7 @@ public class ApplicationRestController {
 			AccountRepository accountRepository,
 			ApplicationDownloader applicationDownloader,
 			TeamRepository teamRepository,
-			TokenHandler tokenHandler,
+			uk.ac.ebi.tsc.aap.client.security.TokenHandler tokenHandler,
 			DomainService domainService,
 			DeploymentApplicationRepository deploymentApplicationRepository) {
 		this.applicationService = new ApplicationService(applicationRepository, domainService);
