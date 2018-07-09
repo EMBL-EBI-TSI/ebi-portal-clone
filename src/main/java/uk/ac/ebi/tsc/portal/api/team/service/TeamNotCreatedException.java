@@ -1,4 +1,4 @@
-package uk.ac.ebi.tsc.portal.api.team.controller;
+package uk.ac.ebi.tsc.portal.api.team.service;
 
 /**
  * @author Jose A. Dianes <jdianes@ebi.ac.uk>
@@ -9,9 +9,9 @@ public class TeamNotCreatedException extends RuntimeException {
 
 	private static final long serialVersionUID = 1L;
 
-	public TeamNotCreatedException(String teamName){
+	public TeamNotCreatedException(String teamName, String reason){
 		
-		super("Team " + teamName + " failed to get created");
+		super("Failed to create team " + teamName + ". Reason: " + reason);
 		
 	}
 }

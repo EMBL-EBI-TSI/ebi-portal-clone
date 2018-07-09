@@ -62,7 +62,6 @@ import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationDeploymentParame
 import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationRepository;
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationDeploymentParametersService;
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationService;
-import uk.ac.ebi.tsc.portal.api.deployment.controller.DeploymentRestController;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.Deployment;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentConfiguration;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentConfigurationRepository;
@@ -73,6 +72,7 @@ import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
 import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
 import uk.ac.ebi.tsc.portal.api.team.repo.Team;
 import uk.ac.ebi.tsc.portal.api.team.repo.TeamRepository;
+import uk.ac.ebi.tsc.portal.api.team.service.TeamNotCreatedException;
 import uk.ac.ebi.tsc.portal.api.team.service.TeamService;
 import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDeployerException;
 

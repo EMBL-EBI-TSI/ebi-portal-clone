@@ -52,6 +52,7 @@ import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
 import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
 import uk.ac.ebi.tsc.portal.api.team.repo.Team;
 import uk.ac.ebi.tsc.portal.api.team.repo.TeamRepository;
+import uk.ac.ebi.tsc.portal.api.team.service.TeamNotCreatedException;
 import uk.ac.ebi.tsc.portal.api.team.service.TeamService;
 import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployerBash;
 
@@ -183,7 +184,7 @@ public class TeamRestController {
 		}else{
 			logger.info("Team and domain could not be created");
 			// Prepare response
-			throw new TeamNotCreatedException(teamResource.getName());
+			throw new TeamNotCreatedException(teamResource.getName(), "failed to create domain");
 		}
 	}
 
