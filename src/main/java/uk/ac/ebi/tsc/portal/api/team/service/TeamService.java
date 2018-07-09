@@ -146,10 +146,12 @@ public class TeamService {
 			logger.error("Failed to create team, after creating domain, so deleting domain " + e.getMessage());
 			try {
 				domainService.deleteDomain(domain, token);
-			}catch(Exception ex){
+			} catch(Exception ex){
 				logger.error("In TeamService: Failed to delete the domain " + ex.getMessage());
+                throw new TeamNotCreatedException(teamResource.getName(), "failed to persist team and delete already created domain");
 			}
-			return null;
+
+            throw new TeamNotCreatedException(teamResource.getName(), "failed to persist team");
 		}
 
 	}
