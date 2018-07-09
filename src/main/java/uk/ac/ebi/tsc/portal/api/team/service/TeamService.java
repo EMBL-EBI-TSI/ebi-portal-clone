@@ -153,7 +153,7 @@ public class TeamService {
 
         } catch (Exception e) {
             logger.error("Failed to create AAP domain " + domainName);
-            throw new TeamNotCreatedException(teamResource.getName(), "failed to create domain " + domainName + ". Reason: " + e.getCause().getMessage());
+            throw new TeamNotCreatedException(teamResource.getName(), "failed to create domain " + domainName + ". Reason: " + e.getMessage());
         }
 
 
