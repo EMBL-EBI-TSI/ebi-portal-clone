@@ -127,32 +127,36 @@ public class TeamService {
         // Create associated domain
         // Form domain name
         String domainName = "TEAM_"+ teamResource.getName().toUpperCase()+"_PORTAL_" + userName.toUpperCase();
-        Domain domain = domainService.createDomain(domainName, "Domain " + domainName + " created" , token);
+        try {
+            Domain domain = domainService.createDomain(domainName, "Domain " + domainName + " created", token);
 
-        if (domain==null) {
-            throw new TeamNotCreatedException(teamResource.getName(), "failed to create domain " + domainName);
+            logger.info("Created domain " + domain.getDomainName());
+
+            team.setDomainReference(domain.getDomainReference());
+
+            logger.info("In TeamService: Created team, now saving it " + team.getName());
+
+            try {
+                this.save(team);
+                return team;
+            } catch (Exception e) {
+                logger.error("Failed to create team, after creating domain, so deleting domain " + e.getMessage());
+                try {
+                    domainService.deleteDomain(domain, token);
+                } catch(Exception ex){
+                    logger.error("In TeamService: Failed to delete the domain " + ex.getMessage());
+                    throw new TeamNotCreatedException(teamResource.getName(), "failed to persist team and delete already created domain");
+                }
+
+                throw new TeamNotCreatedException(teamResource.getName(), "failed to persist team");
+            }
+
+        } catch (Exception e) {
+            logger.error("Failed to create AAP domain " + domainName);
+            throw new TeamNotCreatedException(teamResource.getName(), "failed to create domain " + domainName + "Reason: " + e.getMessage());
         }
 
-        logger.info("Created domain " + domain.getDomainName());
 
-        team.setDomainReference(domain.getDomainReference());
-
-        logger.info("In TeamService: Created team, now saving it " + team.getName());
-
-        try {
-            this.save(team);
-            return team;
-		} catch (Exception e) {
-			logger.error("Failed to create team, after creating domain, so deleting domain " + e.getMessage());
-			try {
-				domainService.deleteDomain(domain, token);
-			} catch(Exception ex){
-				logger.error("In TeamService: Failed to delete the domain " + ex.getMessage());
-                throw new TeamNotCreatedException(teamResource.getName(), "failed to persist team and delete already created domain");
-			}
-
-            throw new TeamNotCreatedException(teamResource.getName(), "failed to persist team");
-		}
 
 	}
 
