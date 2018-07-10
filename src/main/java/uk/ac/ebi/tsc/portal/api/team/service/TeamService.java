@@ -162,12 +162,12 @@ public class TeamService {
 
 	}
 
-	public boolean removeMemberFromTeam(
+	public Team removeMemberFromTeam(
 			String token,
 			String teamName, 
 			String userEmail) throws AccountNotFoundException {
 
-		logger.info("Removing user from team " + teamName);
+		logger.debug("Removing user from team " + teamName);
 
 		// Get team
 		Team team = this.findByName(teamName);
@@ -187,13 +187,13 @@ public class TeamService {
                     account.getReference() + " is not a member of the team");
         }
 
-		logger.info("Found associated user with reference " + account.getUsername());
+		logger.debug("Found associated user with reference " + account.getUsername());
 
 		// If there is an associated domain (it should not for legacy teams)
 		if (team.getDomainReference() != null) {
 			try {
 				//remove member from domain
-				logger.info("Removing user from domain " + team.getDomainReference());
+				logger.debug("Removing user from domain " + team.getDomainReference());
 
 				Domain domain = domainService.getDomainByReference(team.getDomainReference(), token);
 				if (domain != null) {
@@ -215,7 +215,7 @@ public class TeamService {
 				}
 			} catch (HttpClientErrorException e) {
 				if (e.getStatusCode().equals(HttpStatus.NOT_FOUND)) {
-					logger.info("Domain does not exist, removing user from team ");
+					logger.debug("Domain does not exist, removing user from team ");
 				} else {
 					e.printStackTrace();
 					logger.error("Error removing user from team and domain "  + e.getMessage());
@@ -229,9 +229,7 @@ public class TeamService {
 
 		// Update team
 		team.getAccountsBelongingToTeam().remove(account);
-		team = this.save(team);
-		return true; // TODO: change this to return a resource/void and exceptions on error!!!
-
+		return this.save(team);
 	}
 
 	public boolean addMemberToTeam(
@@ -858,7 +856,7 @@ public class TeamService {
 
 	}
 
-	public boolean leaveTeam(
+	public void leaveTeam(
 			String token,
 			DeploymentService deploymentService, 
 			ConfigurationService configurationService, 
@@ -884,29 +882,21 @@ public class TeamService {
 					throw new Exception("Team owner cannot leave the team, but he can delete the team");
 				}else{
 					logger.info("Removing member from team");
-					boolean memberRemoved = this.removeMemberFromTeam(
+					this.removeMemberFromTeam(
 							token,
 							team.getName(), 
 							memberToLeaveEmail);
-					try{
-						if(memberRemoved){
-							this.stopDeploymentsOfRemovedUser(team, 
+					try {
+						this.stopDeploymentsOfRemovedUser(team,
 									memberToLeaveEmail,
 									deploymentService,
 									configurationService, 
 									configDepParamsService
 									);
-							String message = "You have been removed from the team " + "'"+team.getName()+"'" + ".\n\n";
-							SendMail.send(toNotify, "Request to leave team " + team.getName(), message );
-							return memberRemoved;
-						}else{
-							String message = "Failed to remove you from the team " + "'"+team.getName()+"'" + ".\n\n";
-							SendMail.send(toNotify, "Request to leave team " + team.getName(), message );
-							return memberRemoved;
-						}
+                        String message = "You have been removed from the team " + "'"+team.getName()+"'" + ".\n\n";
+                        SendMail.send(toNotify, "Request to leave team " + team.getName(), message );
 					}catch(IOException e){
 						logger.error("In leaveTeam: Failed to notify user");
-						return memberRemoved;
 					}
 				}
 			}else{
