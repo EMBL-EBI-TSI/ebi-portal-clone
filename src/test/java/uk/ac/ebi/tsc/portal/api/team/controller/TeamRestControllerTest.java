@@ -1,30 +1,5 @@
 package uk.ac.ebi.tsc.portal.api.team.controller;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.mock;
-
-import java.io.IOException;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.security.Principal;
-import java.security.spec.InvalidKeySpecException;
-import java.sql.Date;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-
-import javax.crypto.BadPaddingException;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -38,8 +13,6 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.util.ReflectionTestUtils;
-import org.springframework.web.client.HttpClientErrorException;
-
 import uk.ac.ebi.tsc.aap.client.model.Domain;
 import uk.ac.ebi.tsc.aap.client.model.User;
 import uk.ac.ebi.tsc.aap.client.repo.DomainService;
@@ -62,11 +35,7 @@ import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationDeploymentParame
 import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationRepository;
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationDeploymentParametersService;
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationService;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.Deployment;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentConfiguration;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentConfigurationRepository;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentRepository;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentStatusRepository;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.*;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentConfigurationService;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
 import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
@@ -75,6 +44,25 @@ import uk.ac.ebi.tsc.portal.api.team.repo.TeamRepository;
 import uk.ac.ebi.tsc.portal.api.team.service.TeamNotCreatedException;
 import uk.ac.ebi.tsc.portal.api.team.service.TeamService;
 import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDeployerException;
+
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+import javax.security.auth.login.AccountNotFoundException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.Principal;
+import java.security.spec.InvalidKeySpecException;
+import java.sql.Date;
+import java.util.*;
+
+import static org.junit.Assert.*;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
 
 @ContextConfiguration
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -581,7 +569,7 @@ public class TeamRestControllerTest {
 	}
 
 	@Test
-	public void testRemoveMemberFromTeamPass(){
+	public void testRemoveMemberFromTeamPass() throws Exception {
 
 		getPrincipal();
 		addAccountsToTeam();
@@ -608,7 +596,7 @@ public class TeamRestControllerTest {
 	}
 
 	@Test
-	public void testRemoveMemberFromTeamNoDoaminPass(){
+	public void testRemoveMemberFromTeamNoDoaminPass() throws Exception {
 
 		getPrincipal();
 		addAccountsToTeam();
@@ -631,34 +619,8 @@ public class TeamRestControllerTest {
 		assertTrue(someotherAccount.getMemberOfTeams().size() == 1);
 	}
 
-	@Test(expected = TeamMemberNotRemovedException.class)
-	public void testRemoveMemberFromTeamFail(){
-
-		getPrincipal();
-		addAccountsToTeam();
-		getMemberOfTeams();
-		getTeamResoure(team);
-		getFailDomainNull();
-		getRequest();
-		assertTrue(someotherAccount.getMemberOfTeams().size() == 2);
-		assertTrue(team.getAccountsBelongingToTeam().size() == 2);
-		given(accountService.findByEmail(userEmail)).willReturn(someotherAccount);
-		given(teamService.findByName(teamName)).willCallRealMethod();
-		given(teamRepository.findByName(teamName)).willReturn(Optional.of(team));
-		Mockito.when(teamService.save(team)).thenReturn(team);
-		Mockito.when(domainService.getDomainByReference(team.getDomainReference(), token )).thenReturn(null);
-		Mockito.when(someotherAccount.getEmail()).thenReturn(userEmail);
-		Mockito.when(someotherAccount.getUsername()).thenReturn(someotherusername);
-		Mockito.when(domainService.removeUserFromDomain(Mockito.any(User.class), Mockito.any(Domain.class), Mockito.any(String.class))).thenReturn(domain);
-		given(subject.removeMemberFromTeam(request, principal, teamName, userEmail)).willCallRealMethod();
-		Mockito.when(teamService.removeMemberFromTeam(token, team.getName(), userEmail)).thenCallRealMethod();
-		ResponseEntity<?> memberDeleted = subject.removeMemberFromTeam(request, principal, teamName, userEmail);
-		assertTrue(team.getAccountsBelongingToTeam().size() == 2);
-		assertTrue(someotherAccount.getMemberOfTeams().size() == 2);
-	}
-
-	@Test(expected = TeamMemberNotRemovedException.class)
-	public void testRemoveMemberFromTeamNoDomainFail(){
+	@Test(expected = AccountNotFoundException.class)
+	public void testRemoveMemberFromTeamNoDomainFail() throws Exception {
 
 		getPrincipal();
 		addAccountsToTeam();
@@ -677,33 +639,6 @@ public class TeamRestControllerTest {
 		ResponseEntity<?> memberDeleted = subject.removeMemberFromTeam(request, principal, teamName, userEmail);
 		assertTrue(team.getAccountsBelongingToTeam().size() == 2);
 		assertTrue(someotherAccount.getMemberOfTeams().size() == 2);
-	}
-
-	@Test
-	public void testRemoveMemberFromTeamException(){
-
-		getPrincipal();
-		addAccountsToTeam();
-		getMemberOfTeams();
-		getTeamResoure(team);
-		getRequest();
-		assertTrue(someotherAccount.getMemberOfTeams().size() == 2);
-		assertTrue(team.getAccountsBelongingToTeam().size() == 2);
-		given(accountService.findByEmail(userEmail)).willReturn(someotherAccount);
-		given(teamService.findByName(teamName)).willCallRealMethod();
-		given(teamRepository.findByName(teamName)).willReturn(Optional.of(team));
-		Mockito.when(teamService.save(team)).thenReturn(team);
-		HttpClientErrorException e = new HttpClientErrorException(HttpStatus.NOT_FOUND);
-		Mockito.when(domainService.getDomainByReference(team.getDomainReference(), token )).thenThrow
-		(e);
-		Mockito.when(someotherAccount.getEmail()).thenReturn(userEmail);
-		Mockito.when(someotherAccount.getUsername()).thenReturn(someotherusername);
-		Mockito.when(domainService.removeUserFromDomain(Mockito.any(User.class), Mockito.any(Domain.class), Mockito.any(String.class))).thenReturn(domain);
-		given(subject.removeMemberFromTeam(request, principal, teamName, userEmail)).willCallRealMethod();
-		Mockito.when(teamService.removeMemberFromTeam(token, team.getName(), userEmail)).thenCallRealMethod();
-		ResponseEntity<?> memberDeleted = subject.removeMemberFromTeam(request, principal, teamName, userEmail);
-		assertTrue(team.getAccountsBelongingToTeam().size() == 1);
-		assertTrue(someotherAccount.getMemberOfTeams().size() == 1);
 	}
 
 	@Test

@@ -59,6 +59,7 @@ import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployerBash;
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
+import javax.security.auth.login.AccountNotFoundException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -290,30 +291,27 @@ public class TeamRestController {
 	}
 
 	@RequestMapping(value="/{teamName:.+}/member/{userEmail:.+}", method=RequestMethod.DELETE)
-	public ResponseEntity<?> removeMemberFromTeam(HttpServletRequest request, Principal principal, @PathVariable String teamName, @PathVariable String userEmail){
+	public ResponseEntity<?> removeMemberFromTeam(HttpServletRequest request, Principal principal,
+												  @PathVariable String teamName,
+												  @PathVariable String userEmail) throws AccountNotFoundException {
 
 		if(teamName == null || teamName.isEmpty()){
 			throw new TeamNameInvalidInputException("Team name should not be empty");
 		}
 
-		try{
-			logger.info("Checking if user is team owner");
-			Team team = this.teamService.findByNameAndAccountUsername(teamName, principal.getName());
-			boolean memberRemoved = teamService.removeMemberFromTeam(
-					request.getHeader(HttpHeaders.AUTHORIZATION).split(" ")[1], teamName, userEmail);
-			if(memberRemoved){
-				teamService.stopDeploymentsOfRemovedUser(team, 
-						userEmail,
-						deploymentService,
-						configurationService, 
-						configDepParamsService);
-				return new ResponseEntity<>("User " + userEmail + " was deleted from team " + teamName, HttpStatus.OK);
-			}else{
-				throw new TeamMemberNotRemovedException(teamName);
-			}
-		}catch(TeamNotFoundException e){
-			throw new RuntimeException("Team not found or you should be the team owner to remove member from team");
-		}
+
+		logger.info("Checking if user is team owner");
+		Team team = this.teamService.findByNameAndAccountUsername(teamName, principal.getName());
+		teamService.removeMemberFromTeam(
+				request.getHeader(HttpHeaders.AUTHORIZATION).split(" ")[1], teamName, userEmail);
+
+		teamService.stopDeploymentsOfRemovedUser(team,
+				userEmail,
+				deploymentService,
+				configurationService,
+				configDepParamsService);
+		return new ResponseEntity<>("User " + userEmail + " was deleted from team " + teamName, HttpStatus.OK);
+
 
 	}
 

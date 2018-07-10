@@ -9,9 +9,9 @@ public class TeamMemberNotRemovedException extends RuntimeException {
 
 	private static final long serialVersionUID = 1L;
 
-	public TeamMemberNotRemovedException(String teamName){
+	public TeamMemberNotRemovedException(String teamName, String reason){
 		
-		super("User was not removed from team " + teamName );
+		super("User was not removed from team " + teamName + ", Reason: " + reason);
 		
 	}
 }

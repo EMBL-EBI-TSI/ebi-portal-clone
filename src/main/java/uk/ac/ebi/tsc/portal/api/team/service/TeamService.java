@@ -24,6 +24,7 @@ import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationService;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.*;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentConfigurationService;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
+import uk.ac.ebi.tsc.portal.api.team.controller.TeamMemberNotRemovedException;
 import uk.ac.ebi.tsc.portal.api.team.controller.TeamNotFoundException;
 import uk.ac.ebi.tsc.portal.api.team.controller.TeamResource;
 import uk.ac.ebi.tsc.portal.api.team.repo.Team;
@@ -32,6 +33,7 @@ import uk.ac.ebi.tsc.portal.api.utils.SendMail;
 import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployerBash;
 import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDeployerException;
 
+import javax.security.auth.login.AccountNotFoundException;
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -163,98 +165,73 @@ public class TeamService {
 	public boolean removeMemberFromTeam(
 			String token,
 			String teamName, 
-			String userEmail) {
+			String userEmail) throws AccountNotFoundException {
 
-		Account toRemove = null;
-		Team team = null;
+		logger.info("Removing user from team " + teamName);
 
-		logger.info("In TeamService: Getting the team from which member is to be removed");
-		team = this.findByName(teamName);
-		logger.info("In TeamService: Getting the account to be removed");
-		toRemove = accountService.findByEmail(userEmail);
-		if(team.getDomainReference() != null){
-			try{
-				//remove member from domain 
-				logger.info("In TeamService: update the domain, removing user" );
-				Domain domain = domainService.getDomainByReference(team.getDomainReference(), token );
-				if(domain != null){
-					logger.info("In TeamService: checking if  user is member of  domain");
-					User toRemoveUser = domainService.getAllUsersFromDomain(domain.getDomainReference(), token)
+		// Get team
+		Team team = this.findByName(teamName);
+		if (team==null) {
+			throw new TeamNotFoundException(teamName);
+		}
+
+		// Get account
+		Account account = accountService.findByEmail(userEmail);
+		if (account==null) {
+			throw new AccountNotFoundException();
+		}
+
+		// Only proceed if account is member of team
+        if (!team.getAccountsBelongingToTeam().contains(account)) {
+		    throw new TeamMemberNotRemovedException(teamName, "account " +
+                    account.getReference() + " is not a member of the team");
+        }
+
+		logger.info("Found associated user with reference " + account.getUsername());
+
+		// If there is an associated domain (it should not for legacy teams)
+		if (team.getDomainReference() != null) {
+			try {
+				//remove member from domain
+				logger.info("Removing user from domain " + team.getDomainReference());
+
+				Domain domain = domainService.getDomainByReference(team.getDomainReference(), token);
+				if (domain != null) {
+					User domainUser = domainService.getAllUsersFromDomain(domain.getDomainReference(), token)
 							.stream()
 							.filter(u -> u.getEmail().equals(userEmail))
 							.findAny()
 							.orElse(null);
-					Domain updatedDomain = null;
-					if(toRemoveUser != null){
-						logger.info("In TeamService: removing user who is a member of  domain");
-						updatedDomain = domainService.removeUserFromDomain( 
-								new User(null,
-										toRemove.getEmail(),
-										toRemove.getUsername(),
-										toRemove.getGivenName(),
+					// If the account is actually part of the domain, update the domain
+					if (domainUser != null) {
+						this.domainService.removeUserFromDomain(new User(null,
+										account.getEmail(),
+										account.getUsername(),
+										account.getGivenName(),
 										null),
-								domain, 
-								token);		
-					}else{
-						logger.info("In TeamService: user is not a member of  domain, removing user from team");
-						toRemove.getMemberOfTeams().remove(team);
-						this.accountService.save(toRemove);
-
-						//update teams
-						logger.info("In TeamService: update the team, removing user" );
-						team.getAccountsBelongingToTeam().remove(toRemove);
-						team = this.save(team);
-						return true;
+								domain,
+								token);
 					}
-					if(updatedDomain != null){
-						logger.info("In TeamService: user removed from domain, updating account and team");
-						// update account
-						toRemove.getMemberOfTeams().remove(team);
-						this.accountService.save(toRemove); 
-
-						//update teams
-						logger.info("In TeamService: update the team, removing user" );
-						team.getAccountsBelongingToTeam().remove(toRemove);
-						team = this.save(team);
-						return true;
-					}
-
 				}
-			}catch(HttpClientErrorException e){
-				if(e.getStatusCode().equals(HttpStatus.NOT_FOUND)){
-					logger.info("In TeamService: domain does not exist, removing user from team ");
-					// update account
-					toRemove.getMemberOfTeams().remove(team);
-					this.accountService.save(toRemove); 
-
-					//update teams
-					logger.info("In TeamService: update the team, removing user" );
-					team.getAccountsBelongingToTeam().remove(toRemove);
-					team = this.save(team);
-					return true;
-				}else{
+			} catch (HttpClientErrorException e) {
+				if (e.getStatusCode().equals(HttpStatus.NOT_FOUND)) {
+					logger.info("Domain does not exist, removing user from team ");
+				} else {
 					e.printStackTrace();
 					logger.error("Error removing user from team and domain "  + e.getMessage());
 				}
 			}
-		}else{
-			try{
-				logger.info("In TeamService: team has no domain reference, removing user from team ");
-				// update account
-				toRemove.getMemberOfTeams().remove(team);
-				this.accountService.save(toRemove); 
-
-				//update teams
-				logger.info("In TeamService: update the team, removing user" );
-				team.getAccountsBelongingToTeam().remove(toRemove);
-				team = this.save(team);
-				return true;
-			}catch(Exception e){
-				logger.info("In TeamService: team with no domain reference, error removing user from team " + e.getMessage());
-			}
-
 		}
-		return false;
+
+		// Update account
+		account.getMemberOfTeams().remove(team);
+		this.accountService.save(account);
+
+		// Update team
+		team.getAccountsBelongingToTeam().remove(account);
+		team = this.save(team);
+		return true; // TODO: change this to return a resource/void and exceptions on error!!!
+
 	}
 
 	public boolean addMemberToTeam(
