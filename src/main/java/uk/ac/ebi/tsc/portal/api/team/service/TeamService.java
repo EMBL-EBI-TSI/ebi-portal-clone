@@ -140,11 +140,11 @@ public class TeamService {
                 this.save(team);
                 return team;
             } catch (Exception e) {
-                logger.error("Failed to create team, after creating domain, so deleting domain " + e.getMessage());
+                logger.error("Failed to persist team, after creating AAP domain, so deleting domain: " + e.getMessage());
                 try {
                     domainService.deleteDomain(domain, token);
                 } catch(Exception ex){
-                    logger.error("In TeamService: Failed to delete the domain " + ex.getMessage());
+                    logger.error("Failed to delete the already created AAP domain: " + ex.getMessage());
                     throw new TeamNotCreatedException(teamResource.getName(), "failed to persist team and delete already created domain");
                 }
 
@@ -290,7 +290,7 @@ public class TeamService {
 											logger.info("In TeamService: adding user to domain");
 											Domain updatedDomain = domainService.addUserToDomain(
 													domain, 
-													new User(null, account.getEmail(), null, account.getUsername() , null),
+													new User(null, account.getEmail(), account.getUsername(), account.getGivenName() , null),
 													token
 													);
 											if(updatedDomain != null){
@@ -460,27 +460,25 @@ public class TeamService {
 			CloudProviderParamsCopyService cloudProviderParametersCopyService, 
 			ConfigurationService configurationService) {
 
-		logger.info("In TeamService: deleting team ");
+        logger.info("Deleting team " + team.getName());
 
 		this.stopDeploymentsUsingTeamSharedCloudProvider(team, deploymentService, cloudProviderParametersCopyService);
 		this.stopDeploymentsUsingTeamSharedConfigurationDeploymentParameters(team, deploymentService, configurationService);
 		this.stopDeploymentsUsingTeamSharedConfigurations(team, deploymentService);
 
-		if(team.getDomainReference() != null){
-			try{
-				logger.info("In TeamService: deleting team which has domain reference, getting domain");
-				Domain domain = domainService.getDomainByReference(team.getDomainReference(), token );
-				if(domain != null){
-					logger.info("In TeamService: deleting domain");
-					domain.setDomainReference(domain.getDomainReference());
-					domainService.deleteDomain(domain, token);
-					this.delete(team);
-					return true;
-				}else{
-					logger.info("In TeamService: domain not present , deleting team");
-					this.delete(team);
-					return true;
-				}
+		if (team.getDomainReference() != null) {
+            logger.info("- with domain reference " + team.getDomainReference());
+			try {
+				logger.info("Deleting team which has domain reference, getting domain");
+				Domain domain = domainService.getDomainByReference(team.getDomainReference(), token);
+				if (domain != null) {
+                    logger.info("Deleting domain");
+                    domain.setDomainReference(domain.getDomainReference());
+                    domainService.deleteDomain(domain, token);
+                }
+                this.delete(team);
+                return true;
+
 			}catch(HttpClientErrorException e){
 				if(e.getStatusCode().equals(HttpStatus.NOT_FOUND)){
 					logger.error("In TeamService: domain was not found, deleting team" + e.getMessage());
