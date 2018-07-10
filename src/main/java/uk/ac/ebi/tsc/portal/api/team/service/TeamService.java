@@ -190,8 +190,8 @@ public class TeamService {
 						updatedDomain = domainService.removeUserFromDomain( 
 								new User(null,
 										toRemove.getEmail(),
-										null,
 										toRemove.getUsername(),
+										toRemove.getGivenName(),
 										null),
 								domain, 
 								token);		
@@ -398,7 +398,7 @@ public class TeamService {
 								logger.info("adding user to domain");
 								Domain updatedDomain = domainService.addUserToDomain(
 										domain,
-										new User(null, account.getEmail(), null, account.getUsername(), null),
+										new User(null, account.getEmail(), account.getUsername(), account.getGivenName(), null),
 										token
 								);
 								if (updatedDomain != null) {
