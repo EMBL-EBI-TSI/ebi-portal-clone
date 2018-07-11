@@ -1,4 +1,4 @@
-package uk.ac.ebi.tsc.portal.api.team.controller;
+package uk.ac.ebi.tsc.portal.api.team.service;
 
 /**
  * @author Jose A. Dianes <jdianes@ebi.ac.uk>
@@ -9,9 +9,9 @@ public class TeamMemberNotAddedException extends RuntimeException {
 
 	private static final long serialVersionUID = 1L;
 
-	public TeamMemberNotAddedException(String teamName){
+	public TeamMemberNotAddedException(String teamName, String reason){
 		
-		super("User was not added to team " + teamName );
+		super("User was not added to team " + teamName + ". Reason: " + reason);
 		
 	}
 }

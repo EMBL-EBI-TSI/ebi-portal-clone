@@ -24,8 +24,6 @@ import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationService;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.*;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentConfigurationService;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
-import uk.ac.ebi.tsc.portal.api.team.controller.TeamMemberNotRemovedException;
-import uk.ac.ebi.tsc.portal.api.team.controller.TeamNotFoundException;
 import uk.ac.ebi.tsc.portal.api.team.controller.TeamResource;
 import uk.ac.ebi.tsc.portal.api.team.repo.Team;
 import uk.ac.ebi.tsc.portal.api.team.repo.TeamRepository;
@@ -40,6 +38,7 @@ import java.util.stream.Collectors;
 
 /**
  * @author Navis Raj <navis@ebi.ac.uk>
+ * @author Jose A. Dianes <jdianes@ebi.ac.uk> (code refactoring)
  */
 public class TeamService {
 
@@ -232,120 +231,90 @@ public class TeamService {
 		return this.save(team);
 	}
 
-	public boolean addMemberToTeam(
+	public Team addMemberToTeam(
 			String token,
-			TeamResource teamResource,
-			String baseURL) {
+			String teamName,
+			Collection<String> newMemberEmails,
+			String baseURL) throws AccountNotFoundException, UserNotFoundException {
 
-		logger.info("In TeamService: Getting the team to which member is to be added");
-		Team team = this.findByName(teamResource.getName());
-		int memberCountBeforeAdding = team.getAccountsBelongingToTeam().size();
-		if(team != null){
-			// get the future member accounts
-			logger.info("In TeamService: Checking if user is already a member, else adding to team");
-			Set<String> memberAccountEmails = team.getAccountsBelongingToTeam().stream().map(Account::getEmail).collect(Collectors.toSet());
-			Collection<String> yetToBeMemberEmails = teamResource.getMemberAccountEmails().stream().filter(
-					a -> !memberAccountEmails.contains(a)).collect(Collectors.toSet());
-			Collection<Account> yetToBeMembers = yetToBeMemberEmails.stream().map(
-					email -> accountService.findByEmail(email)).collect(Collectors.toSet());
-			if(team.getDomainReference() != null){
-				try{
-					yetToBeMembers.stream().forEach(
-							account -> {
-								String accountEmail = account.getEmail();
-								logger.info("In TeamService: Checking if user is already a member of domain, else adding to domain");
-								try{
-									logger.info("In TeamService: Getting domain");
-									Domain domain = domainService.getDomainByReference(
-											team.getDomainReference(),
-											token);
-									if(domain != null){
-										domain.setDomainReference(domain.getDomainReference());
-										try{
-											logger.info("In TeamService: adding user to domain");
-											Domain updatedDomain = domainService.addUserToDomain(
-													domain, 
-													new User(null, account.getEmail(), account.getUsername(), account.getGivenName() , null),
-													token
-													);
-											if(updatedDomain != null){
-												User addedUser = domainService.getAllUsersFromDomain(updatedDomain.getDomainReference(), token)
-														.stream()
-														.filter(u -> u.getEmail().equals(accountEmail))
-														.findAny()
-														.orElse(null);
+		logger.info("Adding member to team " + teamName);
 
-												if(addedUser != null){
-													logger.info("In TeamService: user added to domain, updating account and team");
-													//update account if not team owner
-													if(!team.getAccount().getId().equals(account.getId())){
-														account.getMemberOfTeams().add(team);
-														account = this.accountService.save(account);
-														String loginURL = baseURL + "login";
-														String teamURL = baseURL + "team" + "/" + team.getName() ;
-														String message = "User " + team.getAccount().getGivenName() + 
-																" has added you to the team " + "'"+team.getName()+"'" + ".\n\n"
-																+ "Please click on the link below to login if you haven't already \n" 
-																+ loginURL.replaceAll(" ", "%20") + "\n\nor click on " + teamURL.replaceAll(" ", "%20")  + "\n"
-																+ "to view the team.";
-														String toNotifyEmail = account.getEmail();
+        // Get team
+        Team team = this.findByName(teamName);
+        if (team==null) {
+            throw new TeamNotFoundException(teamName);
+        }
 
-														SendMail.send(new ArrayList<String>(){{ 
-															add(toNotifyEmail);
-														}}, "Request granted: Added to team " + team.getName(), message );
+        // get the future member accounts
+        logger.info("Checking if user is already a member");
+        Set<String> memberAccountEmails = team.getAccountsBelongingToTeam().stream().map(Account::getEmail).collect(Collectors.toSet());
+        Collection<String> yetToBeMemberEmails = newMemberEmails.stream().filter(
+                a -> !memberAccountEmails.contains(a)).collect(Collectors.toSet());
+        // throw exception if not all accounts can be added
+        if (newMemberEmails.size()!=yetToBeMemberEmails.size()) {
+            throw new TeamMemberNotAddedException(teamName, "some accounts already belong to the team, nothing added");
+        }
+        // get the accounts
+        Collection<Account> yetToBeMemberAccounts = yetToBeMemberEmails.stream().map(
+                email -> accountService.findByEmail(email)).collect(Collectors.toSet());
+        // throw exception if not all accounts can be found
+        if (newMemberEmails.size()!=yetToBeMemberAccounts.size()) {
+            throw new TeamMemberNotAddedException(teamName, "some accounts cannot be found, nothing added");
+        }
 
-													}
-													// update team, add member if not team owner 
-													if(!team.getAccount().getId().equals(account.getId())){
-														team.getAccountsBelongingToTeam().add(account);
-														this.save(team);
-													}
+        // add accounts to team and persist
+        yetToBeMemberAccounts.stream().forEach(
+                account -> {
+                    // Update domain if needed
+                    if (team.getDomainReference() != null) {
+                        logger.info("Team has associated domain " + team.getDomainReference() + ". Updating...");
+                        logger.info("Getting domain");
+                        Domain domain = domainService.getDomainByReference(
+                                team.getDomainReference(),
+                                token);
+                        if (domain != null) {
+                            domainService.addUserToDomain(
+                                    domain,
+                                    new User(null, account.getEmail(), account.getUsername(), account.getGivenName() , null),
+                                    token
+                            );
 
-												}
-											}
+                        } else {
+                            throw new TeamMemberNotAddedException(teamName, "cannot find associated domain " + team.getDomainReference());
+                        }
+                    }
 
-										}catch(Exception e){
-											logger.error("In TeamService:Failed to add user to domain " + e.getMessage());
-										}
-									}
-								}catch(Exception e){
-									logger.error("In TeamService:Failed to get domain to add member "  + e.getMessage());
-								}
-							}
-							);
-				}catch(UserNotFoundException e){
-					logger.error("In TeamService:Could not find user, so cannot add member  " + e.getMessage());
-				}catch(Exception e){
-					logger.error("In TeamService:Error adding user to team and domain " + e.getMessage());
-				}
-			}else{
-				try{
-					logger.info("In TeamService: team has no domain reference, updating account and team");
+                    //update account
+                    account.getMemberOfTeams().add(team);
+                    account = this.accountService.save(account);
 
-					yetToBeMembers.stream().forEach(
-							account -> {
+                    // update team
+                    team.getAccountsBelongingToTeam().add(account);
+                    this.save(team);
 
-								//update account
-								account.getMemberOfTeams().add(team);
-								account = this.accountService.save(account);
+                    // Send email notification
+                    String loginURL = baseURL + "login";
+                    String teamURL = baseURL + "team" + "/" + team.getName() ;
+                    String message = "User " + team.getAccount().getGivenName() +
+                            " has added you to the team " + "'"+team.getName()+"'" + ".\n\n"
+                            + "Please click on the link below to login if you haven't already \n"
+                            + loginURL.replaceAll(" ", "%20") + "\n\nor click on " + teamURL.replaceAll(" ", "%20")  + "\n"
+                            + "to view the team.";
+                    String toNotifyEmail = account.getEmail();
 
-								// update team
-								team.getAccountsBelongingToTeam().add(account);
-								this.save(team);
-							}
+                    try {
+                        SendMail.send(new ArrayList<String>(){{
+                            add(toNotifyEmail);
+                        }}, "Request granted: Added to team " + team.getName(), message );
+                    } catch (IOException e) {
+                        logger.error("Couldn't send notification email");
+                        e.printStackTrace();
+                    }
+                }
 
-							);
-				}catch(Exception e){
-					logger.info("In TeamService: team has no domain reference, adding member failed " + e.getMessage());
-				}
-			}
-		}
+        );
 
-		int memberCountAfterAdding = team.getAccountsBelongingToTeam().size();
-		if( memberCountBeforeAdding == (memberCountAfterAdding-1)){
-			return true;
-		}
-		return false;
+		return team;
 	}
 
 	public boolean addMemberToTeamNoEmail(String token, Team team, Account account) {
@@ -635,11 +604,12 @@ public class TeamService {
 			ConfigurationDeploymentParametersService deploymentParametersService
 			) {
 
-
 		Account removedAccount  = accountService.findByEmail(userEmail);
 		Collection<Deployment> deployments = deploymentService.findByAccountUsername(removedAccount.getUsername()).stream()
 				.filter(deployment -> deployment.getDeploymentStatus().getStatus().equals(DeploymentStatusEnum.RUNNING) ||
 						deployment.getDeploymentStatus().getStatus().equals(DeploymentStatusEnum.STARTING)).collect(Collectors.toList());
+
+        logger.debug("Stopping all deployments associated with team " + team.getName() + " for user " + removedAccount.getReference());
 
 		List<String> cloudParameters = team.getCppBelongingToTeam().stream().map(cpp -> cpp.getReference()).collect(Collectors.toList());
 		Set<ConfigurationDeploymentParameters> deploymentParameters = team.getConfigDepParamsBelongingToTeam();

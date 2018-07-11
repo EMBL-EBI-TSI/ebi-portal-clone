@@ -1,4 +1,4 @@
-package uk.ac.ebi.tsc.portal.api.team.controller;
+package uk.ac.ebi.tsc.portal.api.team.service;
 
 /**
  * @author Jose A. Dianes <jdianes@ebi.ac.uk>

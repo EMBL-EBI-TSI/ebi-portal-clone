@@ -41,8 +41,7 @@ import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
 import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
 import uk.ac.ebi.tsc.portal.api.team.repo.Team;
 import uk.ac.ebi.tsc.portal.api.team.repo.TeamRepository;
-import uk.ac.ebi.tsc.portal.api.team.service.TeamNotCreatedException;
-import uk.ac.ebi.tsc.portal.api.team.service.TeamService;
+import uk.ac.ebi.tsc.portal.api.team.service.*;
 import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDeployerException;
 
 import javax.crypto.BadPaddingException;
@@ -359,8 +358,8 @@ public class TeamRestControllerTest {
 		subject.deleteTeam(request, principal, null);
 	}
 
-	@Test(expected= TeamMemberNotAddedException.class)
-	public void addMemberToTeamPass(){
+	@Test
+	public void addMemberToTeamPass() throws AccountNotFoundException {
 		String someAccountEmail = userEmail;
 		String someOtherAccountEmail =  "anEmail";
 		getPrincipal();
@@ -370,7 +369,8 @@ public class TeamRestControllerTest {
 		given(someAccount.getUsername()).willReturn("someusername");
 		given(someotherAccount.getEmail()).willReturn(someOtherAccountEmail );
 		Set<Account> accounts = new HashSet<>();
-		accounts.add(someAccount);accounts.add(someotherAccount);
+		accounts.add(someAccount);
+		accounts.add(someotherAccount);
 		team.getAccountsBelongingToTeam().addAll(accounts);
 		Mockito.when(team.getAccountsBelongingToTeam()).thenReturn(accounts);
 		getDomain();
@@ -378,19 +378,19 @@ public class TeamRestControllerTest {
 		assertTrue(team.getAccountsBelongingToTeam().size() == 2);
 		given(teamService.findByName(teamName)).willCallRealMethod();
 		given(teamRepository.findByName(teamName)).willReturn(Optional.of(team));
-		TeamResource teamResource = mock(TeamResource.class);
-		given(teamResource.getName()).willReturn(teamName);
-		Set<String> toBeMemberEmails = new HashSet<>();
-		String accountToAddEmail = "accountToAddEmail";
-		toBeMemberEmails.add(accountToAddEmail );
+
+        TeamResource teamResource = new TeamResource();
+        teamResource.setName(teamName);
+        Set<String> toBeMemberEmails = new HashSet<>();
+        String accountToAddEmail = "accountToAddEmail";
+        toBeMemberEmails.add(accountToAddEmail );
+        teamResource.setMemberAccountEmails(toBeMemberEmails);
+
 		Account toAddAccount = mock(Account.class);
-		toBeMemberEmails.add(someOtherAccountEmail);
-		toBeMemberEmails.add(someAccountEmail);
 		given(toAddAccount.getEmail()).willReturn(accountToAddEmail);
 		given(accountService.findByEmail(accountToAddEmail)).willReturn(toAddAccount);
-		teamResource.setMemberAccountEmails(toBeMemberEmails);
-		Mockito.when(teamResource.getMemberAccountEmails()).thenReturn(toBeMemberEmails);
-		Mockito.when(teamService.addMemberToTeam(token, teamResource, baseURL)).thenCallRealMethod();
+
+		Mockito.when(teamService.addMemberToTeam(token, teamResource.getName(), teamResource.getMemberAccountEmails(), null)).thenCallRealMethod();
 		Mockito.when(domainService.getDomainByReference(team.getDomainReference(), token)).thenReturn(domain);
 		Mockito.when(domainService.addUserToDomain(Mockito.any(Domain.class), Mockito.any(User.class), Mockito.anyString())).thenReturn(domain);
 		Set<User> users = new HashSet<>();
@@ -428,19 +428,20 @@ public class TeamRestControllerTest {
 		assertTrue(team.getAccountsBelongingToTeam().size() == 2);
 		given(teamService.findByName(teamName)).willCallRealMethod();
 		given(teamRepository.findByName(teamName)).willReturn(Optional.of(team));
-		TeamResource teamResource = mock(TeamResource.class);
-		given(teamResource.getName()).willReturn(teamName);
 
-		Set<String> toBeMemberEmails = new HashSet<>();
-		String accountToAddEmail = "accountToAddEmail";
-		toBeMemberEmails.add(accountToAddEmail );
+        TeamResource teamResource = new TeamResource();
+        teamResource.setName(teamName);
+        Set<String> toBeMemberEmails = new HashSet<>();
+        String accountToAddEmail = "accountToAddEmail";
+        toBeMemberEmails.add(accountToAddEmail );
+        teamResource.setMemberAccountEmails(toBeMemberEmails);
+
 		Account toAddAccount = mock(Account.class);
 		toBeMemberEmails.add(someOtherAccountEmail);
 		toBeMemberEmails.add(someAccountEmail);
 		given(toAddAccount.getEmail()).willReturn(accountToAddEmail);
 		given(accountService.findByEmail(accountToAddEmail)).willReturn(toAddAccount);
-		teamResource.setMemberAccountEmails(toBeMemberEmails);
-		Mockito.when(teamResource.getMemberAccountEmails()).thenReturn(toBeMemberEmails);
+
 		HttpServletRequest request = mock(HttpServletRequest.class);
 		//Mockito.when(teamService.getBaseURL(request)).thenReturn("some base url");
 		given(subject.addMemberOnRequest(request, principal, teamResource)).willCallRealMethod();
@@ -449,51 +450,8 @@ public class TeamRestControllerTest {
 		assertTrue(team.getAccountsBelongingToTeam().size() == 2);
 	}
 
-	@Test
-	public void addMemberToTeamPassNoDomain(){
-		String someAccountEmail = userEmail;
-		String someOtherAccountEmail =  "anEmail";
-		getPrincipal();
-		getTeamResoureNoDomain(team);
-		given(someAccount.getEmail()).willReturn(someAccountEmail);
-		given(someotherAccount.getEmail()).willReturn(someOtherAccountEmail);
-		given(someAccount.getUsername()).willReturn("someusername");
-		given(someotherAccount.getEmail()).willReturn(someOtherAccountEmail );
-		Set<Account> accounts = new HashSet<>();
-		accounts.add(someAccount);accounts.add(someotherAccount);
-		team.getAccountsBelongingToTeam().addAll(accounts);
-		Mockito.when(team.getAccountsBelongingToTeam()).thenReturn(accounts);
-		getRequest();
-		assertTrue(team.getAccountsBelongingToTeam().size() == 2);
-		given(teamService.findByName(teamName)).willCallRealMethod();
-		given(teamRepository.findByName(teamName)).willReturn(Optional.of(team));
-		TeamResource teamResource = mock(TeamResource.class);
-		given(teamResource.getName()).willReturn(teamName);
-		given(principal.getName()).willReturn(principalName);
-		Set<String> toBeMemberEmails = new HashSet<>();
-		String accountToAddEmail = "accountToAddEmail";
-		toBeMemberEmails.add(accountToAddEmail );
-		Account toAddAccount = mock(Account.class);
-		toBeMemberEmails.add(someOtherAccountEmail);
-		toBeMemberEmails.add(someAccountEmail);
-		given(toAddAccount.getEmail()).willReturn(accountToAddEmail);
-		given(accountService.findByEmail(accountToAddEmail)).willReturn(toAddAccount);
-		teamResource.setMemberAccountEmails(toBeMemberEmails);
-		given(teamResource.getMemberAccountEmails()).willReturn(toBeMemberEmails);
-		given(teamService.addMemberToTeam(token, teamResource, baseURL)).willCallRealMethod();
-		Set<User> users = new HashSet<>();
-		User user = mock(User.class);
-		Mockito.when(user.getEmail()).thenReturn(accountToAddEmail);
-		users.add(user);
-		given(subject.composeBaseURL(request)).willReturn(baseURL);
-		given(subject.addMember(request, principal, teamResource)).willCallRealMethod();
-		ResponseEntity<?> memberAdded = subject.addMember(request, principal, teamResource);
-		assertTrue(memberAdded.getStatusCode().equals(HttpStatus.OK));
-		assertTrue(team.getAccountsBelongingToTeam().size() == 3);
-	}
-
 	@Test(expected = TeamMemberNotAddedException.class)
-	public void addMemberToTeamFail(){
+	public void addMemberToTeamFail() throws AccountNotFoundException {
 
 		getPrincipal();
 		getTeamResoure(team);
@@ -503,30 +461,31 @@ public class TeamRestControllerTest {
 		assertTrue(team.getAccountsBelongingToTeam().size() == 2);
 		given(teamService.findByName(teamName)).willCallRealMethod();
 		given(teamRepository.findByName(teamName)).willReturn(Optional.of(team));
-		TeamResource teamResource = mock(TeamResource.class);
-		given(teamResource.getName()).willReturn(teamName);
 
+		TeamResource teamResource = new TeamResource();
+		teamResource.setName(teamName);
 		Set<String> toBeMemberEmails = new HashSet<>();
 		String accountToAddEmail = "accountToAddEmail";
 		toBeMemberEmails.add(accountToAddEmail );
+		teamResource.setMemberAccountEmails(toBeMemberEmails);
+
 		Account toAddAccount = mock(Account.class);
 		given(toAddAccount.getEmail()).willReturn(accountToAddEmail);
 		given(accountService.findByEmail(accountToAddEmail)).willReturn(toAddAccount);
-		Mockito.when(teamService.addMemberToTeam(token, teamResource, baseURL)).thenCallRealMethod();
-		teamService.addMemberToTeam(token, teamResource, baseURL);
-		given(teamResource.getMemberAccountEmails()).willReturn(toBeMemberEmails);
+		Mockito.when(teamService.addMemberToTeam(token, teamResource.getName(), teamResource.getMemberAccountEmails(), baseURL)).thenCallRealMethod();
+		teamService.addMemberToTeam(token, teamResource.getName(), teamResource.getMemberAccountEmails(), baseURL);
 		given(subject.addMember(request, principal, teamResource)).willCallRealMethod();
 		assertTrue(team.getAccountsBelongingToTeam().size() == 2);
 		subject.addMember(request, principal, teamResource);
 	}
 
 	@Test(expected = TeamMemberNotAddedException.class)
-	public void addMemberToTeamFailNoDomain(){
+	public void addMemberToTeamFailNoDomain() throws AccountNotFoundException {
 
 		String someAccountEmail = userEmail;
 		String someOtherAccountEmail =  "anEmail";
 		getPrincipal();
-		getTeamResoureNoDomain(team);
+
 		given(someAccount.getEmail()).willReturn(someAccountEmail);
 		given(someotherAccount.getEmail()).willReturn(someOtherAccountEmail);
 		given(someAccount.getUsername()).willReturn("someusername");
@@ -539,20 +498,23 @@ public class TeamRestControllerTest {
 		assertTrue(team.getAccountsBelongingToTeam().size() == 2);
 		given(teamService.findByName(teamName)).willCallRealMethod();
 		given(teamRepository.findByName(teamName)).willReturn(Optional.of(team));
-		TeamResource teamResource = mock(TeamResource.class);
-		given(teamResource.getName()).willReturn(teamName);
 
-		Set<String> toBeMemberEmails = new HashSet<>();
+
 		String accountToAddEmail = "accountToAddEmail";
-		toBeMemberEmails.add(accountToAddEmail );
+
 		Account toAddAccount = mock(Account.class);
-		toBeMemberEmails.add(someOtherAccountEmail);
-		toBeMemberEmails.add(someAccountEmail);
 		given(toAddAccount.getEmail()).willReturn(accountToAddEmail);
 		given(accountService.findByEmail(accountToAddEmail)).willReturn(null);
+
+        TeamResource teamResource = new TeamResource();
+        teamResource.setName(teamName);
+        Set<String> toBeMemberEmails = new HashSet<>();
+        toBeMemberEmails.add(accountToAddEmail );
+        toBeMemberEmails.add(someOtherAccountEmail);
+        toBeMemberEmails.add(someAccountEmail);
 		teamResource.setMemberAccountEmails(toBeMemberEmails);
-		Mockito.when(teamResource.getMemberAccountEmails()).thenReturn(toBeMemberEmails);
-		Mockito.when(teamService.addMemberToTeam(token, teamResource, baseURL)).thenCallRealMethod();
+
+		Mockito.when(teamService.addMemberToTeam(token, teamResource.getName(), teamResource.getMemberAccountEmails(), null)).thenCallRealMethod();
 		given(subject.addMember(request, principal, teamResource)).willCallRealMethod();
 		ResponseEntity<?> memberAdded = subject.addMember(request, principal, teamResource);
 		assertTrue(memberAdded.getStatusCode().equals(HttpStatus.OK));
@@ -560,7 +522,7 @@ public class TeamRestControllerTest {
 	}
 
 	@Test(expected = TeamNameInvalidInputException.class )
-	public void addMemberToTeamInvalidTeamName(){
+	public void addMemberToTeamInvalidTeamName() throws AccountNotFoundException {
 
 		getPrincipal();
 		given(teamResource.getName()).willReturn(null);
@@ -1015,6 +977,7 @@ public class TeamRestControllerTest {
 
 		given(team.getAccount()).willReturn(account);
 		given(team.getName()).willReturn(teamName);
+        given(teamResource.getMemberAccountEmails()).willReturn(Arrays.asList("anEmail"));
 		given(teamResource.getName()).willReturn(teamName);
 		given(team.getDomainReference()).willReturn(null);
 	}

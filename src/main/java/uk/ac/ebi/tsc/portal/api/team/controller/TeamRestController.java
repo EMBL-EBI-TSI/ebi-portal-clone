@@ -52,8 +52,7 @@ import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
 import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
 import uk.ac.ebi.tsc.portal.api.team.repo.Team;
 import uk.ac.ebi.tsc.portal.api.team.repo.TeamRepository;
-import uk.ac.ebi.tsc.portal.api.team.service.TeamNotCreatedException;
-import uk.ac.ebi.tsc.portal.api.team.service.TeamService;
+import uk.ac.ebi.tsc.portal.api.team.service.*;
 import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployerBash;
 
 import javax.crypto.BadPaddingException;
@@ -241,30 +240,25 @@ public class TeamRestController {
 	}
 
 	@RequestMapping(value="/member", method=RequestMethod.POST)
-	public ResponseEntity<?> addMember(HttpServletRequest request, Principal principal, @RequestBody TeamResource teamResource){
+	public ResponseEntity<?> addMember(HttpServletRequest request, Principal principal, @RequestBody TeamResource teamResource) throws AccountNotFoundException {
 		logger.info("User " + principal.getName() + " requested adding members to team " + teamResource.getName());
 
 		if(teamResource.getName() == null || teamResource.getName().isEmpty()){
 			throw new TeamNameInvalidInputException("Team name should not be empty");
 		}
   
-		try{
-			logger.info("Checking if user is team owner");
-			this.teamService.findByNameAndAccountUsername(teamResource.getName(), principal.getName());
-			String token = request.getHeader(HttpHeaders.AUTHORIZATION).split(" ")[1];
-			String baseURL = this.composeBaseURL(request);
-			boolean memberAdded  = teamService.addMemberToTeam(
-					token,
-					teamResource,
-					baseURL);
-			if(memberAdded){
-				return new ResponseEntity<>("User  was added to team and domain " + teamResource.getName(), HttpStatus.OK);
-			}else{
-				throw new TeamMemberNotAddedException(teamResource.getName());
-			}
-		}catch(TeamNotFoundException e){
-			throw new RuntimeException("Team not found or you should be the team owner to add a member to it");
-		}
+
+		logger.info("Checking if user is team owner");
+		this.teamService.findByNameAndAccountUsername(teamResource.getName(), principal.getName());
+		String token = request.getHeader(HttpHeaders.AUTHORIZATION).split(" ")[1];
+		String baseURL = this.composeBaseURL(request);
+		teamService.addMemberToTeam(
+				token,
+				teamResource.getName(),
+				teamResource.getMemberAccountEmails(),
+				baseURL);
+		return new ResponseEntity<>("User  was added to team and domain " + teamResource.getName(), HttpStatus.OK);
+
 	}
 
 	@RequestMapping(value="/member", method=RequestMethod.GET)
@@ -295,12 +289,12 @@ public class TeamRestController {
 												  @PathVariable String teamName,
 												  @PathVariable String userEmail) throws AccountNotFoundException {
 
+        logger.info("Request to remove user " + userEmail + " from team " + teamName);
+
 		if(teamName == null || teamName.isEmpty()){
 			throw new TeamNameInvalidInputException("Team name should not be empty");
 		}
 
-
-		logger.info("Checking if user is team owner");
 		Team team = this.teamService.findByNameAndAccountUsername(teamName, principal.getName());
 		teamService.removeMemberFromTeam(
 				request.getHeader(HttpHeaders.AUTHORIZATION).split(" ")[1], teamName, userEmail);
