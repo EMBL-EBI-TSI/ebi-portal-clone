@@ -360,7 +360,7 @@ public class TeamService {
         return team;
 	}
 
-	public boolean deleteTeam(
+	public void deleteTeam(
 			Team team, 
 			String token, 
 			DeploymentService deploymentService,
@@ -375,41 +375,29 @@ public class TeamService {
 
 		if (team.getDomainReference() != null) {
             logger.info("- with domain reference " + team.getDomainReference());
-			try {
-				logger.info("Deleting team which has domain reference, getting domain");
-				Domain domain = domainService.getDomainByReference(team.getDomainReference(), token);
-				if (domain != null) {
+            try {
+                logger.info("Deleting team which has domain reference, getting domain");
+                Domain domain = domainService.getDomainByReference(team.getDomainReference(), token);
+                if (domain != null) {
                     logger.info("Deleting domain");
                     domain.setDomainReference(domain.getDomainReference());
                     domainService.deleteDomain(domain, token);
                 }
-                this.delete(team);
-                return true;
 
-			}catch(HttpClientErrorException e){
-				if(e.getStatusCode().equals(HttpStatus.NOT_FOUND)){
-					logger.error("In TeamService: domain was not found, deleting team" + e.getMessage());
-					this.delete(team);
-					return true;
-				}else{
-					logger.error("In TeamService: error deleting team and domain " + e.getMessage());
-					e.printStackTrace();
-					return false;
-				}
-			}catch(Exception e){
-				logger.error("In TeamService: error deleting team and domain " + e.getMessage());
-				return false;
-			}
-		}else{
-			logger.error("In TeamService: team has no domain refrence, deleting team" );
-			try{
-				this.delete(team);
-				return true;
-			}catch(Exception e){
-				logger.error("In TeamService: error deleting team that has no domain refrence" );
-				return false;
-			}
-		}
+            } catch (HttpClientErrorException e) {
+                if (e.getStatusCode().equals(HttpStatus.NOT_FOUND)) {
+                    logger.error("Domain was not found" + e.getMessage());
+                } else {
+                    logger.error("HTTP client exception: " + e.getMessage());
+                    throw new TeamNotDeletedException(team.getName(), "AAP client problem - " + e.getMessage());
+                }
+            } catch (Exception e) {
+                logger.error("Unknown exception: " + e.getMessage());
+                throw new TeamNotDeletedException(team.getName(), e.getMessage());
+            }
+        }
+
+        this.delete(team);
 	}
 
 	public void stopDeploymentsUsingTeamSharedCloudProvider(

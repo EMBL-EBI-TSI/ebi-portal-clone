@@ -337,18 +337,10 @@ public class TeamRestControllerTest {
 		given(principal.getName()).willReturn(principalName);
 		given(teamService.findByNameAndAccountUsername(teamName, principalName)).willCallRealMethod();
 		given(teamRepository.findByNameAndAccountUsername(teamName, principalName)).willReturn(Optional.of(team));
-		Mockito.when(teamService.deleteTeam(team, token, deploymentService, cppCopyService, configurationService)).thenReturn(true);
+
 		given(subject.deleteTeam(request, principal, teamName)).willCallRealMethod();
 		ResponseEntity<?> teamDeleted = subject.deleteTeam(request, principal, teamName);
 		assertTrue(teamDeleted.getStatusCode().equals(HttpStatus.OK));
-	}
-
-	@Test(expected = TeamNotDeletedException.class)
-	public void testDeleteTeamFail(){
-		getRequest();
-		Mockito.when(teamService.deleteTeam(team, token, deploymentService, cppCopyService, configurationService)).thenReturn(false);
-		given(subject.deleteTeam(request, principal, teamName)).willCallRealMethod();
-		subject.deleteTeam(request, principal, teamName);
 	}
 
 	@Test(expected = TeamNameInvalidInputException.class )

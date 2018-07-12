@@ -220,23 +220,18 @@ public class TeamRestController {
 			throw new TeamNameInvalidInputException("Team name should not be empty");
 		}
 
-		try{
-			logger.info("Checking if user is team owner");
-			Team team = this.teamService.findByNameAndAccountUsername(teamName, principal.getName());
-			boolean teamDeleted = teamService.deleteTeam(
-					team, 
-					request.getHeader(HttpHeaders.AUTHORIZATION).split(" ")[1],
-					deploymentService, 
-					cloudProviderParametersCopyService,
-					configurationService);
-			if(teamDeleted){
-				return new ResponseEntity<>("Team " + teamName + " was deleted ",HttpStatus.OK);
-			}else{
-				throw new TeamNotDeletedException(teamName);
-			}
-		}catch(TeamNotFoundException e){
-			throw new RuntimeException("Team not found or you should be the team owner to delete it");
-		}
+        logger.info("Checking if user is team owner");
+        Team team = this.teamService.findByNameAndAccountUsername(teamName, principal.getName());
+        teamService.deleteTeam(
+                team,
+                request.getHeader(HttpHeaders.AUTHORIZATION).split(" ")[1],
+                deploymentService,
+                cloudProviderParametersCopyService,
+                configurationService);
+
+        return new ResponseEntity<>("Team " + teamName + " was deleted ",HttpStatus.OK);
+
+
 	}
 
 	@RequestMapping(value="/member", method=RequestMethod.POST)

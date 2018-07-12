@@ -9,9 +9,9 @@ public class TeamNotDeletedException extends RuntimeException {
 
 	private static final long serialVersionUID = 1L;
 
-	public TeamNotDeletedException(String teamName){
+	public TeamNotDeletedException(String teamName, String cause){
 		
-		super("Team " + teamName + " failed to get deleted");
+		super("Team " + teamName + " failed to get deleted. Reason: " + cause);
 		
 	}
 }
