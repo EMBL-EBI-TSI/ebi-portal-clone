@@ -317,84 +317,47 @@ public class TeamService {
 		return team;
 	}
 
-	public boolean addMemberToTeamNoEmail(String token, Team team, Account account) {
+	public Team addMemberToTeamByAccountNoNotification(
+	        String token,
+            String teamName,
+            Account account) {
 
-		logger.info("Adding " + account.getReference() + " (" + account.getEmail() + ") to team " + team.getName());
+		logger.info("Adding " + account.getReference() + " (" + account.getEmail() + ") to team " + teamName);
 
-		int memberCountBeforeAdding = team.getAccountsBelongingToTeam().size();
-		if(team != null){
-			String accountReference = account.getReference();
-			boolean isMember = team.getAccountsBelongingToTeam().stream().anyMatch(
-					a -> a.getReference().equals(accountReference)
-			);
+        // Get team
+        Team team = this.findByName(teamName);
+        if (team==null) {
+            throw new TeamNotFoundException(teamName);
+        }
 
-			if (!isMember) {
-				if (team.getDomainReference() != null) {
-					String accountEmail = account.getEmail();
-					logger.info("Checking if user is already a member of domain, else adding to domain");
-					try {
-						logger.info("Getting domain");
-						Domain domain = domainService.getDomainByReference(
-								team.getDomainReference(),
-								token);
-						if (domain != null) {
-							try {
-								logger.info("adding user to domain");
-								Domain updatedDomain = domainService.addUserToDomain(
-										domain,
-										new User(null, account.getEmail(), account.getUsername(), account.getGivenName(), null),
-										token
-								);
-								if (updatedDomain != null) {
-									User addedUser = domainService.getAllUsersFromDomain(updatedDomain.getDomainReference(), token)
-											.stream()
-											.filter(u -> u.getEmail().equals(accountEmail))
-											.findAny()
-											.orElse(null);
+        // Update domain if needed
+        if (team.getDomainReference() != null) {
+            logger.info("Team has associated domain " + team.getDomainReference() + ". Updating...");
+            logger.info("Getting domain");
+            Domain domain = domainService.getDomainByReference(
+                    team.getDomainReference(),
+                    token);
+            if (domain != null) {
+                domainService.addUserToDomain(
+                        domain,
+                        new User(null, account.getEmail(), account.getUsername(), account.getGivenName() , null),
+                        token
+                );
 
-									if (addedUser != null) {
-										logger.info("user added to domain, updating account and team");
-										//update account if not team owner
-										if (!team.getAccount().getId().equals(account.getId())) {
-											account.getMemberOfTeams().add(team);
-											account = this.accountService.save(account);
-										}
-										// update team, add member if not team owner
-										if (!team.getAccount().getId().equals(account.getId())) {
-											team.getAccountsBelongingToTeam().add(account);
-											this.save(team);
-										}
+            } else {
+                throw new TeamMemberNotAddedException(teamName, "cannot find associated domain " + team.getDomainReference());
+            }
+        }
 
-									}
-								}
+        //update account
+        account.getMemberOfTeams().add(team);
+        account = this.accountService.save(account);
 
-							} catch (Exception e) {
-								logger.error("Failed to add user to domain " + e.getMessage());
-							}
-						}
-					} catch (Exception e) {
-						logger.error("Failed to get domain to add member " + e.getMessage());
-					}
+        // update team
+        team.getAccountsBelongingToTeam().add(account);
+        this.save(team);
 
-				} else {
-					logger.info("team has no domain reference, updating account and team");
-					// update account
-					account.getMemberOfTeams().add(team);
-					account = this.accountService.save(account);
-					// update team
-					team.getAccountsBelongingToTeam().add(account);
-					this.save(team);
-				}
-			} else {
-				logger.info("Account " + account.getEmail() + " is already a member of team " + team.getName());
-			}
-		}
-
-		int memberCountAfterAdding = team.getAccountsBelongingToTeam().size();
-		if( memberCountBeforeAdding == (memberCountAfterAdding-1)){
-			return true;
-		}
-		return false;
+        return team;
 	}
 
 	public boolean deleteTeam(

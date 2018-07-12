@@ -168,7 +168,7 @@ public class EcpAuthenticationService {
                 Team emblEbiTeam = this.teamService.findByName("EMBL-EBI");
                 if (!emblEbiTeam.getAccountsBelongingToTeam().stream().anyMatch(anotherAccount -> anotherAccount.getUsername().equals(account.getUsername()))) {
                     // Add member to team
-                    teamService.addMemberToTeamNoEmail(appToken, emblEbiTeam, account);
+                    teamService.addMemberToTeamByAccountNoNotification(appToken, "EMBL-EBI", account);
                 }
             } catch (TeamNotFoundException tnfe) {
                 logger.info("Team EMBL-EBI not found. Can't add user " + account.getEmail());
@@ -179,7 +179,7 @@ public class EcpAuthenticationService {
                 Team emblTeam = this.teamService.findByName("EMBL");
                 if (!emblTeam.getAccountsBelongingToTeam().stream().anyMatch(anotherAccount -> anotherAccount.getUsername().equals(account.getUsername()))) {
                     // Add member to team
-                    teamService.addMemberToTeamNoEmail(appToken, emblTeam, account);
+                    teamService.addMemberToTeamByAccountNoNotification(appToken, "EMBL", account);
                 }
             } catch (TeamNotFoundException tnfe) {
                 logger.info("Team EMBL not found. Can't add user " + account.getEmail());
