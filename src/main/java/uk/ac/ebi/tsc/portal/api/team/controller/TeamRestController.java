@@ -294,13 +294,8 @@ public class TeamRestController {
 		teamService.removeMemberFromTeam(
 				request.getHeader(HttpHeaders.AUTHORIZATION).split(" ")[1], teamName, userEmail);
 
-		teamService.stopDeploymentsOfRemovedUser(team,
-				userEmail,
-				deploymentService,
-				configurationService,
-				configDepParamsService);
+		teamService.stopDeploymentsByUserEmail(team, userEmail);
 		return new ResponseEntity<>("User " + userEmail + " was deleted from team " + teamName, HttpStatus.OK);
-
 
 	}
 
