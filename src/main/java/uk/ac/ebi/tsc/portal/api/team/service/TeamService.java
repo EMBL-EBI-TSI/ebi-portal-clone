@@ -470,12 +470,19 @@ public class TeamService {
 		accounts.forEach(memberAccount -> {
             // For each member running deployment associated with one of the team cpp...
             memberAccount.getDeployments().forEach(deployment -> {
-                if (cloudProviderParameterReferences.contains(deployment.getCloudProviderParametersReference())
-                        && (deployment.deploymentStatus.getStatus().equals(DeploymentStatusEnum.RUNNING)
+                if ((deployment.deploymentStatus.getStatus().equals(DeploymentStatusEnum.RUNNING)
                         || deployment.deploymentStatus.getStatus().equals(DeploymentStatusEnum.STARTING))) {
                     try {
-                        this.stopDeploymentByReference(deployment.getAccount().getUsername(), deployment.getReference());
-                        toNotify.add(deployment.getAccount().getEmail());
+                        // Get the reference of the CPP copy associated with this deployment
+                        CloudProviderParamsCopy cppCopy =
+                                this.cloudProviderParametersCopyService.findByCloudProviderParametersReference(
+                                        deployment.getCloudProviderParametersReference()
+                                );
+                        // If the original CPP associated with this copy is part of the shared ones...
+                        if (cloudProviderParameterReferences.contains(cppCopy.getCloudProviderParametersReference())) {
+                            this.stopDeploymentByReference(deployment.getAccount().getUsername(), deployment.getReference());
+                            toNotify.add(deployment.getAccount().getEmail());
+                        }
                     } catch (Exception e) {
                         logger.error("Failed to stop deployment " + deployment.getReference()
                                 + ", using team's shared cloud credentials "
@@ -553,11 +560,13 @@ public class TeamService {
 
     /**
      * Stop all deployments associated with an account given by email.
+     * TODO: this method has the same problem as all the previous stop ones - it needs to separate what has been
+     * deployed with something shared withing this team from everything else.
      *
      * @param team
      * @param userEmail
      */
-	public void stopDeploymentsByUserEmail(Team team, String userEmail) {
+	public void stopDeploymentsByMemberUserEmail(Team team, String userEmail) {
 
         logger.info("Stopping all deployments associated with team " + team.getName() + " for user " + userEmail);
 
@@ -795,7 +804,7 @@ public class TeamService {
 							team.getName(), 
 							memberToLeaveEmail);
 					try {
-						this.stopDeploymentsByUserEmail(team, memberToLeaveEmail);
+						this.stopDeploymentsByMemberUserEmail(team, memberToLeaveEmail);
                         String message = "You have been removed from the team " + "'"+team.getName()+"'" + ".\n\n";
                         SendMail.send(toNotify, "Request to leave team " + team.getName(), message );
 					}catch(IOException e){
