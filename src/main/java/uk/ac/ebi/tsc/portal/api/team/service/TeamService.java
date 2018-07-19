@@ -16,6 +16,7 @@ import uk.ac.ebi.tsc.portal.api.account.service.AccountService;
 import uk.ac.ebi.tsc.portal.api.account.service.UserNotFoundException;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParameters;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParamsCopy;
+import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParametersNotFoundException;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParamsCopyService;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.Configuration;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationDeploymentParameters;
@@ -613,57 +614,66 @@ public class TeamService {
 
 	}
 
-	public void stopDeploymentsUsingGivenTeamSharedCloudProvider(Team team,
-			DeploymentService deploymentService,
-			CloudProviderParameters toUnshare) {
+    /**
+     *
+     * @param team
+     * @param sharedCloudProviderParameters
+     */
+	public void stopDeploymentsUsingGivenTeamSharedCloudProvider(
+	        Team team,
+            CloudProviderParameters sharedCloudProviderParameters) {
 
-		logger.info("Stopping deployments of team members(not owner's) on unsharing a cloud credential.");
-		logger.info("Get member accounts of team " + team.getName());
-		Set<Account> memberAccounts = team.getAccountsBelongingToTeam();
-		logger.info("Find all deployments using the shared cloud credentials");
-		List<Deployment> deployments = new ArrayList<>();
-		deploymentService.findAll().forEach(d -> {
-			logger.info("Deployment cloud reference " + d.getCloudProviderParametersReference());
-			logger.info("To unshare cpp " + toUnshare.getReference());
-			if(d.getCloudProviderParametersReference() != null){
-				if(d.getCloudProviderParametersReference().equals(toUnshare.getReference())){
-					logger.info("Adding deployment");
-					deployments.add(d);
-				}
-			}
-		});
-		List<String> toNotify = new ArrayList<>();
-		if(team.getCppBelongingToTeam().stream().map(cpp -> cpp.getId()).collect(Collectors.toList()).contains(toUnshare.getId())){
-			deployments.forEach(deployment -> {
-				if(deployment.getAccount().getId() != toUnshare.getAccount().getId() && 
-						memberAccounts.stream().map(account -> account.getId()).collect(Collectors.toList()).contains(deployment.getAccount().getId())){
-					try{
-						if(deployment.deploymentStatus.getStatus().equals(DeploymentStatusEnum.RUNNING)
-								|| deployment.deploymentStatus.getStatus().equals(DeploymentStatusEnum.STARTING)){
-							logger.info("Found deployments in running/starting status, using the cloud provider parameter '" +
-									toUnshare.getName() + "' shared with team '" + team.getName() + "'." );
-							this.stopDeploymentByReference(deployment.getAccount().getUsername(), deployment.getReference());
-							toNotify.add(deployment.getAccount().getEmail());
-						}
-					}catch(Exception e){
-						logger.error("Failed to stop deployment, on unsharing cloud credential");
-					}
-				}
-			});
+		logger.info("Stopping deployments of team members (not owner's) using shared cloud credentials " + sharedCloudProviderParameters.getName());
 
-			if(!toNotify.isEmpty()){
-				logger.info("There are users who are to be notified, regarding deployments destruction");
-				String message = "Your deployments were destroyed. \n"
-						+ "This was because the cloud credential " + "'" + toUnshare.name + "'" +" was \n"
-						+ "unshared with you by " + toUnshare.getAccount().givenName + ".";
-				try{
-					SendMail.send(toNotify, "Deployments destroyed", message );
-				}catch(IOException e){
-					logger.error("Failed to send, deployments destroyed notification to the members of the team "
-							+ "from which cloud credential '" + toUnshare.getName() + "' was unshared" );
-				}
-			}
-		}
+        // Get all accounts but the owner's
+        Set<Account> accounts = team.getAccountsBelongingToTeam().stream().filter(
+                account -> account!=team.getAccount()).collect(Collectors.toSet());
+        // Check the cloud credential is actually shared within the team
+        if (!team.getCppBelongingToTeam().stream().anyMatch(
+                cpp -> cpp.getReference().equals(sharedCloudProviderParameters.getReference()))) {
+            throw new CloudProviderParametersNotFoundException(sharedCloudProviderParameters.getReference());
+        }
+
+        // To keep track who to notify
+        List<String> toNotify = new ArrayList<>();
+        // For each team member...
+        accounts.forEach(memberAccount -> {
+            // For each member running deployment associated with the shared cpp...
+            memberAccount.getDeployments().forEach(deployment -> {
+                if ((deployment.deploymentStatus.getStatus().equals(DeploymentStatusEnum.RUNNING)
+                        || deployment.deploymentStatus.getStatus().equals(DeploymentStatusEnum.STARTING))) {
+                    try {
+                        // Get the reference of the CPP copy associated with this deployment
+                        CloudProviderParamsCopy cppCopy =
+                                this.cloudProviderParametersCopyService.findByCloudProviderParametersReference(
+                                        deployment.getCloudProviderParametersReference()
+                                );
+                        // If the original CPP associated with this copy is part of the shared ones...
+                        if (sharedCloudProviderParameters.getReference().equals(cppCopy.getCloudProviderParametersReference())) {
+                            this.stopDeploymentByReference(deployment.getAccount().getUsername(), deployment.getReference());
+                            toNotify.add(deployment.getAccount().getEmail());
+                        }
+                    } catch (Exception e) {
+                        logger.error("Failed to stop deployment " + deployment.getReference()
+                                + ", using team's shared cloud credentials "
+                                + deployment.getCloudProviderParametersReference());
+                        e.printStackTrace();
+                    }
+                }
+            });
+        });
+
+        if (!toNotify.isEmpty()) {
+            logger.info("There are users who are to be notified, regarding deployments destruction");
+            String message = "Your deployments were destroyed. \n"
+                    + "This was because the associated cloud credentials are not available anymore in team " + "'" + team.getName() + "'.\nYou had used team"
+                    + " shared cloud credential for these deployments." ;
+            try {
+                SendMail.send(toNotify, "Deployments destroyed", message );
+            } catch (IOException e) {
+                logger.error("Failed to send, deployments destroyed notification to the members of the team " + team.getName());
+            }
+        }
 
 	}
 
