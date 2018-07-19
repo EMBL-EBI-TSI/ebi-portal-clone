@@ -1,6 +1,7 @@
 
 package uk.ac.ebi.tsc.portal.api.team.controller;
 
+import org.apache.http.MethodNotSupportedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -469,7 +470,7 @@ public class TeamRestController {
 
 			//stop deployments using shared credential
 			CloudProviderParameters toUnshare = cloudProviderParameters;
-			this.teamService.stopDeploymentsUsingGivenTeamSharedCloudProvider(team, deploymentService, toUnshare);
+			this.teamService.stopDeploymentsUsingGivenTeamSharedCloudProvider(team, toUnshare);
 
 			// Update team
 			team.setCppBelongingToTeam(
@@ -496,34 +497,15 @@ public class TeamRestController {
 		return new ResponseEntity<>("Cloud Provider Parameter " + "'" + cloudProviderParameterName + "'" + "was deleted from team " + "'" + teamName + "'"  , HttpStatus.OK);
 	}
 
+    @Deprecated
 	@RequestMapping(value="/{teamName:.+}/configurationdeploymentparameters", method=RequestMethod.POST)
 	public ResponseEntity<?> addConfigurationDeploymentParametersToTeam(Principal principal,
-			@RequestBody ConfigurationDeploymentParametersResource configDepParamsResource, @PathVariable String teamName) {
+			@RequestBody ConfigurationDeploymentParametersResource configDepParamsResource, @PathVariable String teamName) throws MethodNotSupportedException {
 
 		logger.info("User " + principal.getName() + " requested adding configuration deployment parameters to team " + configDepParamsResource.getName()
 		+ " to team " + teamName);
 
-		if(teamName == null || teamName.isEmpty()){
-			throw new TeamNameInvalidInputException("Team name should not be empty");
-		}
-
-		try{
-			logger.info("Checking if user is team owner");
-			Team team = teamService.findByNameAndAccountUsername(teamName, principal.getName());
-			logger.info("Checking if user owns the configuration deployment parameter");
-			ConfigurationDeploymentParameters configurationDeploymentParameters =
-					this.configDepParamsService.findByNameAndAccountUserName(configDepParamsResource.getName(), principal.getName());
-			logger.info("User " + principal.getName() + " owns both entities...");
-			team.getConfigDepParamsBelongingToTeam().add(configurationDeploymentParameters);
-			team = this.teamService.save(team);
-			configurationDeploymentParameters.getSharedWithTeams().add(team);
-			this.configDepParamsService.save(configurationDeploymentParameters);
-		}catch(TeamNotFoundException e){
-			throw new RuntimeException("Team not found or you should be the team owner to add deployment parameters to team");
-		}catch(ConfigurationDeploymentParametersNotFoundException e){
-			throw new RuntimeException("ConfigurationDeploymentParameters not found or you should own it to share it.");
-		}
-		return new ResponseEntity<>("ConfigurationDeploymentParameters " + "'" + configDepParamsResource.getName() + "'" + "was shared with team " + "'" + teamName + "'"  , HttpStatus.OK);
+		throw new MethodNotSupportedException("Sharing configuration parameters is deprecated - share Configurations instead");
 	}
 
 	@RequestMapping(value="/{teamName:.+}/configurationdeploymentparameters", method=RequestMethod.GET)
@@ -543,6 +525,7 @@ public class TeamRestController {
 
 	}
 
+	@Deprecated
 	@RequestMapping(value="/{teamName:.+}/configurationdeploymentparameters/{configDepParamsName:.+}", method=RequestMethod.DELETE)
 	public ResponseEntity<?> removeConfigurationDeploymentParametersFromTeam(Principal principal, @PathVariable String teamName,
 			@PathVariable String configDepParamsName) throws IOException{
@@ -564,9 +547,6 @@ public class TeamRestController {
 			ConfigurationDeploymentParameters configurationDeploymentParameters =
 					this.configDepParamsService.findByNameAndAccountUserName(configDepParamsName, principal.getName());
 			logger.info("User " + principal.getName() + " owns both entities...");
-
-			//stop deployments using shared deployment parameters
-			this.teamService.stopDeploymentsUsingGivenTeamSharedConfigurationDeploymentParameter(team, deploymentService, deploymentConfigurationService, configurationDeploymentParameters, configurationService);
 
 			logger.info("Removing the shared deployment parameters from team");
 
