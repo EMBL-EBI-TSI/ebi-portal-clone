@@ -19,7 +19,6 @@ import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParams
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParametersNotFoundException;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParamsCopyService;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.Configuration;
-import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationDeploymentParametersService;
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationService;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.*;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentConfigurationService;
@@ -679,12 +678,11 @@ public class TeamService {
 	}
 
 
-	public void stopDeploymentsUsingGivenTeamSharedConfiguration(Team team, 
-			DeploymentService deploymentService, 
-			DeploymentConfigurationService deploymentConfigurationService,
+	public void stopDeploymentsUsingGivenTeamSharedConfiguration(
+	        Team team,
 			Configuration toUnshare) {
 
-		logger.info("Stopping deployments of team members(not owner's) on unsharing a configuration.");
+		logger.info("Stopping deployments of team members (not owner's) on unsharing a configuration.");
 		List<String> toNotify = new ArrayList<>();
 		logger.info("Getting member accounts of team " + team.getName());
 		Set<Account> memberAccounts = team.getAccountsBelongingToTeam();
@@ -731,54 +729,6 @@ public class TeamService {
 
 	}
 
-	public void leaveTeam(
-			String token,
-			DeploymentService deploymentService, 
-			ConfigurationService configurationService, 
-			ConfigurationDeploymentParametersService configDepParamsService, 
-			TeamResource teamResource) throws Exception {
-
-		try{
-
-			Team team = this.findByName(teamResource.getName());
-
-			Set<String> memberAccountEmails = team.getAccountsBelongingToTeam().stream().
-					map(Account::getEmail).
-					collect(Collectors.toSet());
-
-			String memberToLeaveEmail = (String) teamResource.getMemberAccountEmails().toArray()[0];
-			List<String> toNotify = new ArrayList();
-			toNotify.add(memberToLeaveEmail);
-
-			if(memberAccountEmails.contains(memberToLeaveEmail)){
-				logger.info("Member is a part of the team");
-				if(team.getAccount().getEmail().equals(memberToLeaveEmail)){
-					logger.info("Team owner wants to leave team");
-					throw new Exception("Team owner cannot leave the team, but he can delete the team");
-				}else{
-					logger.info("Removing member from team");
-					this.removeMemberFromTeam(
-							token,
-							team.getName(), 
-							memberToLeaveEmail);
-					try {
-						this.stopDeploymentsByMemberUserEmail(team, memberToLeaveEmail);
-                        String message = "You have been removed from the team " + "'"+team.getName()+"'" + ".\n\n";
-                        SendMail.send(toNotify, "Request to leave team " + team.getName(), message );
-					}catch(IOException e){
-						logger.error("In leaveTeam: Failed to notify user");
-					}
-				}
-			}else{
-				throw new Exception("User has to be a member of the team, to leave it");
-			}
-		}catch(TeamNotFoundException e){
-			logger.error("In leaveTeam: Could not find team '"+teamResource.getName()+"'.");
-			throw e;
-		}
-
-	}
-
 	public void addMemberOnRequest(
 			String baseURL,
 			TeamResource teamResource) throws IOException {
@@ -809,6 +759,7 @@ public class TeamService {
 
 	}
 
+	// TODO: Why is this method here and not in the deployment service???
 	public ResponseEntity<?> stopDeploymentByReference(
 			String userName,
 			String reference) throws IOException, ApplicationDeployerException {

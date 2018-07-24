@@ -645,7 +645,7 @@ public class TeamRestController {
 			logger.info("User " + principal.getName() + " owns both entities...");
 
 			//stop deployments using shared configuration
-			this.teamService.stopDeploymentsUsingGivenTeamSharedConfiguration(team, deploymentService, deploymentConfigurationService, configuration);
+			this.teamService.stopDeploymentsUsingGivenTeamSharedConfiguration(team, configuration);
 
 			logger.info("Removing configuration from team");
 

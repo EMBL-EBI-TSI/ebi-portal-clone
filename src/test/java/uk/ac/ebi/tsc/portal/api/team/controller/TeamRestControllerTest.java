@@ -807,27 +807,6 @@ public class TeamRestControllerTest {
 	}
 
 	@Test
-	public void testAddConfigDepParamsToTeam() {
-		getPrincipal();
-		getAccount();
-		getConfigurationDeploymentParametersResource();
-		getConfigDepParamsBelongingTeam();
-		getTeamResoure(team);
-		assertTrue(team.getConfigDepParamsBelongingToTeam().size() == 0);
-		assertTrue(configDepParams.getSharedWithTeams().size() == 0);
-		given(configDepParams.getAccount()).willReturn(account);
-		given(teamService.findByNameAndAccountUsername(Mockito.anyString(), Mockito.anyString() )).willReturn(team);
-		given(teamService.save(team)).willReturn(team);
-		given(configDepParamsService.findByNameAndAccountUserName(configDepParamsName, principalName)).willCallRealMethod();
-		given(configDepParamsRepository.findByNameAndAccountUsername(configDepParamsName, principalName)).willReturn(Optional.of(configDepParams));
-		given(subject.addConfigurationDeploymentParametersToTeam(principal, configDepParamsResource, teamName)).willCallRealMethod();
-		ResponseEntity<?> configDepParamsAdded = subject.addConfigurationDeploymentParametersToTeam(principal, configDepParamsResource, teamName);
-		assertTrue(configDepParamsAdded.getStatusCode().equals(HttpStatus.OK));
-		assertTrue(team.getConfigDepParamsBelongingToTeam().size() == 1);
-		assertTrue(configDepParams.getSharedWithTeams().size() == 1);
-	}
-
-	@Test
 	public void testRemoveConfigDepParamsFromTeam() throws IOException{
 
 		getPrincipal();
