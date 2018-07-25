@@ -804,9 +804,9 @@ public class TeamService {
 
 	}
 
-	public static String getCloudProviderPathFromDeploymentApplication(DeploymentApplication deploymentApplication, String cloudProvider) {
+	private static String getCloudProviderPathFromDeploymentApplication(DeploymentApplication deploymentApplication, String cloudProvider) {
 
-		logger.info("Getting the path of the cloud provider from deploymentApplication");
+		logger.debug("Getting the path of the cloud provider from deploymentApplication");
 		Iterator<DeploymentApplicationCloudProvider> it = deploymentApplication.getCloudProviders().iterator();
 
 		while ( it.hasNext() ) {
