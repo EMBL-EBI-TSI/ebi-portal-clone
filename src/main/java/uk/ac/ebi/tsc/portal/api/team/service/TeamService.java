@@ -3,9 +3,7 @@ package uk.ac.ebi.tsc.portal.api.team.service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.HttpClientErrorException;
 import uk.ac.ebi.tsc.aap.client.model.Domain;
 import uk.ac.ebi.tsc.aap.client.model.User;
@@ -21,7 +19,10 @@ import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderPar
 import uk.ac.ebi.tsc.portal.api.configuration.repo.Configuration;
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationNotFoundException;
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationService;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.*;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.Deployment;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentApplication;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentApplicationCloudProvider;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentStatusEnum;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentConfigurationService;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
 import uk.ac.ebi.tsc.portal.api.team.controller.TeamResource;
@@ -480,7 +481,7 @@ public class TeamService {
                                 );
                         // If the original CPP associated with this copy is part of the shared ones...
                         if (cloudProviderParameterReferences.contains(cppCopy.getCloudProviderParametersReference())) {
-                            this.stopDeploymentByReference(deployment.getAccount().getUsername(), deployment.getReference());
+                            this.stopDeployment(deployment);
                             toNotify.add(deployment.getAccount().getEmail());
                         }
                     } catch (Exception e) {
@@ -533,7 +534,7 @@ public class TeamService {
                         && (deployment.deploymentStatus.getStatus().equals(DeploymentStatusEnum.RUNNING)
                         || deployment.deploymentStatus.getStatus().equals(DeploymentStatusEnum.STARTING))) {
                     try {
-                        this.stopDeploymentByReference(deployment.getAccount().getUsername(), deployment.getReference());
+                        this.stopDeployment(deployment);
                         toNotify.add(deployment.getAccount().getEmail());
                     } catch (Exception e) {
                         logger.error("Failed to stop deployment " + deployment.getReference()
@@ -588,7 +589,7 @@ public class TeamService {
                     && (deployment.deploymentStatus.getStatus().equals(DeploymentStatusEnum.RUNNING)
                     || deployment.deploymentStatus.getStatus().equals(DeploymentStatusEnum.STARTING))) {
                 try {
-                    this.stopDeploymentByReference(deployment.getAccount().getUsername(), deployment.getReference());
+                    this.stopDeployment(deployment);
                     toNotify.add(deployment.getAccount().getEmail());
                 } catch (Exception e) {
                     logger.error("Failed to stop deployment " + deployment.getReference()
@@ -651,7 +652,7 @@ public class TeamService {
                                 );
                         // If the original CPP associated with this copy is part of the shared ones...
                         if (sharedCloudProviderParameters.getReference().equals(cppCopy.getCloudProviderParametersReference())) {
-                            this.stopDeploymentByReference(deployment.getAccount().getUsername(), deployment.getReference());
+                            this.stopDeployment(deployment);
                             toNotify.add(deployment.getAccount().getEmail());
                         }
                     } catch (Exception e) {
@@ -718,7 +719,7 @@ public class TeamService {
                                 );
                         // If the original CPP associated with this copy is part of the shared ones...
                         if (configuration.getCloudProviderParametersReference().equals(cppCopy.getCloudProviderParametersReference())) {
-                            this.stopDeploymentByReference(deployment.getAccount().getUsername(), deployment.getReference());
+                            this.stopDeployment(deployment);
                             toNotify.add(deployment.getAccount().getEmail());
                         }
                     } catch (Exception e) {
@@ -776,46 +777,31 @@ public class TeamService {
 
 	}
 
-	// TODO: Why is this method here and not in the deployment service???
-	public ResponseEntity<?> stopDeploymentByReference(
-			String userName,
-			String reference) throws IOException, ApplicationDeployerException {
+	private void stopDeployment(Deployment deployment) throws IOException, ApplicationDeployerException {
 
-		logger.info("Stopping deployment '" + reference + "'");
-
-		Account account = this.accountService.findByUsername(userName);
-		Deployment theDeployment = this.deploymentService.findByReference(reference);
+		logger.info("Stopping deployment '" + deployment.getReference() + "'");
 
 		// get credentials decrypted through the service layer
 		CloudProviderParamsCopy theCloudProviderParametersCopy;
-		theCloudProviderParametersCopy = this.cloudProviderParametersCopyService.findByCloudProviderParametersReference(theDeployment.getCloudProviderParametersReference());
-
-		DeploymentConfiguration deploymentConfiguration = null;
-		if(theDeployment.getDeploymentConfiguration() != null){
-			deploymentConfiguration = this.deploymentConfigurationService.findByDeployment(theDeployment);
-		}
+		theCloudProviderParametersCopy = this.cloudProviderParametersCopyService.findByCloudProviderParametersReference(deployment.getCloudProviderParametersReference());
 
 		// Update status
-		theDeployment.getDeploymentStatus().setStatus(DeploymentStatusEnum.DESTROYING);
-		this.deploymentService.save(theDeployment);
+		deployment.getDeploymentStatus().setStatus(DeploymentStatusEnum.DESTROYING);
+		this.deploymentService.save(deployment);
 
 		// Proceed to destroy
 		this.applicationDeployerBash.destroy(
-				theDeployment.getDeploymentApplication().getRepoPath(),
-				theDeployment.getReference(),
+				deployment.getDeploymentApplication().getRepoPath(),
+				deployment.getReference(),
 				this.getCloudProviderPathFromDeploymentApplication(
-						theDeployment.getDeploymentApplication(), theCloudProviderParametersCopy.getCloudProvider()),
-				theDeployment.getAssignedInputs(),
-				theDeployment.getAssignedParameters(),
-				theDeployment.getAttachedVolumes(),
-				deploymentConfiguration,
+						deployment.getDeploymentApplication(), theCloudProviderParametersCopy.getCloudProvider()),
+				deployment.getAssignedInputs(),
+				deployment.getAssignedParameters(),
+				deployment.getAttachedVolumes(),
+                deployment.getDeploymentConfiguration(),
 				theCloudProviderParametersCopy
 				);
 
-		// Prepare response
-		HttpHeaders httpHeaders = new HttpHeaders();
-
-		return new ResponseEntity<>(null, httpHeaders, HttpStatus.OK);
 	}
 
 	public static String getCloudProviderPathFromDeploymentApplication(DeploymentApplication deploymentApplication, String cloudProvider) {
