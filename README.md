@@ -31,10 +31,11 @@ The portal backend needs a DB and an ElasticSearch index. Both of them can be pr
 
 #### ElasticSearch index
 
-The Kibana instance has to have an ElasticSearch index defined, that matches the `elasticsearch.index` 
-specified in the `src/main/resources/application.properties` file. If you use the abovementioned `docker-elk` setup,
+The ElasticSearch instance has to have an index defined, that matches the `elasticsearch.index` 
+specified in the `src/main/resources/application.properties` file. If you use the above mentioned `docker-elk` setup,
 you visit the Kibana GUI at http://localhost:5601 with the `elasticsearch.*` credentials, 
-and use Kibana console (in the devtools tab) to send the index creation command to its API:
+and use Kibana console (in the devtools tab) to send the index creation command to its API:  
+
 ```
 PUT ecp-deployments
 {
