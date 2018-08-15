@@ -10,7 +10,7 @@ This project uses Spring-Boot and Maven. In order to run it, just run
 
  The API entry point is the root [http://localhost:8080](http://localhost:8080).  
 
-Right now there is a series of dummy users with some data. The user name is 'tsi' and the password is `password`.  
+Right now the API endpoints are only accessible by `jwt` tokens.  
 
 ### Properties  
 
