@@ -29,6 +29,25 @@ I. The file 'application.properties' has been divided into two sections.
 
 The portal backend needs a DB and an ElasticSearch index. Both of them can be provided using Docker containers. The properties file contains comments about how to run them.  
 
+#### ElasticSearch index
+
+The Kibana instance has to have an ElasticSearch index defined, that matches the `elasticsearch.index` 
+specified in the `src/main/resources/application.properties` file. If you use the abovementioned `docker-elk` setup,
+you visit the Kibana GUI at http://localhost:5601 with the `elasticsearch.*` credentials, 
+and use Kibana console (in the devtools tab) to send the index creation command to its API:
+```
+PUT ecp-deployments
+{
+    "settings" : {
+        "index" : {
+            "number_of_shards" : 1, 
+            "number_of_replicas" : 1 
+        }
+    }
+}
+```
+Production environments must change the credentials, and should tewak the settings depending on the workload.
+
 ## Design  
 
 The RESTful API is designed under the [HATEOAS](https://en.wikipedia.org/wiki/HATEOAS) constraint in order to allow clients to be as decoupled as possible from its specification.
