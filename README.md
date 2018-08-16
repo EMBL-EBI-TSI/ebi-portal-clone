@@ -47,20 +47,27 @@ PUT ecp-deployments
     }
 }
 ```
-Production environments must change the credentials, and should tewak the settings depending on the workload.
+Production environments must change the credentials, and should tweak the settings depending on the workload.
+
+## Example usage
+
+Once the Portal API web services are up and running, clients can make REST calls. The client authorisation 
+is performed with JSON Web Tokens (https://jwt.io/) which are issued by the EBI's Authentication and Authorization Profile (AAP) infrastructure. You can manually log into https://aai.ebi.ac.uk/login with the Elixir Single-Sign-On,
+and copy the token displayed on https://api.aai.ebi.ac.uk/sso. Web clients can use libraries like https://www.npmjs.com/package/angular-aap-auth to handle the process. An example call to the API returns the list of deployments, 
+which is initially empty `{}`:
+```
+curl -H 'Accept: application/json' -H 'Content-Type: application/json' -H 'Authorization: Bearer eyJh...K0GA' -X GET http://localhost:8080/deployment
+```
 
 ## Design  
 
 The RESTful API is designed under the [HATEOAS](https://en.wikipedia.org/wiki/HATEOAS) constraint in order to allow clients to be as decoupled as possible from its specification.
-
-Once API server is up and running, the different hypermedia links can be visited using the [HAL Browser](https://github.com/mikekelly/hal-browser) deployed at [http://localhost:8080/hal/browser.html](http://localhost:8080/hal/browser.html).
 
 ## References  
 
 - A good intro to [Building REST services with Spring](http://spring.io/guides/tutorials/bookmarks/)  
 - One about to [Accessing Data with JPA and Spring](http://spring.io/guides/gs/accessing-data-jpa/)  
 - Wikipedia about [HATEOAS](https://en.wikipedia.org/wiki/HATEOAS).    
-- The [HAL Browser](https://github.com/mikekelly/hal-browser).  
 - [Spring Boot](http://projects.spring.io/spring-boot/).  
 - [Spring Boot starter](http://start.spring.io/).  
 
