@@ -51,9 +51,11 @@ import uk.ac.ebi.tsc.aap.client.repo.DomainService;
 import uk.ac.ebi.tsc.portal.api.account.repo.Account;
 import uk.ac.ebi.tsc.portal.api.account.repo.AccountRepository;
 import uk.ac.ebi.tsc.portal.api.account.service.AccountService;
+import uk.ac.ebi.tsc.portal.api.application.controller.InvalidApplicationInputException;
 import uk.ac.ebi.tsc.portal.api.application.repo.Application;
 import uk.ac.ebi.tsc.portal.api.application.repo.ApplicationCloudProvider;
 import uk.ac.ebi.tsc.portal.api.application.repo.ApplicationRepository;
+import uk.ac.ebi.tsc.portal.api.application.service.ApplicationNotFoundException;
 import uk.ac.ebi.tsc.portal.api.application.service.ApplicationService;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParameters;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParametersRepository;
@@ -63,13 +65,16 @@ import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderPar
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParametersService;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParamsCopyNotFoundException;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParamsCopyService;
+import uk.ac.ebi.tsc.portal.api.configuration.controller.InvalidConfigurationInputException;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigDeploymentParamsCopy;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigDeploymentParamsCopyRepository;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.Configuration;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationDeploymentParametersRepository;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationRepository;
+import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigDeploymentParamsCopyNotFoundException;
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigDeploymentParamsCopyService;
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationDeploymentParametersService;
+import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationNotFoundException;
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationService;
 import uk.ac.ebi.tsc.portal.api.configuration.service.UsageLimitsException;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.Deployment;
@@ -231,6 +236,16 @@ public class DeploymentRestController {
 				" deployment by user " + principal.getName() +
 				" config " + input.configurationName);
 
+		//check if inputs to find an application is specified
+		if((input.getApplicationName() == null) || (input.getApplicationAccountUsername() == null)){
+			throw new InvalidApplicationInputException();
+		}
+
+		//check if inputs to find a configuration is specified
+		if((input.getConfigurationName() == null) || (input.getConfigurationAccountUsername() == null)){
+			throw new InvalidConfigurationInputException();
+		}
+
 		// Get the requester and owner accounts
 		Account account = this.accountService.findByUsername(principal.getName());
 		logger.info("Found requesting account {}", account.getGivenName());
@@ -238,26 +253,30 @@ public class DeploymentRestController {
 		logger.info("Found application owner account {}", applicationOwnerAccount.getGivenName());
 
 		// Get the application
-		Application theApplication = this.applicationService.findByAccountUsernameAndName(
-				applicationOwnerAccount.getUsername(), input.getApplicationName());
-		logger.info("Found application {}", theApplication.getName());
-
-		if(theApplication.getAccount()!= account){
-			Set<Team> teams = theApplication.getSharedWithTeams();
-			if(!teams.isEmpty() && !account.getMemberOfTeams().isEmpty()){
-				teams.forEach(team -> {
-					if(!account.getMemberOfTeams().contains(team)){
-						try {
-							throw new ApplicationDeployerException(
-									"User " + account.getUsername() + " has not been shared application " + theApplication.getName());
-						} catch (ApplicationDeployerException e) {
-							logger.error("User has no access to application");
+		Application theApplication;
+		try {
+			theApplication = this.applicationService.findByAccountUsernameAndName(
+					applicationOwnerAccount.getUsername(), input.getApplicationName());
+			logger.info("Found application {}", theApplication.getName());
+			if(theApplication.getAccount()!= account){
+				Set<Team> teams = theApplication.getSharedWithTeams();
+				if(!teams.isEmpty() && !account.getMemberOfTeams().isEmpty()){
+					teams.forEach(team -> {
+						if(!account.getMemberOfTeams().contains(team)){
+							try {
+								throw new ApplicationDeployerException(
+										"User " + account.getGivenName()+ " has not been shared application " + theApplication.getName());
+							} catch (ApplicationDeployerException e) {
+								logger.error("User has no access to application");
+							}
 						}
-					}
-				});
+					});
+				}
 			}
-
+		}catch(ApplicationNotFoundException e){
+			throw new ApplicationNotFoundException(applicationOwnerAccount.getGivenName(), input.getApplicationName());
 		}
+
 
 		DeploymentIndexService deploymentIndexService = new DeploymentIndexService(
 				new RestTemplate(),
@@ -288,16 +307,34 @@ public class DeploymentRestController {
 		}
 
 		//check if all deployment parameters have matching values
+	
 
-		// Trigger application deployment
-		String theReference = "TSI" + System.currentTimeMillis();
 
-		//get the configuration and corresponding parameters
-		Configuration configuration = null;
-		if( (input.getConfigurationName() != null) && (input.getConfigurationAccountUsername() !=  null) ){
+		//get the configuration 
+		Configuration configuration;
+		try{
 			configuration = this.configurationService.findByNameAndAccountUsername(input.getConfigurationName(), input.getConfigurationAccountUsername());
+			if(account.getUsername().equals(input.getConfigurationAccountUsername())){
+				logger.info("The account user is the owner of the configuration");
+			}else{
+				//check if the  configuration is shared with the account user
+				if(account.getMemberOfTeams().isEmpty()){
+					throw new ConfigurationNotFoundException(account.getGivenName(), configuration.getName());
+				}else{
+					account.getMemberOfTeams().stream().forEach(team -> {
+						if(configuration.getSharedWithTeams().contains(team)){
+							logger.info("The configuration has been shared with team " + team.getName() + " to which the user belongs");
+						}else{
+							throw new ConfigurationNotFoundException(account.getGivenName(), configuration.getName());
+						}
+					});
+				}
+			}
+		}catch(ConfigurationNotFoundException e){
+			throw new ConfigurationNotFoundException(input.getAccountGivenName(), input.getConfigurationName());
 		}
 
+		//get configuration deployment parameters
 		Map<String, String> deploymentParameterKV = new HashMap<String, String>();
 		if(configuration != null) {
 			// check hard usage limit before proceeding any further
@@ -305,11 +342,14 @@ public class DeploymentRestController {
 				throw new UsageLimitsException(configuration.getName(), configuration.getAccount().getEmail(), configuration.getHardUsageLimit());
 			}
 			String configurationDeploymentParametersName = this.configDeploymentParamsCopyService.findByConfigurationDeploymentParametersReference(configuration.getConfigDeployParamsReference()).getName();
-			ConfigDeploymentParamsCopy configDeploymentParamsCopy = this.configDeploymentParamsCopyService.findByName(configurationDeploymentParametersName);
-			configDeploymentParamsCopy.getConfigDeploymentParamCopy().forEach( parameter ->{
-				deploymentParameterKV.put(parameter.getKey(), parameter.getValue());
+			try{
+				ConfigDeploymentParamsCopy configDeploymentParamsCopy = this.configDeploymentParamsCopyService.findByName(configurationDeploymentParametersName);
+				configDeploymentParamsCopy.getConfigDeploymentParamCopy().forEach( parameter ->{
+					deploymentParameterKV.put(parameter.getKey(), parameter.getValue());
+				});
+			}catch(ConfigDeploymentParamsCopyNotFoundException e){
+				throw new ConfigDeploymentParamsCopyNotFoundException(configurationDeploymentParametersName, account.getGivenName());
 			}
-					);
 		}
 
 		// Find the cloud provider parameters
@@ -349,6 +389,9 @@ public class DeploymentRestController {
 		Date startTime = new Date(System.currentTimeMillis());
 		logger.info("Deployment start time ");
 
+		// Trigger application deployment
+		String theReference = "TSI" + System.currentTimeMillis();
+		
 		//Deploy
 		this.applicationDeployerBash.deploy(
 				account.getEmail(),
@@ -504,21 +547,11 @@ public class DeploymentRestController {
 		userDeployments.stream().forEach( d -> {
 			logger.debug("There are " + d.getGeneratedOutputs().size() + " generated outputs for deployment " + d.getReference());
 		});
-		
+
 		List<DeploymentResource> deploymentResourceList = new ArrayList<>();
-		
+
 		userDeployments.forEach(deployment -> {
 			deploymentResourceList.add(new DeploymentResource(deployment, null));
-			/*if(deployment.getCloudProviderParametersReference() != null){
-				try{
-					CloudProviderParamsCopy cppCopy = this.cloudProviderParametersCopyService.findByCloudProviderParametersReference(deployment.getCloudProviderParametersReference());
-					deploymentResourceList.add(new DeploymentResource(deployment, cppCopy));
-				}catch(CloudProviderParamsCopyNotFoundException e){
-					logger.error("Could not find the cloud provider parameter copy ");
-				}
-			}else{
-				deploymentResourceList.add(new DeploymentResource(deployment, null));
-			}*/
 		});
 
 		return new Resources<>(deploymentResourceList);

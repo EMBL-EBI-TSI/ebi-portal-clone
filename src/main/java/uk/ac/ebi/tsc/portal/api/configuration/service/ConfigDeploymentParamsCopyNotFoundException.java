@@ -19,5 +19,9 @@ public class ConfigDeploymentParamsCopyNotFoundException extends RuntimeExceptio
 	public ConfigDeploymentParamsCopyNotFoundException(String reference) {
         super("Could not find configuration deployment parameters " + reference + " for the user ");
     }
+	
+	public ConfigDeploymentParamsCopyNotFoundException(String name, String username) {
+        super("Could not find configuration deployment parameters \'" + name + "\' for the user " + username + "." );
+    }
 
 }

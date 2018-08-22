@@ -43,7 +43,7 @@ public class DeploymentApplicationService {
 		logger.info("Setting the cloud provider inputs,outputs and volume of the application to deploymentApplication");
 		DeploymentApplication deploymentApplication = new DeploymentApplication(theApplication);
 		deploymentApplication.getCloudProviders().addAll(
-				theApplication.cloudProviders.stream().map(
+				theApplication.getCloudProviders().stream().map(
 						provider -> {
 							DeploymentApplicationCloudProvider newProvider = new DeploymentApplicationCloudProvider(
 									provider.name,

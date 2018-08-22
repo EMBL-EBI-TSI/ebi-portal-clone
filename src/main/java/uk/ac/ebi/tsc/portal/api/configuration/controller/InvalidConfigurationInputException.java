@@ -21,5 +21,9 @@ public class InvalidConfigurationInputException extends RuntimeException {
         		+ " Names may end with or contain '.' ,'_', '-' or spaces inbetween them." 
         	);
     }
+    
+    public InvalidConfigurationInputException(){
+    	super("Configuration and its owner's name should be specified");
+    }
 
 }
