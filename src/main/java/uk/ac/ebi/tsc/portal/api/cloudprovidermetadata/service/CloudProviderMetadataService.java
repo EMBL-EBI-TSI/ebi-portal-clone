@@ -14,11 +14,6 @@ import uk.ac.ebi.tsc.portal.api.cloudprovidermetadata.controller.CloudProviderMe
 import java.util.List;
 
 
-/**
- * @author Jose A. Dianes <jdianes@ebi.ac.uk>
- * @since v0.0.1
- * @author Navis Raj <navis@ebi.ac.uk>
- */
 public class CloudProviderMetadataService {
 
 	private static final Logger logger = LoggerFactory.getLogger(CloudProviderMetadataService.class);
