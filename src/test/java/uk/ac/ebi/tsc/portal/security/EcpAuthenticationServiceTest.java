@@ -7,6 +7,7 @@ import uk.ac.ebi.tsc.aap.client.repo.DomainService;
 import uk.ac.ebi.tsc.aap.client.repo.TokenService;
 import uk.ac.ebi.tsc.portal.api.account.repo.Account;
 import uk.ac.ebi.tsc.portal.api.account.repo.AccountRepository;
+import uk.ac.ebi.tsc.portal.api.account.service.UserNotFoundException;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParamsCopyRepository;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentConfigurationRepository;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentRepository;
@@ -72,26 +73,27 @@ public class EcpAuthenticationServiceTest {
     public void
     returns_auth_for_valid_token() {
         User mockUser = mock(User.class);
-        when(mockUser.getUserName()).thenReturn("pretend-user");
-        when(mockUser.getUsername()).thenReturn("pretend-user");
+        when(mockUser.getUsername()).thenReturn("pretend-username");
+        when(mockUser.getFullName()).thenReturn("pretend-user-given-name");
 
         Authentication mockAuth = mock(Authentication.class);
-        when(mockAuth.getName()).thenReturn("pretend-user");
+        when(mockAuth.getName()).thenReturn("pretend-username");
         when(mockAuth.getDetails()).thenReturn(mockUser);
 
         HttpServletRequest mockRequest = withAuthorizationHeader("Bearer pretend-valid-token");
 
         Account mockAccount = mock(Account.class);
-        when(mockAccount.getUsername()).thenReturn("pretend-user");
-        when(mockAccount.getGivenName()).thenReturn("pretend-user");
+        when(mockAccount.getUsername()).thenReturn("pretend-username");
+        when(mockAccount.getGivenName()).thenReturn("pretend-user-given-name");
         when(mockAccount.getEmail()).thenReturn("user@domain.com");
-        when(mockAccountRepo.findByUsername("pretend-user")).thenReturn(Optional.of(mockAccount));
+        when(mockAccountRepo.findByUsername("pretend-username")).thenReturn(Optional.of(mockAccount));
+        when(mockAccountRepo.findByUsername("pretend-user-given-name")).thenThrow(UserNotFoundException.class);
 
         when(mockAuthService.getAuthentication(mockRequest)).thenReturn(mockAuth);
         when(mockTokenService.getAAPToken("ecp-account-username","ecp-account-password")).thenReturn("ecp-aap-pretend-valid-token");
 
         Authentication auth = subject.getAuthentication(mockRequest);
-        assertEquals(auth.getName(), "pretend-user");
+        assertEquals(auth.getName(), "pretend-username");
 
     }
 
