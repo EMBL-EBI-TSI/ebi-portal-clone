@@ -4,6 +4,7 @@ import org.junit.Test;
 import org.springframework.security.core.Authentication;
 import uk.ac.ebi.tsc.aap.client.model.User;
 import uk.ac.ebi.tsc.aap.client.repo.DomainService;
+import uk.ac.ebi.tsc.aap.client.repo.TokenService;
 import uk.ac.ebi.tsc.portal.api.account.repo.Account;
 import uk.ac.ebi.tsc.portal.api.account.repo.AccountRepository;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParamsCopyRepository;
@@ -15,7 +16,6 @@ import uk.ac.ebi.tsc.portal.api.team.repo.TeamRepository;
 import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployerBash;
 
 import javax.servlet.http.HttpServletRequest;
-
 import java.util.Optional;
 
 import static org.junit.Assert.assertEquals;
@@ -34,6 +34,7 @@ public class EcpAuthenticationServiceTest {
             mock(uk.ac.ebi.tsc.aap.client.security.TokenAuthenticationService.class);
 
     private AccountRepository mockAccountRepo = mock(AccountRepository.class);
+    private TokenService mockTokenService = mock(TokenService.class);
     private DeploymentRepository mockDeploymentRepository = mock(DeploymentRepository.class);
     private DeploymentConfigurationRepository mockDeploymentConfigurationRepository = mock(DeploymentConfigurationRepository.class);
     private DeploymentStatusRepository mockDeploymentStatusRepository = mock(DeploymentStatusRepository.class);
@@ -56,6 +57,7 @@ public class EcpAuthenticationServiceTest {
                 mockTeamRepository,
                 mockApplicationDeployerBash,
                 mockDomainService,
+                mockTokenService,
                 mockEncryptionService,
                 "salt",
                 "password",
@@ -86,6 +88,7 @@ public class EcpAuthenticationServiceTest {
         when(mockAccountRepo.findByUsername("pretend-user")).thenReturn(Optional.of(mockAccount));
 
         when(mockAuthService.getAuthentication(mockRequest)).thenReturn(mockAuth);
+        when(mockTokenService.getAAPToken("ecp-account-username","ecp-account-password")).thenReturn("ecp-aap-pretend-valid-token");
 
         Authentication auth = subject.getAuthentication(mockRequest);
         assertEquals(auth.getName(), "pretend-user");
