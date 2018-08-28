@@ -88,6 +88,7 @@ public class EcpAuthenticationServiceTest {
         when(mockAccountRepo.findByUsername("pretend-user")).thenReturn(Optional.of(mockAccount));
 
         when(mockAuthService.getAuthentication(mockRequest)).thenReturn(mockAuth);
+        when(mockTokenService.getAAPToken("ecp-account-username","ecp-account-password")).thenReturn("ecp-aap-pretend-valid-token");
 
         Authentication auth = subject.getAuthentication(mockRequest);
         assertEquals(auth.getName(), "pretend-user");
