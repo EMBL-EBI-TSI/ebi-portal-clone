@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * @since v0.0.1
  * @author Navis Raj <navis@ebi.ac.uk>
  */
-@ResponseStatus(HttpStatus.NOT_FOUND)
+@ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
 public class InvalidApplicationInputException extends RuntimeException {
 	
 	public InvalidApplicationInputException(String username, String name) {

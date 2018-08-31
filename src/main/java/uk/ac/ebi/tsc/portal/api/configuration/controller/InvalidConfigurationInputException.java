@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * @since v0.0.1
  * @author Navis Raj <navis@ebi.ac.uk>
  */
-@ResponseStatus(HttpStatus.NOT_FOUND)
+@ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
 public class InvalidConfigurationInputException extends RuntimeException {
 
     public InvalidConfigurationInputException(String username, String name) {
@@ -23,7 +23,7 @@ public class InvalidConfigurationInputException extends RuntimeException {
     }
     
     public InvalidConfigurationInputException(){
-    	super("Configuration and its owner's name should be specified");
+    	super("Either configuration or its owner's name should be specified");
     }
 
 }
