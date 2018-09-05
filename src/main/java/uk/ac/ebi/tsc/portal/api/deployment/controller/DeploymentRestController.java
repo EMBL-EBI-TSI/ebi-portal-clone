@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -249,60 +250,25 @@ public class DeploymentRestController {
 			throw new InvalidConfigurationInputException();
 		}
 
-		// Get the requester and owner accounts
+
 		Account account = this.accountService.findByUsername(principal.getName());
-		logger.debug("Found requesting account {}", account.getGivenName());
-		Account applicationOwnerAccount = this.accountService.findByUsername(input.getApplicationAccountUsername());
-		logger.debug("Found application owner account {}", applicationOwnerAccount.getGivenName());
 
 		// Get the application
 		logger.info("Looking for application " + input.getApplicationName() + "for user " + account.getGivenName());
-		Application theApplication;
-		try {
-			theApplication = this.applicationService.findByAccountUsernameAndName(
-					applicationOwnerAccount.getUsername(), input.getApplicationName());
-			if(account.getUsername().equals(input.getApplicationAccountUsername())){
-				logger.debug("The account user is the owner of the application");
-			}else{
-				//check if the application is shared with the account user
-				Set<Team> teams = theApplication.getSharedWithTeams();
-				if(!teams.isEmpty()){
-					teams.forEach(team ->{
-						if(!team.getAccountsBelongingToTeam().contains(account)){
-							throw new ApplicationNotSharedException(account.getGivenName(), theApplication.getName());
-						}
-					});
-				}else{
-					throw new ApplicationNotSharedException(account.getGivenName(), theApplication.getName());
-				}
-
-			}
-		}catch(ApplicationNotFoundException e){
-			throw new ApplicationNotFoundException(applicationOwnerAccount.getGivenName(), input.getApplicationName());
-		}
-
-		//get the configuration 
-		logger.info("Looking for configuration " + input.getConfigurationName() + "for user " + account.getGivenName());
+		Application application;
 		Configuration configuration;
-		try{
-			configuration = this.configurationService.findByNameAndAccountUsername(input.getConfigurationName(), input.getConfigurationAccountUsername());
-			if(account.getUsername().equals(input.getConfigurationAccountUsername())){
-				logger.debug("The account user is the owner of the configuration");
-			}else{
-				//check if the  configuration is shared with the account user
-				Set<Team> teams = configuration.getSharedWithTeams();
-				if(!teams.isEmpty()){
-					configuration.getSharedWithTeams().forEach(team ->{
-						if(!team.getAccountsBelongingToTeam().contains(account)){
-							throw new ConfigurationNotSharedException(account.getGivenName(), configuration.getName());
-						}
-					});
-				}else{
-					throw new ConfigurationNotSharedException(account.getGivenName(), configuration.getName());
-				}
+		if(input.getDomainReference() == null){
+			try{
+				application = getOwnedApplication(principal, input.getApplicationName());
+				configuration = getOwnedConfiguration(principal, input.getConfigurationName());
+			}catch(ApplicationNotFoundException e){
+				throw new ApplicationNotFoundException(account.getGivenName(), input.getApplicationName());
+			}catch(ConfigurationNotFoundException e){
+				throw new ConfigurationNotFoundException(account.getGivenName(), input.getConfigurationName());
 			}
-		}catch(ConfigurationNotFoundException e){
-			throw new ConfigurationNotFoundException(input.getAccountGivenName(), input.getConfigurationName());
+		}else{
+			application = getSharedApplication(account, input.getApplicationAccountUsername(), input.getApplicationName(), input.getDomainReference());
+			configuration = getSharedConfiguration(account, input.getConfigurationAccountUsername(), input.getConfigurationName(), input.getDomainReference());
 		}
 
 		// Find the cloud provider parameters
@@ -398,9 +364,9 @@ public class DeploymentRestController {
 		//Deploy
 		this.applicationDeployerBash.deploy(
 				account.getEmail(),
-				theApplication,
+				application,
 				theReference,
-				getCloudProviderPathFromApplication(theApplication, selectedCloudProviderParameters.getCloudProvider()),
+				getCloudProviderPathFromApplication(application, selectedCloudProviderParameters.getCloudProvider()),
 				input.getAssignedInputs()!=null ? 
 						input.getAssignedInputs().stream().collect(Collectors.toMap(s -> s.getInputName(), s-> s.getAssignedValue()))
 						: null,
@@ -416,7 +382,7 @@ public class DeploymentRestController {
 
 		//create a copy of the application as deployment application
 		logger.info("Creating deploymentApplication, from the application");
-		DeploymentApplication deploymentApplication = this.deploymentApplicationService.createDeploymentApplication(theApplication);
+		DeploymentApplication deploymentApplication = this.deploymentApplicationService.createDeploymentApplication(application);
 		this.deploymentApplicationService.save(deploymentApplication);
 
 		// Create and persist deployment object (part of this, like the IP and Id
@@ -426,7 +392,8 @@ public class DeploymentRestController {
 				account,
 				deploymentApplication,
 				selectedCloudProviderParameters.getReference(),
-				input.getUserSshKey()
+				input.getUserSshKey(),
+				input.getDomainReference()
 				);
 
 		// set input assignments
@@ -507,6 +474,41 @@ public class DeploymentRestController {
 		httpHeaders.setLocation(URI.create(forOneDeployment.getHref()));
 
 		return new ResponseEntity<>(deploymentResource, httpHeaders, HttpStatus.CREATED);
+	}
+
+	private Application getSharedApplication(
+			Account account, 
+			String applicationAccountUsername,
+			String applicationName, 
+			String domainReference) {
+		Application application = this.applicationService.findByAccountUsernameAndName(applicationAccountUsername, applicationName);
+		Team team = teamService.findByDomainReference(domainReference);
+		if(!team.getApplicationsBelongingToTeam().contains(application)){
+			throw new ApplicationNotSharedException(account.getGivenName(), application.getName());
+		}
+		return application;
+	}
+
+	private Application getOwnedApplication(Principal principal, String applicationName){
+		return applicationService.findByAccountUsernameAndName(principal.getName(), applicationName);
+	}
+
+	private Configuration getOwnedConfiguration(Principal principal, String configurationName) {
+		return configurationService.findByNameAndAccountUsername(configurationName, principal.getName());
+	}
+
+	private Configuration getSharedConfiguration(
+			Account account, 
+			String configurationAccountUsername,
+			String configurationName, 
+			String domainReference) {
+		
+		Configuration configuration = this.configurationService.findByNameAndAccountUsername(configurationName, configurationAccountUsername);
+		Team team = teamService.findByDomainReference(domainReference);
+		if(!team.getApplicationsBelongingToTeam().contains(configuration)){
+			throw new ConfigurationNotSharedException(account.getGivenName(), configuration.getName());
+		}
+		return configuration;
 	}
 
 	private String getCloudProviderPathFromApplication(Application application, String cloudProvider) {

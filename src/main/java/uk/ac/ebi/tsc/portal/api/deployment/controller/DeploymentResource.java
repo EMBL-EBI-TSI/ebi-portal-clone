@@ -41,6 +41,7 @@ public class DeploymentResource extends ResourceSupport {
     public Collection<DeploymentAssignedParameterResource> assignedParameters;
     public Collection<DeploymentGeneratedOutputResource> generatedOutputs;
     public String userSshKey;
+    public String domainReference;
     
     public DeploymentResource() {
     }
@@ -80,6 +81,7 @@ public class DeploymentResource extends ResourceSupport {
         		: null;
         this.configurationAccountUsername = deployment.getDeploymentConfiguration() != null ? deployment.getDeploymentConfiguration().getOwnerAccountUsername()
                 : null;
+        this.domainReference = deployment.getDomainReference();
         this.add(
             linkTo(AccountRestController.class)
                 .slash(deployment.getAccount().getUsername())
@@ -210,5 +212,13 @@ public class DeploymentResource extends ResourceSupport {
 
 	public void setUserSshKey(String userSshKey) {
 		this.userSshKey = userSshKey;
+	}
+
+	public String getDomainReference() {
+		return domainReference;
+	}
+
+	public void setDomainReference(String domainReference) {
+		this.domainReference = domainReference;
 	}
 }
