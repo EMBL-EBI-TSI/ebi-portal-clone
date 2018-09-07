@@ -266,16 +266,10 @@ public class DeploymentRestController {
 			}else{
 				//check if the application is shared with the account user
 				Set<Team> teams = theApplication.getSharedWithTeams();
-				if(!teams.isEmpty()){
-					teams.forEach(team ->{
-						if(!team.getAccountsBelongingToTeam().contains(account)){
-							throw new ApplicationNotSharedException(account.getGivenName(), theApplication.getName());
-						}
-					});
-				}else{
+				if( ! (teams.stream().anyMatch(t -> t.getAccountsBelongingToTeam().stream().anyMatch(a -> a.equals(account)))) ){
 					throw new ApplicationNotSharedException(account.getGivenName(), theApplication.getName());
 				}
-
+				logger.debug("Application " + theApplication.getName() + " has been shared with " + account.getGivenName());
 			}
 		}catch(ApplicationNotFoundException e){
 			throw new ApplicationNotFoundException(applicationOwnerAccount.getGivenName(), input.getApplicationName());
@@ -291,15 +285,10 @@ public class DeploymentRestController {
 			}else{
 				//check if the  configuration is shared with the account user
 				Set<Team> teams = configuration.getSharedWithTeams();
-				if(!teams.isEmpty()){
-					configuration.getSharedWithTeams().forEach(team ->{
-						if(!team.getAccountsBelongingToTeam().contains(account)){
-							throw new ConfigurationNotSharedException(account.getGivenName(), configuration.getName());
-						}
-					});
-				}else{
+				if( ! (teams.stream().anyMatch(t -> t.getAccountsBelongingToTeam().stream().anyMatch(a -> a.equals(account)))) ){
 					throw new ConfigurationNotSharedException(account.getGivenName(), configuration.getName());
 				}
+				logger.debug("Configuration " + configuration.getName() + " has been shared with " + account.getGivenName());
 			}
 		}catch(ConfigurationNotFoundException e){
 			throw new ConfigurationNotFoundException(input.getAccountGivenName(), input.getConfigurationName());
@@ -308,7 +297,7 @@ public class DeploymentRestController {
 		// Find the cloud provider parameters
 		CloudProviderParameters selectedCloudProviderParameters;
 		if(configuration != null) {
-			Account credentialOwnerAccount = this.accountService.findByUsername(input.configurationAccountUsername);
+			Account credentialOwnerAccount = this.accountService.findByUsername(input.getConfigurationAccountUsername());
 			try{
 				//both configuration and cloud owner are same
 				logger.info("Looking for CONFIGURATION cloud provider params '{}' by username '{}'", configuration.cloudProviderParametersName, credentialOwnerAccount.getUsername());
@@ -320,15 +309,10 @@ public class DeploymentRestController {
 				selectedCloudProviderParameters = this.cloudProviderParametersService.findByReference(
 						configuration.getCloudProviderParametersReference());
 				Set<Team> teams = selectedCloudProviderParameters.getSharedWithTeams();
-				if(teams.isEmpty()){
-					throw new ConfigurationNotSharedException(account.getGivenName(), configuration.getName());
-				}else{
-					teams.forEach(team -> {
-						if(!team.getAccountsBelongingToTeam().contains(account)){
-							throw new ConfigurationNotSharedException(account.getGivenName(), configuration.getName());
-						}
-					});
+				if( ! (teams.stream().anyMatch(t -> t.getAccountsBelongingToTeam().stream().anyMatch(a -> a.equals(account)))) ){
+					throw new CloudProviderParametersNotSharedException(account.getGivenName(), selectedCloudProviderParameters.getName());
 				}
+				logger.debug("Cloud provider parameters" + selectedCloudProviderParameters.getName() + " has been shared with " + account.getGivenName());
 			}
 		} else { // TODO: At some point we shouldn't allow to pass specific cloud provider parameters and use just those in a configuration
 			CloudProviderParameters cpp = this.cloudProviderParametersService.findByReference(input.getCloudProviderParametersCopy().getCloudProviderParametersReference());
