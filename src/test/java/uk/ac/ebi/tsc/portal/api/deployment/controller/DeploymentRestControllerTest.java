@@ -80,6 +80,7 @@ import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentConfigurationServic
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentNotFoundException;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
 import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
+import uk.ac.ebi.tsc.portal.api.team.repo.Team;
 import uk.ac.ebi.tsc.portal.api.team.repo.TeamRepository;
 import uk.ac.ebi.tsc.portal.api.team.service.TeamService;
 import uk.ac.ebi.tsc.portal.api.volumeinstance.repo.VolumeInstanceRepository;
@@ -101,8 +102,8 @@ public class DeploymentRestControllerTest {
 	private static final String A_CLOUD_PROVIDER_PARAMS_NAME = "OS TEST";
 	public final String A_USER_NAME = "A User Name";
 	public final String A_CLOUD_PROVIDER = "OSTACK";
-    String salt= "salt";
-    String password= "password";
+	String salt= "salt";
+	String password= "password";
 
 
 	@MockBean
@@ -207,7 +208,7 @@ public class DeploymentRestControllerTest {
 
 	@MockBean
 	DeploymentIndexService deploymentIndexService;
-	
+
 	@MockBean
 	EncryptionService encryptionService;
 
@@ -397,30 +398,56 @@ public class DeploymentRestControllerTest {
 			BadPaddingException, InvalidAlgorithmParameterException, InvalidKeySpecException, NoSuchProviderException,
 			IOException, ApplicationDeployerException {
 
-		String username = "username";
+		String sharedWithUsername = "sharedWithUsername";
 		Principal principal = mock(Principal.class);
-		given(principal.getName()).willReturn(username);
+		given(principal.getName()).willReturn(sharedWithUsername);
 
-		DeploymentResource input = mock(DeploymentResource.class);
-		input.configurationAccountUsername = username;
-		String sshkey = "sshkey";
-		given(input.getUserSshKey()).willReturn(sshkey);
 
-		//get account
+		//get account of the user with whom application and configuration are shared
 		Account account = mock(Account.class);
 		String accountReference = "accountReference";
-		given(accountRepository.findByUsername(username)).willReturn(Optional.of(account));
-		given(accountService.findByUsername(username)).willReturn(account);
-		given(account.getGivenName()).willReturn(username);
-		given(account.getUsername()).willReturn(username);
+		given(accountRepository.findByUsername(sharedWithUsername)).willReturn(Optional.of(account));
+		given(accountService.findByUsername(sharedWithUsername)).willReturn(account);
+		given(account.getGivenName()).willReturn(sharedWithUsername);
+		given(account.getUsername()).willReturn(sharedWithUsername);
 		given(account.getFirstJoinedDate()).willReturn(new Date(0, 0, 0));
 		given(account.getReference()).willReturn(accountReference);
 
+		//get account of the user who owns application and configuration
+		Account owner =  mock(Account.class);
+		String username = "username";
+		given(owner.getUsername()).willReturn(username);
+		given(accountRepository.findByUsername(username)).willReturn(Optional.of(owner));
+		given(accountService.findByUsername(username)).willReturn(owner);
+		given(owner.getGivenName()).willReturn(username);
+		given(owner.getUsername()).willReturn(username);
+		given(owner.getFirstJoinedDate()).willReturn(new Date(0, 0, 0));
+		given(owner.getReference()).willReturn(accountReference);
+
+
+		DeploymentResource input = mock(DeploymentResource.class);
+		given(input.getConfigurationAccountUsername()).willReturn(username);
+		given(input.getApplicationAccountUsername()).willReturn(username);
+		String sshkey = "sshkey";
+		given(input.getUserSshKey()).willReturn(sshkey);
+
+		//set up teams, sharedwith user is a member of only one of these teams
+		Team teamOne = mock(Team.class);
+		Set<Account> teamOneAccounts = new HashSet<>();
+		teamOneAccounts.add(account);
+		given(teamOne.getAccountsBelongingToTeam()).willReturn(teamOneAccounts);
+		Team teamTwo = mock(Team.class);
+		given(teamTwo.getAccountsBelongingToTeam()).willReturn(new HashSet<>());
+		Set<Team> sharedWithTeams = new HashSet<>();
+		sharedWithTeams.add(teamOne);
+		sharedWithTeams.add(teamTwo);
+		
 		//application
 		given(input.getApplicationAccountUsername()).willReturn(username);
 		String applicationName = "applicationName";
 		given(input.getApplicationName()).willReturn(applicationName);
 		Application application = mock(Application.class);
+		when(application.getSharedWithTeams()).thenReturn(sharedWithTeams);
 		given(application.getName()).willReturn(applicationName);
 		given(applicationRepository.findByAccountUsernameAndName(username,applicationName)).willReturn(Optional.of(application));
 		given(applicationService.findByAccountUsernameAndName(username,applicationName)).willReturn(application);
@@ -428,6 +455,7 @@ public class DeploymentRestControllerTest {
 		//configuration
 		String configurationName = "config";
 		Configuration config = mock(Configuration.class);
+		when(config.getSharedWithTeams()).thenReturn(sharedWithTeams);
 		when(input.getConfigurationAccountUsername()).thenReturn(username);
 		when(input.getConfigurationName()).thenReturn(configurationName);
 		when(configurationService.findByNameAndAccountUsername(input.getConfigurationName(), input.getConfigurationAccountUsername()))
@@ -534,7 +562,7 @@ public class DeploymentRestControllerTest {
 		given(accountService.findByUsername(username)).willReturn(account);
 		given(account.getGivenName()).willReturn(username);
 		given(account.getUsername()).willReturn(username);
-		
+
 		//application
 		String applicationName = "applicationName";
 		given(input.getApplicationName()).willReturn(applicationName);
@@ -543,11 +571,11 @@ public class DeploymentRestControllerTest {
 		given(application.getAccount()).willReturn(account);
 		given(applicationRepository.findByAccountUsernameAndName(username,applicationName)).willReturn(Optional.of(application));
 		given(applicationService.findByAccountUsernameAndName(username,applicationName)).willCallRealMethod();
-		
+
 		ResponseEntity<?> addedDeployment = subject.addDeployment(principal, input);
 	}
-	
-	
+
+
 	@Test(expected = InvalidConfigurationInputException.class)
 	public void configuration_owner_name_not_specified() throws InvalidKeyException, NoSuchPaddingException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, InvalidKeySpecException, NoSuchProviderException, IOException, ApplicationDeployerException{
 
@@ -566,7 +594,7 @@ public class DeploymentRestControllerTest {
 		given(accountService.findByUsername(username)).willReturn(account);
 		given(account.getGivenName()).willReturn(username);
 		given(account.getUsername()).willReturn(username);
-		
+
 		//application
 		String applicationName = "applicationName";
 		given(input.getApplicationName()).willReturn(applicationName);
@@ -575,13 +603,13 @@ public class DeploymentRestControllerTest {
 		given(application.getAccount()).willReturn(account);
 		given(applicationRepository.findByAccountUsernameAndName(username,applicationName)).willReturn(Optional.of(application));
 		given(applicationService.findByAccountUsernameAndName(username,applicationName)).willCallRealMethod();
-		
+
 		ResponseEntity<?> addedDeployment = subject.addDeployment(principal, input);
 	}
 
 	@Test(expected = InvalidApplicationInputException.class)
 	public void invalid_application_input_no_app_name() throws InvalidKeyException, NoSuchPaddingException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, InvalidKeySpecException, NoSuchProviderException, IOException, ApplicationDeployerException{
-		
+
 		String username = "username";
 		Principal principal = mock(Principal.class);
 		given(principal.getName()).willReturn(username);
@@ -591,10 +619,10 @@ public class DeploymentRestControllerTest {
 
 		ResponseEntity<?> addedDeployment = subject.addDeployment(principal, input);
 	}
-	
+
 	@Test(expected = InvalidApplicationInputException.class)
 	public void invalid_application_input_no_app_owner_acc_username() throws InvalidKeyException, NoSuchPaddingException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, InvalidKeySpecException, NoSuchProviderException, IOException, ApplicationDeployerException{
-		
+
 		String username = "username";
 		Principal principal = mock(Principal.class);
 		given(principal.getName()).willReturn(username);
@@ -604,10 +632,10 @@ public class DeploymentRestControllerTest {
 
 		ResponseEntity<?> addedDeployment = subject.addDeployment(principal, input);
 	}
-	
+
 	@Test(expected=ApplicationNotFoundException.class)
 	public void app_not_found_exception() throws InvalidKeyException, NoSuchPaddingException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, InvalidKeySpecException, NoSuchProviderException, IOException, ApplicationDeployerException{
-		
+
 		String username = "username";
 		Principal principal = mock(Principal.class);
 		given(principal.getName()).willReturn(username);
@@ -623,7 +651,7 @@ public class DeploymentRestControllerTest {
 		given(accountService.findByUsername(username)).willReturn(account);
 		given(account.getGivenName()).willReturn(username);
 		given(account.getUsername()).willReturn(username);
-		
+
 		//application
 		String applicationName = "applicationName";
 		given(input.getApplicationName()).willReturn(applicationName);
@@ -632,9 +660,9 @@ public class DeploymentRestControllerTest {
 		given(application.getAccount()).willReturn(account);
 		given(applicationRepository.findByAccountUsernameAndName(username,applicationName)).willThrow(ApplicationNotFoundException.class);
 		given(applicationService.findByAccountUsernameAndName(username,applicationName)).willCallRealMethod();
-		
+
 		ResponseEntity<?> addedDeployment = subject.addDeployment(principal, input);
-		
+
 	}
 
 	private Deployment deployment(String reference) {
