@@ -198,7 +198,7 @@ public class EcpAuthenticationService {
 
         // Add to all the associated teams
         List<DefaultTeamMap> defaultTeamMaps = this.defaultTeamsMap.get(emailDomain);
-        defaultTeamMaps.forEach(defaultTeamMap -> {
+        if (defaultTeamMaps!=null) defaultTeamMaps.forEach(defaultTeamMap -> {
             // Get ECP AAP account token
             String ecpAapToken = this.tokenService.getAAPToken(this.ecpAapUsername, this.ecpAapPassword);
             try {
