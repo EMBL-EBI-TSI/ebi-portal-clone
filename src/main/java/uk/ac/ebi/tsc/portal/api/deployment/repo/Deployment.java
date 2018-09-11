@@ -81,11 +81,13 @@ public class Deployment{
 
     private String userSshKey;
     
+    private String domainReference;
+    
     Deployment() { 
     }
 
     public Deployment(String reference, Account account, DeploymentApplication deploymentApplication,
-    		String cloudProviderParametersReference, String userSshKey) {
+    		String cloudProviderParametersReference, String userSshKey, String domainReference) {
         this.reference = reference;
         this.account = account;
         this.deploymentApplication = deploymentApplication;
@@ -96,6 +98,7 @@ public class Deployment{
         this.generatedOutputs = new LinkedList<>();
         this.cloudProviderParametersReference = cloudProviderParametersReference;
         this.userSshKey = userSshKey;
+        this.domainReference = domainReference;
     }
 
     public Long getId() {
@@ -250,4 +253,13 @@ public class Deployment{
 	public void setUserSshKey(String userSshKey) {
 		this.userSshKey = userSshKey;
 	}
+
+	public String getDomainReference() {
+		return domainReference;
+	}
+
+	public void setDomainReference(String domainReference) {
+		this.domainReference = domainReference;
+	}
+	
 }

@@ -1,8 +1,19 @@
 package uk.ac.ebi.tsc.portal.api.configuration.service;
 
+import java.io.IOException;
+import java.security.Principal;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+
 import uk.ac.ebi.tsc.aap.client.model.Domain;
 import uk.ac.ebi.tsc.aap.client.model.User;
 import uk.ac.ebi.tsc.aap.client.repo.DomainService;
@@ -16,7 +27,12 @@ import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderPar
 import uk.ac.ebi.tsc.portal.api.configuration.controller.ConfigurationDeploymentParametersResource;
 import uk.ac.ebi.tsc.portal.api.configuration.controller.ConfigurationResource;
 import uk.ac.ebi.tsc.portal.api.configuration.controller.InvalidConfigurationInputException;
-import uk.ac.ebi.tsc.portal.api.configuration.repo.*;
+import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigDeploymentParamCopy;
+import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigDeploymentParamsCopy;
+import uk.ac.ebi.tsc.portal.api.configuration.repo.Configuration;
+import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationDeploymentParameter;
+import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationDeploymentParameters;
+import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationRepository;
 import uk.ac.ebi.tsc.portal.api.deployment.controller.DeploymentRestController;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.Deployment;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentStatusEnum;
@@ -25,11 +41,6 @@ import uk.ac.ebi.tsc.portal.api.team.repo.Team;
 import uk.ac.ebi.tsc.portal.api.utils.SendMail;
 import uk.ac.ebi.tsc.portal.usage.deployment.model.DeploymentDocument;
 import uk.ac.ebi.tsc.portal.usage.deployment.service.DeploymentIndexService;
-
-import java.io.IOException;
-import java.security.Principal;
-import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * @author Jose A. Dianes <jdianes@ebi.ac.uk>
@@ -684,5 +695,13 @@ public class ConfigurationService {
 			}
 			return totalConsumption;
 		}).sum();
+	}
+	
+	public boolean isConfigurationSharedWithAccount(Team team, Account account, Configuration configuration){
+		if( (configuration.getSharedWithTeams().contains(team)) && (team.getAccountsBelongingToTeam().contains(account)) ){
+			return true;
+		}else{
+			return false;
+		}
 	}
 }

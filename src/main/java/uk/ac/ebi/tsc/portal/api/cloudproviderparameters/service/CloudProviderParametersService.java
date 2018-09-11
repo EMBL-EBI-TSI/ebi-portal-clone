@@ -36,6 +36,7 @@ import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParame
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParametersRepository;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParamsCopy;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParamsCopyField;
+import uk.ac.ebi.tsc.portal.api.configuration.repo.Configuration;
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationService;
 import uk.ac.ebi.tsc.portal.api.deployment.controller.DeploymentRestController;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentStatusEnum;
@@ -385,6 +386,14 @@ public class CloudProviderParametersService {
 
 	public String toHex(String arg) {
 		return String.format("%040x", new BigInteger(1, arg.getBytes()));
+	}
+	
+	public boolean isCloudProviderParametersSharedWithAccount(Team team, Account account, CloudProviderParameters cloudParameters){
+		if( (cloudParameters.getSharedWithTeams().contains(team)) && (team.getAccountsBelongingToTeam().contains(account)) ){
+			return true;
+		}else{
+			return false;
+		}
 	}
 
 }

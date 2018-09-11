@@ -255,6 +255,9 @@ public class DeploymentRestController {
 		Account applicationOwnerAccount = this.accountService.findByUsername(input.getApplicationAccountUsername());
 		logger.debug("Found application owner account {}", applicationOwnerAccount.getGivenName());
 
+		//get the team
+		Team team = teamService.findByDomainReference(input.getDomainReference());
+		
 		// Get the application
 		logger.info("Looking for application " + input.getApplicationName() + "for user " + account.getGivenName());
 		Application theApplication;
@@ -265,8 +268,7 @@ public class DeploymentRestController {
 				logger.debug("The account user is the owner of the application");
 			}else{
 				//check if the application is shared with the account user
-				Set<Team> teams = theApplication.getSharedWithTeams();
-				if( ! (teams.stream().anyMatch(t -> t.getAccountsBelongingToTeam().stream().anyMatch(a -> a.equals(account)))) ){
+				if(!applicationService.isApplicationSharedWithAccount(team, account, theApplication)){
 					throw new ApplicationNotSharedException(account.getGivenName(), theApplication.getName());
 				}
 				logger.debug("Application " + theApplication.getName() + " has been shared with " + account.getGivenName());
@@ -284,8 +286,7 @@ public class DeploymentRestController {
 				logger.debug("The account user is the owner of the configuration");
 			}else{
 				//check if the  configuration is shared with the account user
-				Set<Team> teams = configuration.getSharedWithTeams();
-				if( ! (teams.stream().anyMatch(t -> t.getAccountsBelongingToTeam().stream().anyMatch(a -> a.equals(account)))) ){
+				if(!configurationService.isConfigurationSharedWithAccount(team, account, configuration)){
 					throw new ConfigurationNotSharedException(account.getGivenName(), configuration.getName());
 				}
 				logger.debug("Configuration " + configuration.getName() + " has been shared with " + account.getGivenName());
@@ -308,8 +309,7 @@ public class DeploymentRestController {
 				logger.info("Looking for CONFIGURATION cloud provider params(shared) '{}' by username '{}'", configuration.cloudProviderParametersName, credentialOwnerAccount.getUsername());
 				selectedCloudProviderParameters = this.cloudProviderParametersService.findByReference(
 						configuration.getCloudProviderParametersReference());
-				Set<Team> teams = selectedCloudProviderParameters.getSharedWithTeams();
-				if( ! (teams.stream().anyMatch(t -> t.getAccountsBelongingToTeam().stream().anyMatch(a -> a.equals(account)))) ){
+				if(!cloudProviderParametersService.isCloudProviderParametersSharedWithAccount(team, account, selectedCloudProviderParameters)){
 					throw new CloudProviderParametersNotSharedException(account.getGivenName(), selectedCloudProviderParameters.getName());
 				}
 				logger.debug("Cloud provider parameters" + selectedCloudProviderParameters.getName() + " has been shared with " + account.getGivenName());
@@ -410,7 +410,8 @@ public class DeploymentRestController {
 				account,
 				deploymentApplication,
 				selectedCloudProviderParameters.getReference(),
-				input.getUserSshKey()
+				input.getUserSshKey(),
+				input.getDomainReference()
 				);
 
 		// set input assignments

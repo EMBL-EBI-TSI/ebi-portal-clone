@@ -73,4 +73,8 @@ public class DeploymentService {
     public Collection<Deployment> findByConfigurationReference(String reference) {
         return this.deploymentRepository.findByDeploymentConfigurationConfigurationReference(reference);
     }
+    
+    public Collection<Deployment> findByDomainReference(String domainReference) {
+        return this.deploymentRepository.findByDomainReference(domainReference);
+    }
 }
