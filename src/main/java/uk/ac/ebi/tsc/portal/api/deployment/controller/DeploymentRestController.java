@@ -254,47 +254,66 @@ public class DeploymentRestController {
 		logger.debug("Found requesting account {}", account.getGivenName());
 		Account applicationOwnerAccount = this.accountService.findByUsername(input.getApplicationAccountUsername());
 		logger.debug("Found application owner account {}", applicationOwnerAccount.getGivenName());
+		Account configurationOwnerAccount = this.accountService.findByUsername(input.getConfigurationAccountUsername());
+		logger.debug("Found configuration owner account {}", configurationOwnerAccount.getGivenName());
 
 		//get the team
-		Team team = teamService.findByDomainReference(input.getDomainReference());
-		
+		Team team = null;
+		if(input.getDomainReference() != null){
+			team = teamService.findByDomainReference(input.getDomainReference());
+		}
+
 		// Get the application
-		logger.info("Looking for application " + input.getApplicationName() + "for user " + account.getGivenName());
+		logger.info("Looking for application " + input.getApplicationName() + " for user " + account.getGivenName());
 		Application theApplication;
-		try {
-			theApplication = this.applicationService.findByAccountUsernameAndName(
-					applicationOwnerAccount.getUsername(), input.getApplicationName());
-			if(account.getUsername().equals(input.getApplicationAccountUsername())){
+		//if it is the account owner himself
+		if(input.getDomainReference() == null){
+			try{
+				theApplication = this.applicationService.findByAccountUsernameAndName(
+						account.getUsername(), input.getApplicationName());
 				logger.debug("The account user is the owner of the application");
-			}else{
-				//check if the application is shared with the account user
+			}catch(ApplicationNotFoundException e){
+				throw new ApplicationNotFoundException(account.getGivenName(), input.getApplicationName());
+			}
+		}else{
+			try{
+				theApplication = this.applicationService.findByAccountUsernameAndName(
+						applicationOwnerAccount.getUsername(), input.getApplicationName());
 				if(!applicationService.isApplicationSharedWithAccount(team, account, theApplication)){
 					throw new ApplicationNotSharedException(account.getGivenName(), theApplication.getName());
 				}
 				logger.debug("Application " + theApplication.getName() + " has been shared with " + account.getGivenName());
+			}catch(ApplicationNotFoundException e){
+				throw new ApplicationNotFoundException(applicationOwnerAccount.getGivenName(), input.getApplicationName());
 			}
-		}catch(ApplicationNotFoundException e){
-			throw new ApplicationNotFoundException(applicationOwnerAccount.getGivenName(), input.getApplicationName());
 		}
 
-		//get the configuration 
+
+		// Get the configuration
 		logger.info("Looking for configuration " + input.getConfigurationName() + "for user " + account.getGivenName());
-		Configuration configuration;
-		try{
-			configuration = this.configurationService.findByNameAndAccountUsername(input.getConfigurationName(), input.getConfigurationAccountUsername());
-			if(account.getUsername().equals(input.getConfigurationAccountUsername())){
+		Configuration configuration = null;
+
+		//if it is the account owner himself
+		if(input.getDomainReference() == null){
+			try{
+				configuration = this.configurationService.findByNameAndAccountUsername(
+						input.getConfigurationName(), account.getUsername());
 				logger.debug("The account user is the owner of the configuration");
-			}else{
-				//check if the  configuration is shared with the account user
+			}catch(ConfigurationNotFoundException e){
+				throw new ConfigurationNotFoundException(account.getGivenName(), input.getConfigurationName());
+			}
+		}else{
+			try{
+				configuration = this.configurationService.findByNameAndAccountUsername(
+						input.getConfigurationName(), configurationOwnerAccount.getUsername());
 				if(!configurationService.isConfigurationSharedWithAccount(team, account, configuration)){
 					throw new ConfigurationNotSharedException(account.getGivenName(), configuration.getName());
 				}
 				logger.debug("Configuration " + configuration.getName() + " has been shared with " + account.getGivenName());
+			}catch(ConfigurationNotFoundException e){
+				throw new ConfigurationNotFoundException(configurationOwnerAccount.getGivenName(), input.getConfigurationName());
 			}
-		}catch(ConfigurationNotFoundException e){
-			throw new ConfigurationNotFoundException(input.getAccountGivenName(), input.getConfigurationName());
 		}
-
 		// Find the cloud provider parameters
 		CloudProviderParameters selectedCloudProviderParameters;
 		if(configuration != null) {
@@ -307,12 +326,20 @@ public class DeploymentRestController {
 			}catch(CloudProviderParametersNotFoundException e){
 				//configuration and cloud owner are different
 				logger.info("Looking for CONFIGURATION cloud provider params(shared) '{}' by username '{}'", configuration.cloudProviderParametersName, credentialOwnerAccount.getUsername());
-				selectedCloudProviderParameters = this.cloudProviderParametersService.findByReference(
-						configuration.getCloudProviderParametersReference());
-				if(!cloudProviderParametersService.isCloudProviderParametersSharedWithAccount(team, account, selectedCloudProviderParameters)){
-					throw new CloudProviderParametersNotSharedException(account.getGivenName(), selectedCloudProviderParameters.getName());
+				try{
+					selectedCloudProviderParameters = this.cloudProviderParametersService.findByReference(
+							configuration.getCloudProviderParametersReference());
+					if(input.getDomainReference() != null){
+						if(!cloudProviderParametersService.isCloudProviderParametersSharedWithAccount(team, account, selectedCloudProviderParameters)){
+							throw new CloudProviderParametersNotSharedException(account.getGivenName(), selectedCloudProviderParameters.getName());
+						}
+						logger.debug("Cloud provider parameters" + selectedCloudProviderParameters.getName() + " has been shared with " + account.getGivenName());
+					}else{
+						throw e;
+					}
+				}catch(CloudProviderParametersNotFoundException ex){
+					throw new CloudProviderParametersNotFoundException(credentialOwnerAccount.getUsername(), configuration.cloudProviderParametersName);
 				}
-				logger.debug("Cloud provider parameters" + selectedCloudProviderParameters.getName() + " has been shared with " + account.getGivenName());
 			}
 		} else { // TODO: At some point we shouldn't allow to pass specific cloud provider parameters and use just those in a configuration
 			CloudProviderParameters cpp = this.cloudProviderParametersService.findByReference(input.getCloudProviderParametersCopy().getCloudProviderParametersReference());
@@ -368,7 +395,6 @@ public class DeploymentRestController {
 				throw new ConfigDeploymentParamsCopyNotFoundException(configurationDeploymentParametersName, account.getGivenName());
 			}
 		}
-
 
 		CloudProviderParamsCopy cloudProviderParametersCopy =
 				this.cloudProviderParametersCopyService.findByCloudProviderParametersReference(selectedCloudProviderParameters.getReference());

@@ -247,7 +247,7 @@ public class DeploymentRestControllerTest {
 		ReflectionTestUtils.setField(accountService, "accountRepository", accountRepository);
 		ReflectionTestUtils.setField(applicationService, "applicationRepository", applicationRepository);
 		ReflectionTestUtils.setField(deploymentApplicationService, "deploymentApplicationRepository", deploymentApplicationRepository);
-
+		ReflectionTestUtils.setField(teamService, "teamRepository", teamRepository);
 		Properties props = new Properties();
 		props.put("be.applications.root", "blah");    
 		props.put("be.deployments.root", "bleh");
@@ -407,7 +407,7 @@ public class DeploymentRestControllerTest {
 		Account account = mock(Account.class);
 		String accountReference = "accountReference";
 		given(accountRepository.findByUsername(sharedWithUsername)).willReturn(Optional.of(account));
-		given(accountService.findByUsername(sharedWithUsername)).willReturn(account);
+		given(accountService.findByUsername(sharedWithUsername)).willCallRealMethod();
 		given(account.getGivenName()).willReturn(sharedWithUsername);
 		given(account.getUsername()).willReturn(sharedWithUsername);
 		given(account.getFirstJoinedDate()).willReturn(new Date(0, 0, 0));
@@ -431,16 +431,22 @@ public class DeploymentRestControllerTest {
 		String sshkey = "sshkey";
 		given(input.getUserSshKey()).willReturn(sshkey);
 
+		//team
+		Team team = mock(Team.class);
+		String domainReference = "some ref";
+		given(input.getDomainReference()).willReturn(domainReference);
+		given(teamRepository.findByDomainReference(domainReference)).willReturn(Optional.of(team));
+		given(teamService.findByDomainReference(domainReference)).willCallRealMethod();
+		
 		//set up teams, sharedwith user is a member of only one of these teams
-		Team teamOne = mock(Team.class);
-		Set<Account> teamOneAccounts = new HashSet<>();
-		teamOneAccounts.add(account);
-		given(teamOne.getAccountsBelongingToTeam()).willReturn(teamOneAccounts);
-		Team teamTwo = mock(Team.class);
-		given(teamTwo.getAccountsBelongingToTeam()).willReturn(new HashSet<>());
+		Set<Account> teamAccounts = new HashSet<>();
+		teamAccounts.add(account);
+		teamAccounts.add(owner);
+		given(team.getAccountsBelongingToTeam()).willReturn(teamAccounts);
 		Set<Team> sharedWithTeams = new HashSet<>();
-		sharedWithTeams.add(teamOne);
-		sharedWithTeams.add(teamTwo);
+		Team secondTeam = mock(Team.class);
+		sharedWithTeams.add(team);
+		sharedWithTeams.add(secondTeam);
 		
 		//application
 		given(input.getApplicationAccountUsername()).willReturn(username);
@@ -451,7 +457,8 @@ public class DeploymentRestControllerTest {
 		given(application.getName()).willReturn(applicationName);
 		given(applicationRepository.findByAccountUsernameAndName(username,applicationName)).willReturn(Optional.of(application));
 		given(applicationService.findByAccountUsernameAndName(username,applicationName)).willReturn(application);
-
+		given(applicationService.isApplicationSharedWithAccount(team, account, application)).willCallRealMethod();
+		
 		//configuration
 		String configurationName = "config";
 		Configuration config = mock(Configuration.class);
@@ -464,8 +471,7 @@ public class DeploymentRestControllerTest {
 		.thenReturn(Optional.of(config));
 		when(config.getHardUsageLimit()).thenReturn(1.0);
 		when(configurationService.getTotalConsumption(config, deploymentIndexService)).thenReturn(0.5);
-
-
+		
 		//cdp
 		String cdpReference = "cdpReference";
 		String cdpName = "cdpName";
@@ -480,7 +486,8 @@ public class DeploymentRestControllerTest {
 		cdpCopyList.add(configDeploymentParamsCopy);
 		given(configurationDeploymentParamsCopyRepository.findByName(cdpName)).willReturn(cdpCopyList);
 		given(configurationDeploymentParamsCopyService.findByName(cdpName)).willReturn(configDeploymentParamsCopy);
-
+		given(configurationService.isConfigurationSharedWithAccount(team, account, config)).willCallRealMethod();
+		
 		//assigned cloud provider parameters
 		String cloudProviderParametersName = "cppName";
 		config.cloudProviderParametersName = cloudProviderParametersName;
@@ -497,7 +504,8 @@ public class DeploymentRestControllerTest {
 		given(selectedCloudProviderParameters.getReference()).willReturn(cloudProviderParametersReference);
 		String cloudProvider = "ostack";
 		given(selectedCloudProviderParameters.getCloudProvider()).willReturn(cloudProvider);
-
+		given(cloudProviderParametersService.isCloudProviderParametersSharedWithAccount(team, account, selectedCloudProviderParameters)).willCallRealMethod();
+		
 		//application cloud providers
 		Collection<ApplicationCloudProvider> acpList = new ArrayList<>();
 		ApplicationCloudProvider acp = mock(ApplicationCloudProvider.class);
@@ -658,6 +666,12 @@ public class DeploymentRestControllerTest {
 		Application application = mock(Application.class);
 		given(application.getName()).willReturn(applicationName);
 		given(application.getAccount()).willReturn(account);
+		
+		//team
+		String domainReference = "some ref";
+		given(input.getDomainReference()).willReturn(domainReference);
+		given(teamRepository.findByDomainReference(domainReference)).willReturn(Optional.of(mock(Team.class)));
+		given(teamService.findByDomainReference(domainReference)).willCallRealMethod();
 		given(applicationRepository.findByAccountUsernameAndName(username,applicationName)).willThrow(ApplicationNotFoundException.class);
 		given(applicationService.findByAccountUsernameAndName(username,applicationName)).willCallRealMethod();
 

@@ -120,7 +120,8 @@ public class ApplicationService {
 	}
 	
 	public boolean isApplicationSharedWithAccount(Team team, Account account, Application application){
-		if( (application.getSharedWithTeams().contains(team)) && (team.getAccountsBelongingToTeam().contains(account)) ){
+		if( (team.getAccountsBelongingToTeam().contains(account)) && 
+				(application.getSharedWithTeams().contains(team)) ){
 			return true;
 		}else{
 			return false;
