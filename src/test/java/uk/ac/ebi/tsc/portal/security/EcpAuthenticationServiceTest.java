@@ -17,6 +17,7 @@ import uk.ac.ebi.tsc.portal.api.team.repo.TeamRepository;
 import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployerBash;
 
 import javax.servlet.http.HttpServletRequest;
+import java.io.IOException;
 import java.util.Optional;
 
 import static org.junit.Assert.assertEquals;
@@ -46,7 +47,7 @@ public class EcpAuthenticationServiceTest {
     private EncryptionService mockEncryptionService = mock(EncryptionService.class);
 
 
-    public EcpAuthenticationServiceTest() {
+    public EcpAuthenticationServiceTest() throws IOException {
 
         subject = new EcpAuthenticationService(
                 mockAuthService,
@@ -63,10 +64,9 @@ public class EcpAuthenticationServiceTest {
                 "salt",
                 "password",
                 "aap.ecp.user",
-                "aap.ecp.password"
-
+                "aap.ecp.password",
+                "ecp.default.teams.file"
         );
-
     }
 
     @Test

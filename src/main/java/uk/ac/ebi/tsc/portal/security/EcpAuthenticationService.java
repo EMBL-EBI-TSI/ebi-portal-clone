@@ -1,5 +1,7 @@
 package uk.ac.ebi.tsc.portal.security;
 
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,8 +28,10 @@ import uk.ac.ebi.tsc.portal.api.team.service.TeamService;
 import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployerBash;
 
 import javax.servlet.http.HttpServletRequest;
+import java.io.IOException;
+import java.io.InputStream;
 import java.sql.Date;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * Extracts user authentication details from Token using AAP domains API
@@ -42,6 +46,7 @@ public class EcpAuthenticationService {
     private static final String TOKEN_HEADER_KEY = "Authorization";
     private static final String TOKEN_HEADER_VALUE_PREFIX = "Bearer ";
 
+
     uk.ac.ebi.tsc.aap.client.security.TokenAuthenticationService tokenAuthenticationService;
 
     private final AccountService accountService;
@@ -53,7 +58,7 @@ public class EcpAuthenticationService {
     private final ApplicationDeployerBash applicationDeployerBash;
     private final String ecpAapUsername;
     private final String ecpAapPassword;
-
+    private final Map<String, List<DefaultTeamMap>> defaultTeamsMap;
 
     public EcpAuthenticationService(uk.ac.ebi.tsc.aap.client.security.TokenAuthenticationService tokenAuthenticationService,
                                     AccountRepository accountRepository,
@@ -69,7 +74,8 @@ public class EcpAuthenticationService {
                                     @Value("${ecp.security.salt}") final String salt,
                                     @Value("${ecp.security.password}") final String password,
                                     @Value("${ecp.aap.username}") final String ecpAapUsername,
-                                    @Value("${ecp.aap.password}") final String ecpAapPassword) {
+                                    @Value("${ecp.aap.password}") final String ecpAapPassword,
+                                    @Value("${ecp.default.teams.file}") final String ecpDefaultTeamsFilePath) throws IOException {
         this.tokenAuthenticationService = tokenAuthenticationService;
         this.ecpAapUsername = ecpAapUsername;
         this.ecpAapPassword = ecpAapPassword;
@@ -86,6 +92,24 @@ public class EcpAuthenticationService {
                 teamRepository, accountRepository, domainService, this.deploymentService,
                 this.cloudProviderParamsCopyService, this.deploymentConfigurationService,
                 this.applicationDeployerBash);
+        this.defaultTeamsMap = new HashMap<>();
+        // Read maps from json file
+        ObjectMapper mapper = new ObjectMapper();
+        try {
+            logger.info("Reading mappings file " + ecpDefaultTeamsFilePath);
+            InputStream is = DefaultTeamMap.class.getResourceAsStream(ecpDefaultTeamsFilePath);
+            DefaultTeamMap[] maps = mapper.readValue(is, DefaultTeamMap[].class);
+            Arrays.stream(maps).forEach(defaultTeamMap -> {
+                logger.info("Registering team " + defaultTeamMap.getTeamName() + " mapping for email domain " + defaultTeamMap.getEmailDomain());
+                if (this.defaultTeamsMap.containsKey(defaultTeamMap.getEmailDomain())) {
+                    this.defaultTeamsMap.get(defaultTeamMap.getEmailDomain()).add(defaultTeamMap);
+                } else {
+                    this.defaultTeamsMap.put(defaultTeamMap.getEmailDomain(), Arrays.asList(defaultTeamMap));
+                }
+            });
+        } catch (JsonMappingException jme) {
+            logger.info("Can't find any default team mappings");
+        }
     }
 
     /**
@@ -136,7 +160,7 @@ public class EcpAuthenticationService {
                             user.getUsername(),
                             user.getFullName(),
                             UUID.randomUUID().toString(),
-                            user.getEmail(), // TODO - check with @ameliec
+                            user.getEmail(),
                             new Date(System.currentTimeMillis()),
                             null,
                             null
@@ -163,38 +187,32 @@ public class EcpAuthenticationService {
     }
 
     /**
-     * Adds accounts to EBI/EMBL default teams if they are not already there.
+     * Adds accounts to default teams if they are not already there.
      *
      * @param account The ECP Account which membership needs to be managed
      */
     public void addAccountToDefaultTeamsByEmail(Account account) {
-        if (account.getEmail().endsWith("@ebi.ac.uk")) {
+        // Get email domain
+        String[] emailSplit = account.getEmail().split("@");
+        String emailDomain = emailSplit[emailSplit.length-1];
+
+        // Add to all the associated teams
+        List<DefaultTeamMap> defaultTeamMaps = this.defaultTeamsMap.get(emailDomain);
+        if (defaultTeamMaps!=null) defaultTeamMaps.forEach(defaultTeamMap -> {
             // Get ECP AAP account token
             String ecpAapToken = this.tokenService.getAAPToken(this.ecpAapUsername, this.ecpAapPassword);
             try {
-                // Get EBI team
-                Team emblEbiTeam = this.teamService.findByName("EMBL-EBI");
-                if (!emblEbiTeam.getAccountsBelongingToTeam().stream().anyMatch(anotherAccount -> anotherAccount.getUsername().equals(account.getUsername()))) {
+                // Get associated team
+                Team defaultTeam = this.teamService.findByName(defaultTeamMap.getTeamName());
+                if (!defaultTeam.getAccountsBelongingToTeam().stream().anyMatch(anotherAccount -> anotherAccount.getUsername().equals(account.getUsername()))) {
+                    logger.info("Adding '" + account.getGivenName() + "' to team " + defaultTeam.getName());
                     // Add member to team
-                    teamService.addMemberToTeamByAccountNoNotification(ecpAapToken, "EMBL-EBI", account);
+                    teamService.addMemberToTeamByAccountNoNotification(ecpAapToken, defaultTeam.getName(), account);
                 }
             } catch (TeamNotFoundException tnfe) {
-                logger.info("Team EMBL-EBI not found. Can't add user " + account.getEmail());
+                logger.info("Team " + defaultTeamMap.getTeamName() + " not found. Can't add user " + account.getEmail());
             }
-        } else if (account.getEmail().endsWith("@embl.de")) {
-            // Get ECP AAP account token
-            String ecpAapToken = this.tokenService.getAAPToken(this.ecpAapUsername, this.ecpAapPassword);
-            try {
-                // Get EMBL team
-                Team emblTeam = this.teamService.findByName("EMBL");
-                if (!emblTeam.getAccountsBelongingToTeam().stream().anyMatch(anotherAccount -> anotherAccount.getUsername().equals(account.getUsername()))) {
-                    // Add member to team
-                    teamService.addMemberToTeamByAccountNoNotification(ecpAapToken, "EMBL", account);
-                }
-            } catch (TeamNotFoundException tnfe) {
-                logger.info("Team EMBL not found. Can't add user " + account.getEmail());
-            }
-        }
+        });
     }
 
 }
