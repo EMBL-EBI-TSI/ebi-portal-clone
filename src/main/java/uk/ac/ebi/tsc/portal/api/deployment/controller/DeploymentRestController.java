@@ -290,7 +290,7 @@ public class DeploymentRestController {
 
 
 		// Get the configuration
-		logger.info("Looking for configuration " + input.getConfigurationName() + "for user " + account.getGivenName());
+		logger.info("Looking for configuration " + input.getConfigurationName() + " for user " + account.getGivenName());
 		Configuration configuration = null;
 
 		//if it is the account owner himself

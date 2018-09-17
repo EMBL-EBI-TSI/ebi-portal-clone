@@ -288,6 +288,19 @@ public class ApplicationServiceTest {
 		Application application = testCandidate.getSharedApplicationByApplicationName(accountMock, token, user, appName);
 		assertTrue(application == null);
 	}
+	
+	@Test
+	public void testIsApplicationShared(){
+		Set<Account> accounts = new HashSet<>();
+		accounts.add(accountMock);
+		given(team.getAccountsBelongingToTeam()).willReturn(accounts);
+		getTeamResource(team);
+		Set<Team> teams = new HashSet<>();
+		teams.add(team);
+		given(applicationMock.getSharedWithTeams()).willReturn(teams);
+		boolean isShared = testCandidate.isApplicationSharedWithAccount(team, accountMock, applicationMock);
+		assertTrue(isShared);
+	}
 
 	private void mockApplications(){
 		Collection applications = new LinkedList<>();

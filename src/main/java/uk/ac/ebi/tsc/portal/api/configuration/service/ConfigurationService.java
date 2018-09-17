@@ -698,7 +698,8 @@ public class ConfigurationService {
 	}
 	
 	public boolean isConfigurationSharedWithAccount(Team team, Account account, Configuration configuration){
-		if( (configuration.getSharedWithTeams().contains(team)) && (team.getAccountsBelongingToTeam().contains(account)) ){
+		if( (configuration.getSharedWithTeams().contains(team)) && 
+			(team.getAccountsBelongingToTeam().contains(account)) ){
 			return true;
 		}else{
 			return false;
