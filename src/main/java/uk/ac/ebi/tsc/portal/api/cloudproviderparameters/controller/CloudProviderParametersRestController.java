@@ -83,14 +83,12 @@ public class CloudProviderParametersRestController {
 			ConfigurationRepository configurationRepository,
 			ConfigurationDeploymentParametersRepository cdpRepository,
 			CloudProviderParamsCopyRepository cloudProviderParametersCopyRepository,
-			EncryptionService encryptionService,
-			@Value("${ecp.security.salt}") final String salt, 
-			@Value("${ecp.security.password}") final String password
+			EncryptionService encryptionService
 			) {
 		this.cloudProviderParametersCopyService = new CloudProviderParamsCopyService(cloudProviderParametersCopyRepository,
-				encryptionService, salt, password);
+				encryptionService);
 		this.cloudProviderParametersService = new CloudProviderParametersService(cloudProviderParametersRepository, domainService,
-				cloudProviderParametersCopyService, encryptionService, salt, password);
+				cloudProviderParametersCopyService, encryptionService);
 		this.accountService = new AccountService(accountRepository);
 		deploymentService = new DeploymentService(deploymentRepository, deploymentStatusRepository);
 		this.cdpService = new ConfigurationDeploymentParametersService(cdpRepository, domainService);

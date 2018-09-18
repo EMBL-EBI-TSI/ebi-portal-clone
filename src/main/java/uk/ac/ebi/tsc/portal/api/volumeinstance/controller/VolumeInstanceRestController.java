@@ -92,17 +92,14 @@ public class VolumeInstanceRestController {
                                  VolumeDeployerBash volumeDeployerBash,
                                  DomainService domainService,
                                  CloudProviderParamsCopyRepository cloudProviderParametersCopyRepository,
-                                 EncryptionService encryptionService,
-                     			@Value("${ecp.security.salt}") final String salt, 
-                    			@Value("${ecp.security.password}") final String password) {
+                                 EncryptionService encryptionService) {
         this.volumeInstanceService = new VolumeInstanceService(
                 volumeInstanceRepository, volumeInstanceStatusRepository);
         this.accountService = new AccountService(accountRepository);
         this.volumeSetupService = new VolumeSetupService(volumeSetupRepository);
-        this.cloudProviderParametersCopyService = new CloudProviderParamsCopyService(cloudProviderParametersCopyRepository, encryptionService,
-        		salt, password);
+        this.cloudProviderParametersCopyService = new CloudProviderParamsCopyService(cloudProviderParametersCopyRepository, encryptionService);
         this.cloudProviderParametersService = new CloudProviderParametersService(cloudProviderParametersRepository, domainService,
-        		cloudProviderParametersCopyService, encryptionService, salt, password);
+        		cloudProviderParametersCopyService, encryptionService);
         this.volumeDeployerBash = volumeDeployerBash;
     }
 

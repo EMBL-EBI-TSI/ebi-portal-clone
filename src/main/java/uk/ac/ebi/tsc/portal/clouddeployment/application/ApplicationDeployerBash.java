@@ -91,13 +91,10 @@ public class ApplicationDeployerBash {
 			DomainService domainService,
 			CloudProviderParamsCopyRepository cloudProviderParametersRepository,
 			ConfigDeploymentParamsCopyRepository configDeploymentParamsCopyRepository,
-			EncryptionService encryptionService,
-			@Value("${ecp.security.salt}") final String salt, 
-			@Value("${ecp.security.password}") final String password) {
+			EncryptionService encryptionService) {
 		this.deploymentService = new DeploymentService(deploymentRepository, deploymentStatusRepository);
 		this.applicationService = new ApplicationService(applicationRepository, domainService);
-		this.cloudProviderParametersCopyService = new CloudProviderParamsCopyService(cloudProviderParametersRepository, encryptionService,
-				salt, password);
+		this.cloudProviderParametersCopyService = new CloudProviderParamsCopyService(cloudProviderParametersRepository, encryptionService);
 		this.configDeploymentParamsCopyService = new ConfigDeploymentParamsCopyService(configDeploymentParamsCopyRepository);
 
 	}

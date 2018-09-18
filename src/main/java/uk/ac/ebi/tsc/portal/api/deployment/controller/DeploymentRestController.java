@@ -198,15 +198,14 @@ public class DeploymentRestController {
 			@Value("${ecp.security.salt}") final String salt, 
 			@Value("${ecp.security.password}") final String password
 			) {
-		this.cloudProviderParametersCopyService = new CloudProviderParamsCopyService(cloudProviderParametersCopyRepository, encryptionService
-				,salt, password);
+		this.cloudProviderParametersCopyService = new CloudProviderParamsCopyService(cloudProviderParametersCopyRepository, encryptionService);
 		this.deploymentService = new DeploymentService(deploymentRepository, deploymentStatusRepository);
 		this.accountService = new AccountService(accountRepository);
 		this.applicationService = new ApplicationService(applicationRepository, domainService);
 		this.volumeInstanceService = new VolumeInstanceService(volumeInstanceRepository,
 				volumeInstanceStatusRepository);
 		this.cloudProviderParametersService = new CloudProviderParametersService(cloudProviderParametersRepository, domainService, 
-				cloudProviderParametersCopyService, encryptionService, salt, password);
+				cloudProviderParametersCopyService, encryptionService);
 		this.applicationDeployerBash = applicationDeployerBash;
 		this.deploymentStatusTracker = deploymentStatusTracker;
 		this.deploymentStatusTracker.start(0, UPDATE_TRACKER_PERIOD);

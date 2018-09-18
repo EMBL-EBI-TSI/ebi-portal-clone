@@ -47,18 +47,12 @@ public class CloudProviderParamsCopyService {
 	private final CloudProviderParamsCopyRepository cloudProviderParametersCopyRepository;
 	
 	private final EncryptionService encryptionService;
-
-	private final String salt, password;
 	
 	@Autowired
 	public CloudProviderParamsCopyService(CloudProviderParamsCopyRepository cloudProviderParametersCopyRepository,
-			EncryptionService encryptionService,
-			String salt,
-			String password) {
+			EncryptionService encryptionService) {
 		this.cloudProviderParametersCopyRepository = cloudProviderParametersCopyRepository;
 		this.encryptionService = encryptionService;
-		this.salt = salt;
-		this.password = password;
 	}
 
 	public CloudProviderParamsCopy createCloudProviderParameterCopy(CloudProviderParameters cloudProvider){
@@ -103,7 +97,7 @@ public class CloudProviderParamsCopyService {
 			paramValues.put(field.getKey(), field.getValue());
 		});
 
-		Map<String, String> encyptedValues = encryptionService.encrypt(paramValues, salt, toHex(password));
+		Map<String, String> encyptedValues = encryptionService.encrypt(paramValues);
 		for (CloudProviderParamsCopyField cloudProviderParametersField : cloudProviderParametersCopy.getFields()) {
 			cloudProviderParametersField.setValue(
 					encyptedValues.get(cloudProviderParametersField.getKey()));
@@ -138,7 +132,7 @@ public class CloudProviderParamsCopyService {
 			paramValues.put(field.getKey(), field.getValue());
 		});
 
-		Map<String, String> decryptedValues = encryptionService.decryptOne(paramValues, salt, toHex(password));
+		Map<String, String> decryptedValues = encryptionService.decryptOne(paramValues);
 
 
 		CloudProviderParamsCopy decryptedCloudProviderParametersCopy =

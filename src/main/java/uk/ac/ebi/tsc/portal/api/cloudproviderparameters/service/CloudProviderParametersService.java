@@ -59,21 +59,16 @@ public class CloudProviderParametersService {
 	private final DomainService domainService;
 	private final CloudProviderParamsCopyService cloudProviderParametersCopyService;
 	private final EncryptionService encryptionService;
-	private final String salt, password;
 	
 	@Autowired
 	public CloudProviderParametersService(CloudProviderParametersRepository cloudProviderParametersRepository,
 			DomainService domainService,
 			CloudProviderParamsCopyService cloudProviderParametersCopyService,
-			EncryptionService encryptionService,
-			String salt,
-			String password) {
+			EncryptionService encryptionService) {
 		this.cloudProviderParametersRepository = cloudProviderParametersRepository;
 		this.domainService = domainService;
 		this.cloudProviderParametersCopyService = cloudProviderParametersCopyService;
 		this.encryptionService = encryptionService;
-		this.salt = salt;
-		this.password = password;
 	}
 	
 	public Collection<CloudProviderParameters> findByAccountUsername(String username) throws InvalidAlgorithmParameterException, InvalidKeyException, NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeySpecException, IOException, BadPaddingException, IllegalBlockSizeException {
@@ -122,7 +117,7 @@ public class CloudProviderParametersService {
 			paramValues.put(field.getKey(), field.getValue());
 		});
 	
-		Map<String, String> encyptedValues = encryptionService.encrypt(paramValues, salt, toHex(password));
+		Map<String, String> encyptedValues = encryptionService.encrypt(paramValues);
 		for (CloudProviderParametersField cloudProviderParametersField : cloudProviderParameters.getFields()) {
 			cloudProviderParametersField.setValue(
 					encyptedValues.get(cloudProviderParametersField.getKey()));
@@ -162,7 +157,7 @@ public class CloudProviderParametersService {
 			paramValues.put(field.getKey(), field.getValue());
 		});
 		
-		Map<String, String> decryptedValues = encryptionService.decryptOne(paramValues, salt, toHex(password));
+		Map<String, String> decryptedValues = encryptionService.decryptOne(paramValues);
 		
 		CloudProviderParameters decryptedCloudProviderParameters =
 				new CloudProviderParameters(
@@ -382,10 +377,6 @@ public class CloudProviderParametersService {
 				logger.error("Failed to send messages to concerned persons, regarding destroying deployments");
 			}
 		}
-	}
-
-	public String toHex(String arg) {
-		return String.format("%040x", new BigInteger(1, arg.getBytes()));
 	}
 	
 	public boolean isCloudProviderParametersSharedWithAccount(Team team, Account account, CloudProviderParameters cloudParameters){

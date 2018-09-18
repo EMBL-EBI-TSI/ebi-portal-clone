@@ -67,8 +67,6 @@ public class DeploymentStatusTracker {
 
 	private final EncryptionService encryptionService;
 
-	private final String salt, password;
-
 	@Autowired
 	public DeploymentStatusTracker(DeploymentRepository deploymentRepository,
 			DeploymentStatusRepository deploymentStatusRepository,
@@ -79,17 +77,11 @@ public class DeploymentStatusTracker {
 			ConfigurationDeploymentParametersRepository configurationDeploymentParametersRepository,
 			DeploymentConfigurationRepository deploymentConfigurationRepository,
 			ApplicationDeployerBash applicationDeployerBash,
-			EncryptionService encryptionService,
-			@Value("${ecp.security.salt}") final String salt, 
-			@Value("${ecp.security.password}") final String password) {
-		this.salt = salt;
-		this.password = password;
+			EncryptionService encryptionService) {
 		this.cloudProviderParametersCopyRepository = cloudProviderParametersCopyRepository;
 		this.deploymentService = new DeploymentService(deploymentRepository, deploymentStatusRepository);
-		this.cloudProviderParamsCopyService = new CloudProviderParamsCopyService(cloudProviderParametersCopyRepository, encryptionService,
-				salt, password);
-		this.cloudProviderParametersService = new CloudProviderParametersService(cloudProviderParametersRepository, domainService, cloudProviderParamsCopyService, encryptionService,
-				salt, password);
+		this.cloudProviderParamsCopyService = new CloudProviderParamsCopyService(cloudProviderParametersCopyRepository, encryptionService);
+		this.cloudProviderParametersService = new CloudProviderParametersService(cloudProviderParametersRepository, domainService, cloudProviderParamsCopyService, encryptionService);
 		this.configurationDeploymentParametersService = new ConfigurationDeploymentParametersService(configurationDeploymentParametersRepository, domainService);
 		this.configurationService = new ConfigurationService(
 				configurationRepository,
@@ -116,7 +108,7 @@ public class DeploymentStatusTracker {
 		logger.info("DeploymentIndexService initiated... (2/4)");
 		scheduledThreadPoolExecutor.scheduleAtFixedRate(
 				new DeploymentStatusUpdate(deploymentIndexService, deploymentService, 
-						cloudProviderParametersCopyRepository, encryptionService, salt, password),
+						cloudProviderParametersCopyRepository, encryptionService),
 				initialDelay,
 				periodInSeconds,
 				TimeUnit.SECONDS

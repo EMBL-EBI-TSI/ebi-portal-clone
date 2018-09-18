@@ -71,8 +71,6 @@ public class EcpAuthenticationService {
                                     DomainService domainService,
                                     TokenService tokenService,
                                     EncryptionService encryptionService,
-                                    @Value("${ecp.security.salt}") final String salt,
-                                    @Value("${ecp.security.password}") final String password,
                                     @Value("${ecp.aap.username}") final String ecpAapUsername,
                                     @Value("${ecp.aap.password}") final String ecpAapPassword,
                                     @Value("${ecp.default.teams.file}") final String ecpDefaultTeamsFilePath) throws IOException {
@@ -85,8 +83,7 @@ public class EcpAuthenticationService {
         this.deploymentService = new DeploymentService(deploymentRepository, deploymentStatusRepository);
         this.cloudProviderParamsCopyService = new CloudProviderParamsCopyService(
                 cloudProviderParamsCopyRepository,
-                encryptionService,
-                salt, password);
+                encryptionService);
         this.deploymentConfigurationService = new DeploymentConfigurationService(deploymentConfigurationRepository);
         this.teamService = new TeamService(
                 teamRepository, accountRepository, domainService, this.deploymentService,

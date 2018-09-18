@@ -61,8 +61,6 @@ public class EcpAuthenticationServiceTest {
                 mockDomainService,
                 mockTokenService,
                 mockEncryptionService,
-                "salt",
-                "password",
                 "aap.ecp.user",
                 "aap.ecp.password",
                 "ecp.default.teams.file"

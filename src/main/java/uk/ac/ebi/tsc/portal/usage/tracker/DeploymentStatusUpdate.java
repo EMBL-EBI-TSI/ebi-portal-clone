@@ -36,13 +36,11 @@ public class DeploymentStatusUpdate implements Runnable {
 	public DeploymentStatusUpdate(DeploymentIndexService deploymentIndexService, 
 			DeploymentService deploymentService,
 			CloudProviderParamsCopyRepository cloudProviderParametersCopyRepository,
-			EncryptionService encryptionService,
-			String salt,
-			String password) {
+			EncryptionService encryptionService) {
 		this.deploymentIndexService = deploymentIndexService;
 		this.deploymentService = deploymentService;
 		this.cloudProviderParametersCopyService = new CloudProviderParamsCopyService(cloudProviderParametersCopyRepository, 
-				encryptionService, salt, password);
+				encryptionService);
 	}
 
 	@Override
