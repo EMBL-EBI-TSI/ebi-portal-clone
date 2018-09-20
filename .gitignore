@@ -21,6 +21,11 @@ hs_err_pid*
 .idea/
 *.iml
 
+# Eclipse
+.classpath
+.project 
+.settings/
+
 # deployments
 target/
 db/
