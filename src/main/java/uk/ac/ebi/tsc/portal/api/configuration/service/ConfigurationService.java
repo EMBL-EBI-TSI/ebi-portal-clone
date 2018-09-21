@@ -478,7 +478,7 @@ public class ConfigurationService {
 					if(deployment.deploymentStatus.getStatus().equals(DeploymentStatusEnum.RUNNING)
 							|| deployment.deploymentStatus.getStatus().equals(DeploymentStatusEnum.STARTING)){
 						logger.info("Found deployment using the configuration, stopping it");
-						deploymentRestController.stopDeploymentByReference(principal, deployment.getReference());
+						deploymentRestController.stopByReference(deployment.getReference());
 						toNotify.add(deployment.getAccount().getEmail());
 					}
 				}catch(Exception e){
@@ -574,7 +574,6 @@ public class ConfigurationService {
 	}
 
 	public void stopDeploymentsOnDeletionOfDeploymentParameters(String name, 
-			Principal principal,
 			DeploymentService deploymentService, 
 			DeploymentRestController deploymentRestController,
 			ConfigDeploymentParamsCopy cdpCopy,
@@ -603,7 +602,7 @@ public class ConfigurationService {
 						if(deployment.deploymentStatus.getStatus().equals(DeploymentStatusEnum.RUNNING)
 								|| deployment.deploymentStatus.getStatus().equals(DeploymentStatusEnum.STARTING)){
 							logger.info("Found deployment using the configuration deployment parameter, stopping it");
-							deploymentRestController.stopDeploymentByReference(principal, deployment.getReference());
+							deploymentRestController.stopByReference(deployment.getReference());
 							toNotify.add(deployment.getAccount().getEmail());
 						}
 					}catch(Exception e){

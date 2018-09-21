@@ -346,7 +346,7 @@ public class CloudProviderParametersService {
 					try{
 						if(deployment.deploymentStatus.getStatus().equals(DeploymentStatusEnum.RUNNING)
 								|| deployment.deploymentStatus.getStatus().equals(DeploymentStatusEnum.STARTING)){
-							deploymentRestController.stopDeploymentByReference(principal, deployment.getReference());
+							deploymentRestController.stopByReference(deployment.getReference());
 							toNotify.add(deployment.getAccount().getEmail());
 						}
 					}catch(Exception e){

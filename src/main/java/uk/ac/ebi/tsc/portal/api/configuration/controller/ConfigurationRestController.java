@@ -365,7 +365,6 @@ public class ConfigurationRestController {
 
 			//stop all deployments using the configuration deployment parameters
 			this.configurationService.stopDeploymentsOnDeletionOfDeploymentParameters(name,
-					principal, 
 					deploymentService, 
 					deploymentRestController, 
 					cdpCopy, 
