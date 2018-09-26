@@ -146,6 +146,7 @@ public class ApplicationDeployerBash {
 		env.put("PORTAL_DEPLOYMENTS_ROOT", deploymentsRoot);
 		env.put("PORTAL_DEPLOYMENT_REFERENCE", reference);
 		env.put("PORTAL_APP_REPO_FOLDER", theApplication.repoPath);
+		env.put("PORTAL_STOP_ME_SECRET", reference);                      // TODO pass the secret instead
 		env.put("TF_VAR_key_pair", "demo-key"); 
 
 
