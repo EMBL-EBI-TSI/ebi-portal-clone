@@ -17,7 +17,7 @@ public class StopMeSecret {
 
     @NotNull
     @Column(unique=true)
-    private String deploymentId;
+    private Long deploymentId;
     
     @NotNull
     private String secret;
@@ -31,11 +31,11 @@ public class StopMeSecret {
         this.id = id;
     }
 
-    public String getDeploymentId() {
+    public Long getDeploymentId() {
         return deploymentId;
     }
 
-    public void setDeploymentId(String deploymentId) {
+    public void setDeploymentId(Long deploymentId) {
         this.deploymentId = deploymentId;
     }
 

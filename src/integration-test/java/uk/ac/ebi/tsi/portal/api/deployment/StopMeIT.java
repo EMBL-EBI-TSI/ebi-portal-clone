@@ -1,5 +1,9 @@
 package uk.ac.ebi.tsi.portal.api.deployment;
 
+import static org.junit.Assert.assertFalse;
+
+import java.util.Optional;
+
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,6 +14,7 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import uk.ac.ebi.tsc.portal.BePortalApiApplication;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.StopMeSecret;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.StopMeSecretRepository;
 import uk.ac.ebi.tsc.portal.config.WebConfiguration;
 
@@ -27,5 +32,13 @@ public class StopMeIT {
     public void findAll() throws Exception 
     {
         stopMeSecretRepository.findAll();
+    }
+    
+    @Test
+    public void findByDeploymentIdAndSecret() throws Exception 
+    {
+        Optional<StopMeSecret> r = stopMeSecretRepository.findByDeploymentIdAndSecret(1, "secret");
+        
+        assertFalse(r.isPresent());
     }
 }
