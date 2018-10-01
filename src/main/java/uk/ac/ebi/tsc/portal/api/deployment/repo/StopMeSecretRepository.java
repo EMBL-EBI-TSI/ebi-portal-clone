@@ -7,5 +7,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface StopMeSecretRepository extends JpaRepository<StopMeSecret, Long> {
     
-    Optional<StopMeSecret> findByDeploymentIdAndSecret(long deploymentId, String secret);
+    Optional<StopMeSecret> findByDeploymentReferenceAndSecret(String reference, String secret);
 }

@@ -5,6 +5,7 @@ import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.OneToOne;
 import javax.validation.constraints.NotNull;
 
 
@@ -16,13 +17,22 @@ public class StopMeSecret {
     private Long id;
 
     @NotNull
-    @Column(unique=true)
-    private Long deploymentId;
+    @OneToOne
+    private Deployment deployment;
     
     @NotNull
     private String secret;
 
     
+    public StopMeSecret() 
+    {}
+    
+    public StopMeSecret(Deployment deployment, String secret) {
+        
+        this.deployment = deployment;
+        this.secret = secret;
+    }
+
     public Long getId() {
         return id;
     }
@@ -31,12 +41,12 @@ public class StopMeSecret {
         this.id = id;
     }
 
-    public Long getDeploymentId() {
-        return deploymentId;
+    public Deployment getDeployment() {
+        return deployment;
     }
 
-    public void setDeploymentId(Long deploymentId) {
-        this.deploymentId = deploymentId;
+    public void setDeployment(Deployment deployment) {
+        this.deployment = deployment;
     }
 
     public String getSecret() {
