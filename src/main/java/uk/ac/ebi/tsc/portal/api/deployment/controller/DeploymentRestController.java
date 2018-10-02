@@ -100,6 +100,7 @@ import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentStatusEnum;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentStatusRepository;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentApplicationService;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentConfigurationService;
+import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentNotFoundException;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
 import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
 import uk.ac.ebi.tsc.portal.api.team.repo.Team;
@@ -686,9 +687,9 @@ public class DeploymentRestController {
 	        NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException,
 	        InvalidAlgorithmParameterException, InvalidKeySpecException 
 	{
-	    if (stopMeSecretService.exists(deploymentReference, secret)) {
+	    if (!stopMeSecretService.exists(deploymentReference, secret)) {
 	        
-	        return new ResponseEntity<>(null, new HttpHeaders(), HttpStatus.NOT_FOUND);
+	        throw new DeploymentNotFoundException(deploymentReference);
 	    }
 	    else
 	    {

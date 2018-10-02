@@ -1,5 +1,6 @@
 package uk.ac.ebi.tsc.portal.clouddeployment.application;
 
+import static java.lang.String.format;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -83,8 +84,8 @@ public class StopMeIT {
         assertFalse(stopMeSecretService.exists(reference, SECRET));
         
         mockMvc.perform(
-                put("/deployment/TSI000000000001/stopme")
-                .param("secret", "abcd")
+                put(format("/deployment/%s/stopme", reference))
+                .param("secret", SECRET)
         )
         .andExpect(status().is(404))
         
@@ -98,7 +99,7 @@ public class StopMeIT {
          * ]
          * 
          */
-        .andExpect(jsonPath("[0].message").value("Could not find deployment with reference 'TSI000000000001'."))
+        .andExpect(jsonPath("[0].message").value("Could not find deployment with reference 'TSI000000001'."))
         ;
     }
     
@@ -110,8 +111,8 @@ public class StopMeIT {
         
         
         mockMvc.perform(
-                put("/deployment/TSI000000000001/stopme")
-                .param(SECRET, "abcd")
+                put(format("/deployment/%s/stopme", reference))
+                .param("secret", "wrongSecret")
         )
         .andExpect(status().is(404))
         
@@ -125,7 +126,7 @@ public class StopMeIT {
          * ]
          * 
          */
-        .andExpect(jsonPath("[0].message").value("Could not find deployment with reference 'TSI000000000001'."))
+        .andExpect(jsonPath("[0].message").value("Could not find deployment with reference 'TSI000000001'."))
         ;
     }
 }
