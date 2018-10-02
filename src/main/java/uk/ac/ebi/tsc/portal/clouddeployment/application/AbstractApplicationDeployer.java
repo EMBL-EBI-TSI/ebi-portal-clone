@@ -35,22 +35,22 @@ import java.util.stream.Collectors;
 /**
  * Created by jdianes on 01/10/2018.
  */
-public abstract class ApplicationDeployer {
+public abstract class AbstractApplicationDeployer {
 
-    private static final Logger logger = LoggerFactory.getLogger(ApplicationDeployer.class);
+    private static final Logger logger = LoggerFactory.getLogger(AbstractApplicationDeployer.class);
 
     protected final DeploymentService deploymentService;
     protected final ApplicationService applicationService;
     protected final CloudProviderParamsCopyService cloudProviderParametersCopyService;
     protected final ConfigDeploymentParamsCopyService configDeploymentParamsCopyService;
 
-    public ApplicationDeployer(DeploymentRepository deploymentRepository,
-                               DeploymentStatusRepository deploymentStatusRepository,
-                               ApplicationRepository applicationRepository,
-                               DomainService domainService,
-                               CloudProviderParamsCopyRepository cloudProviderParametersRepository,
-                               ConfigDeploymentParamsCopyRepository configDeploymentParamsCopyRepository,
-                               EncryptionService encryptionService) {
+    public AbstractApplicationDeployer(DeploymentRepository deploymentRepository,
+                                       DeploymentStatusRepository deploymentStatusRepository,
+                                       ApplicationRepository applicationRepository,
+                                       DomainService domainService,
+                                       CloudProviderParamsCopyRepository cloudProviderParametersRepository,
+                                       ConfigDeploymentParamsCopyRepository configDeploymentParamsCopyRepository,
+                                       EncryptionService encryptionService) {
         this.deploymentService = new DeploymentService(deploymentRepository, deploymentStatusRepository);
         this.applicationService = new ApplicationService(applicationRepository, domainService);
         this.cloudProviderParametersCopyService = new CloudProviderParamsCopyService(cloudProviderParametersRepository, encryptionService);

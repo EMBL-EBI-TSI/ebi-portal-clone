@@ -27,7 +27,7 @@ import java.util.Map;
  * @since v0.0.1
  */
 @Component
-public class ApplicationDeployerDocker extends ApplicationDeployer {
+public class ApplicationDeployerDocker extends AbstractApplicationDeployer {
 
     @Value("${be.deployments.root}")
     private String deploymentsRoot;

@@ -42,7 +42,7 @@ import java.util.*;
  * @since v0.0.1
  */
 @Component
-public class ApplicationDeployerBash extends ApplicationDeployer {
+public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 
 	private static final Logger logger = LoggerFactory.getLogger(ApplicationDeployerBash.class);
 

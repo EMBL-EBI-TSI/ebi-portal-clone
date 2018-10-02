@@ -195,7 +195,7 @@ public class VolumeInstanceRestController {
 
 //        // Trigger application status show
 //        try {
-//            ApplicationDeployer applicationDeployer = new ApplicationDeployer(
+//            AbstractApplicationDeployer applicationDeployer = new AbstractApplicationDeployer(
 //                    applicationsRoot,
 //                    osUserName,
 //                    osTenancyName,
