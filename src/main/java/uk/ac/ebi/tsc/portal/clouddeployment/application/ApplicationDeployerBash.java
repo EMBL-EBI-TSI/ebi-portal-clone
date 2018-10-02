@@ -36,6 +36,7 @@ import uk.ac.ebi.tsc.portal.usage.deployment.model.DeploymentDocument;
 import uk.ac.ebi.tsc.portal.usage.deployment.model.ParameterDocument;
 import uk.ac.ebi.tsc.portal.usage.deployment.service.DeploymentIndexService;
 import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
+import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.SecretGenerator;
 
 import java.io.*;
 import java.security.NoSuchAlgorithmException;
@@ -84,6 +85,8 @@ public class ApplicationDeployerBash {
 	@Value("${elasticsearch.password}")
 	private String elasticSearchPassword;
 
+    private StopMeSecretService secretService;
+
 	@Autowired
 	public ApplicationDeployerBash(DeploymentRepository deploymentRepository,
 			DeploymentStatusRepository deploymentStatusRepository,
@@ -91,12 +94,14 @@ public class ApplicationDeployerBash {
 			DomainService domainService,
 			CloudProviderParamsCopyRepository cloudProviderParametersRepository,
 			ConfigDeploymentParamsCopyRepository configDeploymentParamsCopyRepository,
-			EncryptionService encryptionService) {
+			EncryptionService encryptionService,
+			StopMeSecretService secretService) {
+	    
 		this.deploymentService = new DeploymentService(deploymentRepository, deploymentStatusRepository);
 		this.applicationService = new ApplicationService(applicationRepository, domainService);
 		this.cloudProviderParametersCopyService = new CloudProviderParamsCopyService(cloudProviderParametersRepository, encryptionService);
 		this.configDeploymentParamsCopyService = new ConfigDeploymentParamsCopyService(configDeploymentParamsCopyRepository);
-
+		this.secretService = secretService;
 	}
 
 	public void deploy(String userEmail,
@@ -135,6 +140,8 @@ public class ApplicationDeployerBash {
 		logs.createNewFile();
 		processBuilder.redirectOutput(logs);
 		processBuilder.redirectErrorStream(true);
+		
+		Deployment theDeployment = deploymentService.findByReference(reference);
 
 		Map<String, String> env = processBuilder.environment();
 		addGenericProviderCreds(env, cloudProviderParametersCopy);
@@ -146,7 +153,7 @@ public class ApplicationDeployerBash {
 		env.put("PORTAL_DEPLOYMENTS_ROOT", deploymentsRoot);
 		env.put("PORTAL_DEPLOYMENT_REFERENCE", reference);
 		env.put("PORTAL_APP_REPO_FOLDER", theApplication.repoPath);
-		env.put("PORTAL_STOP_ME_SECRET", reference);                      // TODO pass the secret instead
+		env.put("PORTAL_STOP_ME_SECRET", secretService.create(theDeployment));
 		env.put("TF_VAR_key_pair", "demo-key"); 
 
 
