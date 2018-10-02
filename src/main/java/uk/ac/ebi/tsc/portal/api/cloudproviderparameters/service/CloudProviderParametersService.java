@@ -383,6 +383,10 @@ public class CloudProviderParametersService {
 		if( (cloudParameters.getSharedWithTeams().contains(team)) && (team.getAccountsBelongingToTeam().contains(account)) ){
 			return true;
 		}else{
+			if(account.getMemberOfTeams().stream().anyMatch(t ->
+			t.getCppBelongingToTeam().stream().anyMatch(c -> c.equals(cloudParameters)))){
+				return true;
+			}
 			return false;
 		}
 	}

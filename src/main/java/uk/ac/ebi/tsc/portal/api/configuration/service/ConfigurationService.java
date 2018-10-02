@@ -132,7 +132,6 @@ public class ConfigurationService {
 							}catch(Exception e){
 								logger.error("In ConfigurationService: Failed to get team configurations, for team with domain reference " + memberTeam.getName());
 							}
-
 						}
 					}
 				}else{
@@ -649,6 +648,7 @@ public class ConfigurationService {
 				logger.info("Could not find the cloud provider copy for configuration " + configuration.getName());
 			}
 		});
+		
 		return configurationResources;
 	}
 
