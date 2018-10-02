@@ -14,6 +14,7 @@ import uk.ac.ebi.tsc.portal.api.team.repo.Team;
 
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -118,12 +119,16 @@ public class ApplicationService {
 		}
 		return null;
 	}
-	
+
 	public boolean isApplicationSharedWithAccount(Team team, Account account, Application application){
 		if( (team.getAccountsBelongingToTeam().contains(account)) && 
 				(application.getSharedWithTeams().contains(team)) ){
 			return true;
 		}else{
+			if(account.getMemberOfTeams().stream().anyMatch(t ->
+			t.getApplicationsBelongingToTeam().stream().anyMatch(a -> a.equals(application)))){
+				return true;
+			}
 			return false;
 		}
 	}
