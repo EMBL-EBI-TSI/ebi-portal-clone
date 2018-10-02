@@ -26,8 +26,11 @@ public class WebAuthorizationConfiguration extends WebSecurityConfigurerAdapter 
     protected void configure(HttpSecurity http) throws Exception {
         http
             .authorizeRequests()
-//                .antMatchers("/hal/**").permitAll()
-                .antMatchers("/ping", "/deployment/done/**").permitAll()
+                .antMatchers( "/ping"
+                            , "/deployment/done/**"
+                            , "/deployment/stopme"
+                            )
+                            .permitAll()
                 .antMatchers(HttpMethod.POST, "/cloudproviderparameters").authenticated()
                 .antMatchers(HttpMethod.GET, "/cloudproviderparameters").authenticated()
 //                .antMatchers(HttpMethod.DELETE, "/cloudproviderparameters/**").authenticated()
@@ -41,5 +44,4 @@ public class WebAuthorizationConfiguration extends WebSecurityConfigurerAdapter 
         http.addFilterBefore(new StatelessAuthenticationFilter(tokenAuthenticationService),
                         BasicAuthenticationFilter.class);
     }
-
 }

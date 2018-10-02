@@ -28,6 +28,8 @@ import java.util.stream.Collectors;
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -671,17 +673,44 @@ public class DeploymentRestController {
 		}
 	}
 
+	private String decrypt(String reference) {
+	    
+	    /*
+	     * TODO 
+	     */
+	    
+        return reference;
+    }
+
+	@RequestMapping(value = "/stopme", method = RequestMethod.PUT)
+	public ResponseEntity<?> stopMe(@QueryParam("secret") String secret)
+	        throws IOException, ApplicationDeployerException, NoSuchPaddingException, InvalidKeyException,
+	        NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException,
+	        InvalidAlgorithmParameterException, InvalidKeySpecException 
+	{
+	    stop(decrypt(secret));
+	    
+	    return new ResponseEntity<>(null, new HttpHeaders(), HttpStatus.OK);
+	}
+
 	@RequestMapping(value = "/{deploymentReference}/stop", method = RequestMethod.PUT)
-	public ResponseEntity<?> stopDeploymentByReference(Principal principal,
-			@PathVariable("deploymentReference") String reference)
-					throws IOException, ApplicationDeployerException, NoSuchPaddingException, InvalidKeyException,
-					NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException,
-					InvalidAlgorithmParameterException, InvalidKeySpecException {
-
-
+	public ResponseEntity<?> stopByReference(@PathVariable("deploymentReference") String reference)
+           throws IOException, ApplicationDeployerException, NoSuchPaddingException, InvalidKeyException,
+           NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException,
+           InvalidAlgorithmParameterException, InvalidKeySpecException 
+	{
+        stop(reference);
+        
+        return new ResponseEntity<>(null, new HttpHeaders(), HttpStatus.OK);
+	}
+	
+	void stop(String reference)
+	throws IOException, ApplicationDeployerException, NoSuchPaddingException, InvalidKeyException,
+           NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException,
+           InvalidAlgorithmParameterException, InvalidKeySpecException 
+	{
 		logger.info("Stopping deployment '" + reference + "'");
 
-		Account account = this.accountService.findByUsername(principal.getName());
 		Deployment theDeployment = this.deploymentService.findByReference(reference);
 
 		// get credentials decrypted through the service layer
@@ -709,11 +738,6 @@ public class DeploymentRestController {
 				deploymentConfiguration,
 				theCloudProviderParametersCopy
 				);
-
-		// Prepare response
-		HttpHeaders httpHeaders = new HttpHeaders();
-
-		return new ResponseEntity<>(null, httpHeaders, HttpStatus.OK);
 	}
 
 	@RequestMapping(value = "/{deploymentReference}", method = RequestMethod.DELETE)

@@ -1,0 +1,4 @@
+
+
+cd ../ElasticSearch
+docker-compose up
