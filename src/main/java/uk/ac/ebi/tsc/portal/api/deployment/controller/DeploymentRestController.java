@@ -110,6 +110,7 @@ import uk.ac.ebi.tsc.portal.api.volumeinstance.repo.VolumeInstanceRepository;
 import uk.ac.ebi.tsc.portal.api.volumeinstance.repo.VolumeInstanceStatusRepository;
 import uk.ac.ebi.tsc.portal.api.volumeinstance.service.VolumeInstanceService;
 import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployerBash;
+import uk.ac.ebi.tsc.portal.clouddeployment.application.StopMeSecretService;
 import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDeployerException;
 import uk.ac.ebi.tsc.portal.usage.deployment.model.DeploymentDocument;
 import uk.ac.ebi.tsc.portal.usage.deployment.service.DeploymentIndexService;
@@ -174,6 +175,8 @@ public class DeploymentRestController {
 
 	private final ConfigDeploymentParamsCopyService configDeploymentParamsCopyService;
 
+	private StopMeSecretService stopMeSecretService;
+
 	@Autowired
 	DeploymentRestController(DeploymentRepository deploymentRepository,
 			DeploymentStatusRepository deploymentStatusRepository,
@@ -196,6 +199,7 @@ public class DeploymentRestController {
 			CloudProviderParamsCopyRepository cloudProviderParametersCopyRepository,
 			ConfigDeploymentParamsCopyRepository configDeploymentParamsCopyRepository,
 			EncryptionService encryptionService,
+			StopMeSecretService stopMeSecretService,
 
 			@Value("${ecp.security.salt}") final String salt, 
 			@Value("${ecp.security.password}") final String password
@@ -222,6 +226,7 @@ public class DeploymentRestController {
 		this.teamService = new TeamService(teamRepository, accountRepository, domainService,
 				deploymentService, cloudProviderParametersCopyService, deploymentConfigurationService, applicationDeployerBash);
 
+		this.stopMeSecretService = stopMeSecretService;
 	}
 
 	/* useful to inject values without involving spring - i.e. tests */
@@ -673,24 +678,24 @@ public class DeploymentRestController {
 		}
 	}
 
-	private String decrypt(String reference) {
-	    
-	    /*
-	     * TODO 
-	     */
-	    
-        return reference;
-    }
-
-	@RequestMapping(value = "/stopme", method = RequestMethod.PUT)
-	public ResponseEntity<?> stopMe(@QueryParam("secret") String secret)
+	@RequestMapping(value = "/{deploymentReference}/stopme", method = RequestMethod.PUT)
+	public ResponseEntity<?> stopMe( @PathVariable("deploymentReference") String deploymentReference
+	                               , @QueryParam("secret")                String secret)               // TODO receive param in header
+//	                                                                                                           or body
 	        throws IOException, ApplicationDeployerException, NoSuchPaddingException, InvalidKeyException,
 	        NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException,
 	        InvalidAlgorithmParameterException, InvalidKeySpecException 
 	{
-	    stop(decrypt(secret));
-	    
-	    return new ResponseEntity<>(null, new HttpHeaders(), HttpStatus.OK);
+	    if (stopMeSecretService.exists(deploymentReference, secret)) {
+	        
+	        return new ResponseEntity<>(null, new HttpHeaders(), HttpStatus.NOT_FOUND);
+	    }
+	    else
+	    {
+	        stop(deploymentReference);
+	        
+	        return new ResponseEntity<>(null, new HttpHeaders(), HttpStatus.OK);
+	    }
 	}
 
 	@RequestMapping(value = "/{deploymentReference}/stop", method = RequestMethod.PUT)

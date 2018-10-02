@@ -86,6 +86,7 @@ import uk.ac.ebi.tsc.portal.api.team.service.TeamService;
 import uk.ac.ebi.tsc.portal.api.volumeinstance.repo.VolumeInstanceRepository;
 import uk.ac.ebi.tsc.portal.api.volumeinstance.repo.VolumeInstanceStatusRepository;
 import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployerBash;
+import uk.ac.ebi.tsc.portal.clouddeployment.application.StopMeSecretService;
 import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDeployerException;
 import uk.ac.ebi.tsc.portal.usage.deployment.service.DeploymentIndexService;
 import uk.ac.ebi.tsc.portal.usage.tracker.DeploymentStatusTracker;
@@ -211,6 +212,9 @@ public class DeploymentRestControllerTest {
 
 	@MockBean
 	EncryptionService encryptionService;
+	
+	@MockBean
+	StopMeSecretService stopMeSecretService;
 
 	String cppReference = "cppReference";
 	@Before 
@@ -234,6 +238,7 @@ public class DeploymentRestControllerTest {
 				cloudProviderParametersCopyRepository,
 				configurationDeploymentParamsCopyRepository,
 				encryptionService,
+				stopMeSecretService,
 				salt,
 				password);
 

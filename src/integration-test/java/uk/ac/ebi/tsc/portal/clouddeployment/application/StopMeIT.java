@@ -2,6 +2,9 @@ package uk.ac.ebi.tsc.portal.clouddeployment.application;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.List;
 import java.util.Optional;
@@ -15,6 +18,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.web.servlet.MockMvc;
 
 import uk.ac.ebi.tsc.portal.BePortalApiApplication;
 import uk.ac.ebi.tsc.portal.api.account.repo.Account;
@@ -41,6 +45,9 @@ public class StopMeIT {
     
     @Autowired
     DeploymentRepository deploymentRepository;
+    
+    @Autowired
+    private MockMvc mockMvc;
 
     Deployment aDeployment;
     String reference = "TSI000000001";
@@ -67,5 +74,28 @@ public class StopMeIT {
         stopMeSecretService.save(aDeployment, "secret");
         
         assertTrue(stopMeSecretService.exists(reference, "secret"));
+    }
+    
+    @Test
+    public void stopMe_non_existent_deployment() throws Exception 
+    {
+        mockMvc.perform(
+                put("/deployment/TSI000000000001/stopme")
+                .param("secret", "abcd")
+        )
+        .andExpect(status().is(404))
+        
+        /*
+         * 
+         * [
+         *     { "logref":     "error"
+         *     , "message":    "Could not find deployment with reference 'TSI000000000001'."
+         *     ,"links":       []
+         *     }
+         * ]
+         * 
+         */
+        .andExpect(jsonPath("[0].message").value("Could not find deployment with reference 'TSI000000000001'."))
+        ;
     }
 }
