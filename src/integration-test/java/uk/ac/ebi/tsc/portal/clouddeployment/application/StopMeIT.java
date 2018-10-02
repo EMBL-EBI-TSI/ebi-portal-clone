@@ -51,6 +51,7 @@ public class StopMeIT {
 
     Deployment aDeployment;
     String reference = "TSI000000001";
+    static final String SECRET = "secret";
     
     
     @Before
@@ -69,19 +70,48 @@ public class StopMeIT {
     @Test
     public void save() throws Exception 
     {
-        assertFalse(stopMeSecretService.exists(reference, "secret"));
+        assertFalse(stopMeSecretService.exists(reference, SECRET));
         
-        stopMeSecretService.save(aDeployment, "secret");
+        stopMeSecretService.save(aDeployment, SECRET);
         
-        assertTrue(stopMeSecretService.exists(reference, "secret"));
+        assertTrue(stopMeSecretService.exists(reference, SECRET));
     }
     
     @Test
     public void stopMe_non_existent_deployment() throws Exception 
     {
+        assertFalse(stopMeSecretService.exists(reference, SECRET));
+        
         mockMvc.perform(
                 put("/deployment/TSI000000000001/stopme")
                 .param("secret", "abcd")
+        )
+        .andExpect(status().is(404))
+        
+        /*
+         * 
+         * [
+         *     { "logref":     "error"
+         *     , "message":    "Could not find deployment with reference 'TSI000000000001'."
+         *     ,"links":       []
+         *     }
+         * ]
+         * 
+         */
+        .andExpect(jsonPath("[0].message").value("Could not find deployment with reference 'TSI000000000001'."))
+        ;
+    }
+    
+    @Test
+    public void stopMe_wrong_secret() throws Exception 
+    {
+        save();
+        assertTrue(stopMeSecretService.exists(reference, SECRET));
+        
+        
+        mockMvc.perform(
+                put("/deployment/TSI000000000001/stopme")
+                .param(SECRET, "abcd")
         )
         .andExpect(status().is(404))
         
