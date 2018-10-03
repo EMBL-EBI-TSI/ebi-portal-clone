@@ -106,34 +106,9 @@ public class StopMeIT {
         );
     }
     
-    void assert404(ResultActions r) throws Exception {
+    void assertErrorResponse(ResultActions r, int statusCode, String message) throws Exception {
         
-        r.andExpect(status().is(404))
-        
-        /*
-         * 
-         * [
-         *     { "logref":     "error"
-         *     , "message":    "Could not find deployment with reference 'TSI000000000001'."
-         *     ,"links":       []
-         *     }
-         * ]
-         * 
-         */
-        .andExpect(jsonPath("[0].message").value("Could not find deployment with reference 'TSI000000001'."))
-        ;
-    }
-    
-    @Test
-    public void stopMe_missing_secret() throws Exception 
-    {
-        mockMvc.perform(
-                
-                put(format("/deployment/%s/stopme", reference))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(obj())
-        )
-        .andExpect(status().is(406))
+        r.andExpect(status().is(statusCode))
         
         /*
          * [
@@ -144,7 +119,25 @@ public class StopMeIT {
          * ]
          * 
          */
-        .andExpect(jsonPath("[0].message").value("Missing parameter: 'secret'."))
+        .andExpect(jsonPath("[0].message").value(message))
         ;
+    }
+    
+    void assert404(ResultActions r) throws Exception {
+        
+        assertErrorResponse(r, 404, "Could not find deployment with reference 'TSI000000001'.");
+    }
+    
+    @Test
+    public void stopMe_missing_secret() throws Exception 
+    {
+        ResultActions r = mockMvc.perform(
+                
+                put(format("/deployment/%s/stopme", reference))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(obj())
+        );
+        
+        assertErrorResponse(r, 406, "Missing parameter: 'secret'.");
     }
 }
