@@ -123,4 +123,17 @@ public class StopMeIT {
         .andExpect(jsonPath("[0].message").value("Could not find deployment with reference 'TSI000000001'."))
         ;
     }
+    
+    @Test
+    public void stopMe_missing_secret() throws Exception 
+    {
+        mockMvc.perform(
+                
+                put(format("/deployment/%s/stopme", reference))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(obj())
+        )
+        .andExpect(status().is(406))
+        ;
+    }
 }
