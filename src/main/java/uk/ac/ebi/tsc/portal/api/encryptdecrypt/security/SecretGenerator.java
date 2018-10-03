@@ -1,5 +1,7 @@
 package uk.ac.ebi.tsc.portal.api.encryptdecrypt.security;
 
+import java.util.UUID;
+
 import org.springframework.stereotype.Component;
 
 
@@ -8,6 +10,6 @@ public class SecretGenerator {
 
     public String generate() {
         
-        return "12345";         // TODO generate random number / UUID?
+        return UUID.randomUUID().toString();
     }
 }
