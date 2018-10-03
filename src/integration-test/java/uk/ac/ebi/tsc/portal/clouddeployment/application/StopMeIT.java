@@ -6,9 +6,7 @@ import static org.junit.Assert.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
-import java.util.List;
-import java.util.Optional;
+import static uk.ac.ebi.tsc.util.JsonUtil.*;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -16,20 +14,19 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 
 import uk.ac.ebi.tsc.portal.BePortalApiApplication;
-import uk.ac.ebi.tsc.portal.api.account.repo.Account;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.Deployment;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentApplication;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentRepository;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.StopMeSecret;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.StopMeSecretRepository;
-import uk.ac.ebi.tsc.portal.clouddeployment.application.StopMeSecretService;
 import uk.ac.ebi.tsc.portal.config.WebConfiguration;
+import uk.ac.ebi.tsc.util.JsonUtil;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -83,24 +80,8 @@ public class StopMeIT {
     {
         assertFalse(stopMeSecretService.exists(reference, SECRET));
         
-        mockMvc.perform(
-                put(format("/deployment/%s/stopme", reference))
-                .param("secret", SECRET)
-        )
-        .andExpect(status().is(404))
-        
-        /*
-         * 
-         * [
-         *     { "logref":     "error"
-         *     , "message":    "Could not find deployment with reference 'TSI000000000001'."
-         *     ,"links":       []
-         *     }
-         * ]
-         * 
-         */
-        .andExpect(jsonPath("[0].message").value("Could not find deployment with reference 'TSI000000001'."))
-        ;
+        ResultActions r = callStopMe(reference, SECRET);
+        assert404(r);
     }
     
     @Test
@@ -109,12 +90,25 @@ public class StopMeIT {
         save();
         assertTrue(stopMeSecretService.exists(reference, SECRET));
         
+        ResultActions r = callStopMe(reference, "wrongSecret");
+        assert404(r);
+    }
+
+    ResultActions callStopMe(String reference, String secret) throws Exception {
         
-        mockMvc.perform(
+        String content = obj( keyValue("secret", secret) );
+
+        return mockMvc.perform(
+                
                 put(format("/deployment/%s/stopme", reference))
-                .param("secret", "wrongSecret")
-        )
-        .andExpect(status().is(404))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(content)
+        );
+    }
+    
+    void assert404(ResultActions r) throws Exception {
+        
+        r.andExpect(status().is(404))
         
         /*
          * 

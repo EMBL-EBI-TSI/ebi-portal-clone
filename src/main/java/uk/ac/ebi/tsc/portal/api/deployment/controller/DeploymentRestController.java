@@ -103,6 +103,7 @@ import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentConfigurationServic
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentNotFoundException;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
 import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
+import uk.ac.ebi.tsc.portal.api.error.MissingParameterException;
 import uk.ac.ebi.tsc.portal.api.team.repo.Team;
 import uk.ac.ebi.tsc.portal.api.team.repo.TeamRepository;
 import uk.ac.ebi.tsc.portal.api.team.service.TeamService;
@@ -680,23 +681,26 @@ public class DeploymentRestController {
 	}
 
 	@RequestMapping(value = "/{deploymentReference}/stopme", method = RequestMethod.PUT)
-	public ResponseEntity<?> stopMe( @PathVariable("deploymentReference") String deploymentReference
-	                               , @QueryParam("secret")                String secret)               // TODO receive param in header
-//	                                                                                                           or body
+	public void stopMe( @PathVariable("deploymentReference") String                     deploymentReference
+                      , @RequestBody                         HashMap<String, String>    body
+                      )
 	        throws IOException, ApplicationDeployerException, NoSuchPaddingException, InvalidKeyException,
 	        NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException,
 	        InvalidAlgorithmParameterException, InvalidKeySpecException 
 	{
+	    String secret = body.get("secret");
+
+	    if (secret == null || secret.isEmpty()) {
+
+	        throw new MissingParameterException("secret");
+	    }
+
 	    if (!stopMeSecretService.exists(deploymentReference, secret)) {
 	        
 	        throw new DeploymentNotFoundException(deploymentReference);
 	    }
-	    else
-	    {
-	        stop(deploymentReference);
-	        
-	        return new ResponseEntity<>(null, new HttpHeaders(), HttpStatus.OK);
-	    }
+        
+	    stop(deploymentReference);
 	}
 
 	@RequestMapping(value = "/{deploymentReference}/stop", method = RequestMethod.PUT)
