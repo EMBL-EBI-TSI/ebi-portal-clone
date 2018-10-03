@@ -134,6 +134,17 @@ public class StopMeIT {
                 .content(obj())
         )
         .andExpect(status().is(406))
+        
+        /*
+         * [
+         *     { "logref":     "error"
+         *     ,"message":     "Missing parameter: 'secret'."
+         *     ,"links":       []
+         *     }
+         * ]
+         * 
+         */
+        .andExpect(jsonPath("[0].message").value("Missing parameter: 'secret'."))
         ;
     }
 }
