@@ -37,15 +37,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.hateoas.Link;
 import org.springframework.hateoas.Resources;
+import org.springframework.hateoas.VndErrors;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 
@@ -100,8 +103,10 @@ import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentStatusEnum;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentStatusRepository;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentApplicationService;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentConfigurationService;
+import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentNotFoundException;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
 import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
+import uk.ac.ebi.tsc.portal.api.error.MissingParameterException;
 import uk.ac.ebi.tsc.portal.api.team.repo.Team;
 import uk.ac.ebi.tsc.portal.api.team.repo.TeamRepository;
 import uk.ac.ebi.tsc.portal.api.team.service.TeamService;
@@ -110,6 +115,7 @@ import uk.ac.ebi.tsc.portal.api.volumeinstance.repo.VolumeInstanceRepository;
 import uk.ac.ebi.tsc.portal.api.volumeinstance.repo.VolumeInstanceStatusRepository;
 import uk.ac.ebi.tsc.portal.api.volumeinstance.service.VolumeInstanceService;
 import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployerBash;
+import uk.ac.ebi.tsc.portal.clouddeployment.application.StopMeSecretService;
 import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDeployerException;
 import uk.ac.ebi.tsc.portal.usage.deployment.model.DeploymentDocument;
 import uk.ac.ebi.tsc.portal.usage.deployment.service.DeploymentIndexService;
@@ -174,6 +180,8 @@ public class DeploymentRestController {
 
 	private final ConfigDeploymentParamsCopyService configDeploymentParamsCopyService;
 
+	private StopMeSecretService stopMeSecretService;
+
 	@Autowired
 	DeploymentRestController(DeploymentRepository deploymentRepository,
 			DeploymentStatusRepository deploymentStatusRepository,
@@ -196,6 +204,7 @@ public class DeploymentRestController {
 			CloudProviderParamsCopyRepository cloudProviderParametersCopyRepository,
 			ConfigDeploymentParamsCopyRepository configDeploymentParamsCopyRepository,
 			EncryptionService encryptionService,
+			StopMeSecretService stopMeSecretService,
 
 			@Value("${ecp.security.salt}") final String salt, 
 			@Value("${ecp.security.password}") final String password
@@ -222,6 +231,7 @@ public class DeploymentRestController {
 		this.teamService = new TeamService(teamRepository, accountRepository, domainService,
 				deploymentService, cloudProviderParametersCopyService, deploymentConfigurationService, applicationDeployerBash);
 
+		this.stopMeSecretService = stopMeSecretService;
 	}
 
 	/* useful to inject values without involving spring - i.e. tests */
@@ -672,25 +682,35 @@ public class DeploymentRestController {
 			return "There are no destroy logs for this deployment";
 		}
 	}
-
-	private String decrypt(String reference) {
+	
+	@ExceptionHandler
+    @ResponseStatus(HttpStatus.NOT_ACCEPTABLE)
+	VndErrors handleException(MissingParameterException e) {
 	    
-	    /*
-	     * TODO 
-	     */
-	    
-        return reference;
-    }
+	    return new VndErrors("error", e.getMessage());
+	}
 
-	@RequestMapping(value = "/stopme", method = RequestMethod.PUT)
-	public ResponseEntity<?> stopMe(@QueryParam("secret") String secret)
+	@RequestMapping(value = "/{deploymentReference}/stopme", method = RequestMethod.PUT)
+	public void stopMe( @PathVariable("deploymentReference") String                     deploymentReference
+                      , @RequestBody                         HashMap<String, String>    body
+                      )
 	        throws IOException, ApplicationDeployerException, NoSuchPaddingException, InvalidKeyException,
 	        NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException,
 	        InvalidAlgorithmParameterException, InvalidKeySpecException 
 	{
-	    stop(decrypt(secret));
-	    
-	    return new ResponseEntity<>(null, new HttpHeaders(), HttpStatus.OK);
+	    String secret = body.get("secret");
+
+	    if (secret == null || secret.isEmpty()) {
+
+	        throw new MissingParameterException("secret");
+	    }
+
+	    if (!stopMeSecretService.exists(deploymentReference, secret)) {
+	        
+	        throw new DeploymentNotFoundException(deploymentReference);
+	    }
+        
+	    stop(deploymentReference);
 	}
 
 	@RequestMapping(value = "/{deploymentReference}/stop", method = RequestMethod.PUT)

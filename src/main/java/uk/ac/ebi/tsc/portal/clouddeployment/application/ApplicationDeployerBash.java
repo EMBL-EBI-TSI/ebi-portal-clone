@@ -26,6 +26,9 @@ import uk.ac.ebi.tsc.portal.clouddeployment.utils.SSHKeyGenerator;
 import uk.ac.ebi.tsc.portal.usage.deployment.model.DeploymentDocument;
 import uk.ac.ebi.tsc.portal.usage.deployment.model.ParameterDocument;
 import uk.ac.ebi.tsc.portal.usage.deployment.service.DeploymentIndexService;
+import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
+import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.SecretGenerator;
+
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -63,6 +66,8 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 	@Value("${elasticsearch.password}")
 	private String elasticSearchPassword;
 
+    private StopMeSecretService secretService;
+
 	@Autowired
 	public ApplicationDeployerBash(DeploymentRepository deploymentRepository,
 			DeploymentStatusRepository deploymentStatusRepository,
@@ -70,14 +75,16 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 			DomainService domainService,
 			CloudProviderParamsCopyRepository cloudProviderParametersRepository,
 			ConfigDeploymentParamsCopyRepository configDeploymentParamsCopyRepository,
-			EncryptionService encryptionService) {
+			EncryptionService encryptionService,
+		    StopMeSecretService secretService) {
 	    super(deploymentRepository,
                 deploymentStatusRepository,
                 applicationRepository,
                 domainService,
                 cloudProviderParametersRepository,
                 configDeploymentParamsCopyRepository,
-                encryptionService
+                encryptionService,
+				secretService
         );
 	}
 
@@ -117,6 +124,8 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 		logs.createNewFile();
 		processBuilder.redirectOutput(logs);
 		processBuilder.redirectErrorStream(true);
+		
+		Deployment theDeployment = deploymentService.findByReference(reference);
 
 		Map<String, String> env = processBuilder.environment();
 		ApplicationDeployerHelper.addGenericProviderCreds(env, cloudProviderParametersCopy, logger);
@@ -128,6 +137,7 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 		env.put("PORTAL_DEPLOYMENTS_ROOT", deploymentsRoot);
 		env.put("PORTAL_DEPLOYMENT_REFERENCE", reference);
 		env.put("PORTAL_APP_REPO_FOLDER", theApplication.repoPath);
+		env.put("PORTAL_STOP_ME_SECRET", secretService.create(theDeployment));
 		env.put("TF_VAR_key_pair", "demo-key"); 
 
 

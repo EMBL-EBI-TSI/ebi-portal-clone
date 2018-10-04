@@ -43,6 +43,7 @@ public abstract class AbstractApplicationDeployer {
     protected final ApplicationService applicationService;
     protected final CloudProviderParamsCopyService cloudProviderParametersCopyService;
     protected final ConfigDeploymentParamsCopyService configDeploymentParamsCopyService;
+    private final StopMeSecretService secretService;
 
     public AbstractApplicationDeployer(DeploymentRepository deploymentRepository,
                                        DeploymentStatusRepository deploymentStatusRepository,
@@ -50,11 +51,13 @@ public abstract class AbstractApplicationDeployer {
                                        DomainService domainService,
                                        CloudProviderParamsCopyRepository cloudProviderParametersRepository,
                                        ConfigDeploymentParamsCopyRepository configDeploymentParamsCopyRepository,
-                                       EncryptionService encryptionService) {
+                                       EncryptionService encryptionService,
+                                       StopMeSecretService secretService) {
         this.deploymentService = new DeploymentService(deploymentRepository, deploymentStatusRepository);
         this.applicationService = new ApplicationService(applicationRepository, domainService);
         this.cloudProviderParametersCopyService = new CloudProviderParamsCopyService(cloudProviderParametersRepository, encryptionService);
         this.configDeploymentParamsCopyService = new ConfigDeploymentParamsCopyService(configDeploymentParamsCopyRepository);
+        this.secretService = secretService;
 
     }
     public abstract void deploy(String userEmail,

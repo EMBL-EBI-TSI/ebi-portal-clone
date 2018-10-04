@@ -28,7 +28,7 @@ public class WebAuthorizationConfiguration extends WebSecurityConfigurerAdapter 
             .authorizeRequests()
                 .antMatchers( "/ping"
                             , "/deployment/done/**"
-                            , "/deployment/stopme"
+                            , "/deployment/**/stopme"
                             )
                             .permitAll()
                 .antMatchers(HttpMethod.POST, "/cloudproviderparameters").authenticated()
