@@ -1,36 +1,5 @@
 package uk.ac.ebi.tsc.portal.api.deployment.controller;
 
-import java.io.File;
-import java.io.IOException;
-import java.net.URI;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.FileSystems;
-import java.nio.file.Files;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.Principal;
-import java.security.spec.InvalidKeySpecException;
-import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-
-import javax.crypto.BadPaddingException;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,16 +11,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
-
 import uk.ac.ebi.tsc.aap.client.repo.DomainService;
 import uk.ac.ebi.tsc.portal.api.account.repo.Account;
 import uk.ac.ebi.tsc.portal.api.account.repo.AccountRepository;
@@ -67,40 +28,11 @@ import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParame
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParametersRepository;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParamsCopy;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParamsCopyRepository;
-import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParametersNotFoundException;
-import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParametersNotSharedException;
-import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParametersService;
-import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParamsCopyNotFoundException;
-import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParamsCopyService;
+import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.*;
 import uk.ac.ebi.tsc.portal.api.configuration.controller.InvalidConfigurationInputException;
-import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigDeploymentParamsCopy;
-import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigDeploymentParamsCopyRepository;
-import uk.ac.ebi.tsc.portal.api.configuration.repo.Configuration;
-import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationDeploymentParametersRepository;
-import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationRepository;
-import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigDeploymentParamsCopyNotFoundException;
-import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigDeploymentParamsCopyService;
-import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationDeploymentParametersService;
-import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationNotFoundException;
-import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationNotSharedException;
-import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationService;
-import uk.ac.ebi.tsc.portal.api.configuration.service.UsageLimitsException;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.Deployment;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentApplication;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentApplicationCloudProvider;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentApplicationCloudProviderInput;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentApplicationCloudProviderOutput;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentApplicationCloudProviderVolume;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentApplicationRepository;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentAssignedInput;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentAssignedParameter;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentAttachedVolume;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentConfiguration;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentConfigurationParameter;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentConfigurationRepository;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentRepository;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentStatusEnum;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentStatusRepository;
+import uk.ac.ebi.tsc.portal.api.configuration.repo.*;
+import uk.ac.ebi.tsc.portal.api.configuration.service.*;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.*;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentApplicationService;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentConfigurationService;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentNotFoundException;
@@ -120,6 +52,22 @@ import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDeployerExcept
 import uk.ac.ebi.tsc.portal.usage.deployment.model.DeploymentDocument;
 import uk.ac.ebi.tsc.portal.usage.deployment.service.DeploymentIndexService;
 import uk.ac.ebi.tsc.portal.usage.tracker.DeploymentStatusTracker;
+
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+import java.io.File;
+import java.io.IOException;
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.security.*;
+import java.security.spec.InvalidKeySpecException;
+import java.sql.Timestamp;
+import java.util.*;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * @author Jose A. Dianes <jdianes@ebi.ac.uk>
@@ -416,25 +364,6 @@ public class DeploymentRestController {
 		// Trigger application deployment
 		String theReference = "TSI" + System.currentTimeMillis();
 
-		//Deploy
-		this.applicationDeployerBash.deploy(
-				account.getEmail(),
-				theApplication,
-				theReference,
-				getCloudProviderPathFromApplication(theApplication, selectedCloudProviderParameters.getCloudProvider()),
-				input.getAssignedInputs()!=null ? 
-						input.getAssignedInputs().stream().collect(Collectors.toMap(s -> s.getInputName(), s-> s.getAssignedValue()))
-						: null,
-						//the following based on precedence discussion might change, so placeholder here		
-						deploymentParameterKV!=null ? deploymentParameterKV :null,
-								input.getAttachedVolumes()!=null? toProviderIdHashMap(input.getAttachedVolumes()) : null,
-										deploymentParameterKV!=null ? deploymentParameterKV :null,
-												cloudProviderParametersCopy,
-												configuration,
-												new java.sql.Timestamp(startTime.getTime()),
-												input.getUserSshKey()
-				);
-
 		//create a copy of the application as deployment application
 		logger.info("Creating deploymentApplication, from the application");
 		DeploymentApplication deploymentApplication = this.deploymentApplicationService.createDeploymentApplication(theApplication);
@@ -450,6 +379,26 @@ public class DeploymentRestController {
 				input.getUserSshKey(),
 				input.getDomainReference()
 				);
+        Deployment resDeployment = this.deploymentService.save(deployment);
+
+		//Deploy
+		this.applicationDeployerBash.deploy(
+				account.getEmail(),
+				theApplication,
+				theReference,
+				getCloudProviderPathFromApplication(theApplication, selectedCloudProviderParameters.getCloudProvider()),
+				input.getAssignedInputs()!=null ?
+						input.getAssignedInputs().stream().collect(Collectors.toMap(s -> s.getInputName(), s-> s.getAssignedValue()))
+						: null,
+				//the following based on precedence discussion might change, so placeholder here
+				deploymentParameterKV!=null ? deploymentParameterKV :null,
+				input.getAttachedVolumes()!=null? toProviderIdHashMap(input.getAttachedVolumes()) : null,
+				deploymentParameterKV!=null ? deploymentParameterKV :null,
+				cloudProviderParametersCopy,
+				configuration,
+				new java.sql.Timestamp(startTime.getTime()),
+				input.getUserSshKey()
+		);
 
 		// set input assignments
 		if (input.getAssignedInputs()!=null) {
@@ -502,7 +451,7 @@ public class DeploymentRestController {
 		}
 
 		deployment.setStartTime(new Timestamp(startTime.getTime()));
-		Deployment resDeployment = this.deploymentService.save(deployment);
+		resDeployment = this.deploymentService.save(deployment);
 
 		// set deployment to attachments
 		if (input.getAttachedVolumes()!=null) {

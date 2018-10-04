@@ -43,7 +43,7 @@ public abstract class AbstractApplicationDeployer {
     protected final ApplicationService applicationService;
     protected final CloudProviderParamsCopyService cloudProviderParametersCopyService;
     protected final ConfigDeploymentParamsCopyService configDeploymentParamsCopyService;
-    private final StopMeSecretService secretService;
+    protected final StopMeSecretService secretService;
 
     public AbstractApplicationDeployer(DeploymentRepository deploymentRepository,
                                        DeploymentStatusRepository deploymentStatusRepository,

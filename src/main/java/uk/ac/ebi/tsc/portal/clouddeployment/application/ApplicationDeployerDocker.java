@@ -51,14 +51,16 @@ public class ApplicationDeployerDocker extends AbstractApplicationDeployer {
                                    DomainService domainService,
                                    CloudProviderParamsCopyRepository cloudProviderParametersRepository,
                                    ConfigDeploymentParamsCopyRepository configDeploymentParamsCopyRepository,
-                                   EncryptionService encryptionService) {
+                                   EncryptionService encryptionService,
+                                     StopMeSecretService secretService) {
         super(deploymentRepository,
                 deploymentStatusRepository,
                 applicationRepository,
                 domainService,
                 cloudProviderParametersRepository,
                 configDeploymentParamsCopyRepository,
-                encryptionService
+                encryptionService,
+                secretService
         );
 
     }

@@ -26,9 +26,6 @@ import uk.ac.ebi.tsc.portal.clouddeployment.utils.SSHKeyGenerator;
 import uk.ac.ebi.tsc.portal.usage.deployment.model.DeploymentDocument;
 import uk.ac.ebi.tsc.portal.usage.deployment.model.ParameterDocument;
 import uk.ac.ebi.tsc.portal.usage.deployment.service.DeploymentIndexService;
-import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
-import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.SecretGenerator;
-
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -66,7 +63,6 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 	@Value("${elasticsearch.password}")
 	private String elasticSearchPassword;
 
-    private StopMeSecretService secretService;
 
 	@Autowired
 	public ApplicationDeployerBash(DeploymentRepository deploymentRepository,
@@ -124,8 +120,10 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 		logs.createNewFile();
 		processBuilder.redirectOutput(logs);
 		processBuilder.redirectErrorStream(true);
-		
+
+        logger.info("Looking for deployment " + reference);
 		Deployment theDeployment = deploymentService.findByReference(reference);
+        logger.info("Can't find deployment " + reference);
 
 		Map<String, String> env = processBuilder.environment();
 		ApplicationDeployerHelper.addGenericProviderCreds(env, cloudProviderParametersCopy, logger);
