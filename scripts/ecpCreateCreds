@@ -1,0 +1,8 @@
+
+
+file="$1"
+
+read -p "OS_PASSWORD: " -s passwd
+
+m4 -DM4_PASSWORD="$passwd" "$file" | ecp --dev create creds -f -
+
