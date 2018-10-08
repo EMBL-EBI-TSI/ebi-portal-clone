@@ -87,6 +87,10 @@ public class ApplicationService {
 				logger.error("Could not add all shared applications from team " + memberTeam.getName());
 			}
 		}
+		//print the shared application info
+		for(Application a: sharedApplications){
+			logger.info("Application name: " + a.getName() + "from repo " + a.getRepoPath());
+		}
 		return sharedApplications;
 	}
 
