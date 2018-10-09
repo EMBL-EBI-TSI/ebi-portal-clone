@@ -36,6 +36,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -392,7 +393,7 @@ public class DeploymentRestControllerTest {
 		when(applicationRepository.findByAccountUsernameAndName(accountUserName, appName))
 		.thenReturn(Optional.of(applicationMock));
 
-		subject.addDeployment(principal, deploymentResourceMock);
+		subject.addDeployment(new MockHttpServletRequest(), principal, deploymentResourceMock);
 
 	}
 
@@ -551,7 +552,7 @@ public class DeploymentRestControllerTest {
 		given(deployment.getAccount()).willReturn(account);
 		given(deployment.getDeploymentApplication()).willReturn(deploymentApplication);
 
-		ResponseEntity<?> addedDeployment = subject.addDeployment(principal, input);
+		ResponseEntity<?> addedDeployment = subject.addDeployment(new MockHttpServletRequest(), principal, input);
 		assertNotNull(addedDeployment.getBody());
 		assertTrue(addedDeployment.getStatusCode().equals(HttpStatus.CREATED));
 		assertTrue(application.getCloudProviders().containsAll(deploymentApplication.getCloudProviders()));
@@ -585,7 +586,7 @@ public class DeploymentRestControllerTest {
 		given(applicationRepository.findByAccountUsernameAndName(username,applicationName)).willReturn(Optional.of(application));
 		given(applicationService.findByAccountUsernameAndName(username,applicationName)).willCallRealMethod();
 
-		ResponseEntity<?> addedDeployment = subject.addDeployment(principal, input);
+		ResponseEntity<?> addedDeployment = subject.addDeployment(new MockHttpServletRequest(), principal, input);
 	}
 
 
@@ -617,7 +618,7 @@ public class DeploymentRestControllerTest {
 		given(applicationRepository.findByAccountUsernameAndName(username,applicationName)).willReturn(Optional.of(application));
 		given(applicationService.findByAccountUsernameAndName(username,applicationName)).willCallRealMethod();
 
-		ResponseEntity<?> addedDeployment = subject.addDeployment(principal, input);
+		ResponseEntity<?> addedDeployment = subject.addDeployment(new MockHttpServletRequest(), principal, input);
 	}
 
 	@Test(expected = InvalidApplicationInputException.class)
@@ -630,7 +631,7 @@ public class DeploymentRestControllerTest {
 		DeploymentResource input = mock(DeploymentResource.class);
 		given(input.getApplicationName()).willReturn(null);
 
-		ResponseEntity<?> addedDeployment = subject.addDeployment(principal, input);
+		ResponseEntity<?> addedDeployment = subject.addDeployment(new MockHttpServletRequest(), principal, input);
 	}
 
 	@Test(expected = InvalidApplicationInputException.class)
@@ -643,7 +644,7 @@ public class DeploymentRestControllerTest {
 		DeploymentResource input = mock(DeploymentResource.class);
 		given(input.getApplicationAccountUsername()).willReturn(null);
 
-		ResponseEntity<?> addedDeployment = subject.addDeployment(principal, input);
+		ResponseEntity<?> addedDeployment = subject.addDeployment(new MockHttpServletRequest(), principal, input);
 	}
 
 	@Test(expected=ApplicationNotFoundException.class)
@@ -680,7 +681,7 @@ public class DeploymentRestControllerTest {
 		given(applicationRepository.findByAccountUsernameAndName(username,applicationName)).willThrow(ApplicationNotFoundException.class);
 		given(applicationService.findByAccountUsernameAndName(username,applicationName)).willCallRealMethod();
 
-		ResponseEntity<?> addedDeployment = subject.addDeployment(principal, input);
+		ResponseEntity<?> addedDeployment = subject.addDeployment(new MockHttpServletRequest(), principal, input);
 
 	}
 

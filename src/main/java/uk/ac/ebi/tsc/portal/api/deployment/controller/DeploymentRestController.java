@@ -56,6 +56,8 @@ import uk.ac.ebi.tsc.portal.usage.tracker.DeploymentStatusTracker;
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
+import javax.servlet.http.HttpServletRequest;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -189,7 +191,7 @@ public class DeploymentRestController {
 	}
 
 	@RequestMapping(method = RequestMethod.POST)
-	public ResponseEntity<?> addDeployment(Principal principal, @RequestBody DeploymentResource input)
+	public ResponseEntity<?> addDeployment(HttpServletRequest request, Principal principal, @RequestBody DeploymentResource input)
 			throws IOException, NoSuchPaddingException, InvalidKeyException,
 			NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException,
 			InvalidAlgorithmParameterException, InvalidKeySpecException, NoSuchProviderException, ApplicationDeployerException {
@@ -397,7 +399,8 @@ public class DeploymentRestController {
 				cloudProviderParametersCopy,
 				configuration,
 				new java.sql.Timestamp(startTime.getTime()),
-				input.getUserSshKey()
+				input.getUserSshKey(),
+				baseURL(request)
 		);
 
 		// set input assignments
@@ -479,6 +482,11 @@ public class DeploymentRestController {
 
 		return new ResponseEntity<>(deploymentResource, httpHeaders, HttpStatus.CREATED);
 	}
+
+	private String baseURL(HttpServletRequest request) {
+	    
+	    return String.format("https://%s", request.getServerName());
+    }
 
 	private String getCloudProviderPathFromApplication(Application application, String cloudProvider) {
 		Iterator<ApplicationCloudProvider> it = application.getCloudProviders().iterator();
