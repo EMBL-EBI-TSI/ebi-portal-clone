@@ -58,9 +58,13 @@ import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import javax.servlet.http.HttpServletRequest;
 
+import static java.lang.String.format;
+
 import java.io.File;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URI;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -483,9 +487,26 @@ public class DeploymentRestController {
 		return new ResponseEntity<>(deploymentResource, httpHeaders, HttpStatus.CREATED);
 	}
 
-	private String baseURL(HttpServletRequest request) {
+	String baseURL(HttpServletRequest request) throws MalformedURLException {
 	    
-	    return String.format("https://%s", request.getServerName());
+	    String requestUrl = request.getRequestURL().toString(); // includes the server path
+	    
+	    // Let's remove it
+	    URL url = new URL(requestUrl);
+	    
+        return String.format("%s://%s%s" , url.getProtocol()
+	                                     , url.getHost()
+	                                     , getPortStr(url)
+	                                     );
+    }
+
+    String getPortStr(URL url) {
+        
+        int port = url.getPort();
+	    
+	    return port == -1 ? ""
+                          : format(":%d", port)
+  	                      ;
     }
 
 	private String getCloudProviderPathFromApplication(Application application, String cloudProvider) {
