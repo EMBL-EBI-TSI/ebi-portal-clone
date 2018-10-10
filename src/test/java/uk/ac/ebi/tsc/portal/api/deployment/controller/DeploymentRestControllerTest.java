@@ -443,26 +443,36 @@ public class DeploymentRestControllerTest {
 		given(teamRepository.findByDomainReference(domainReference)).willReturn(Optional.of(team));
 		given(teamService.findByDomainReference(domainReference)).willCallRealMethod();
 		
+		//application
+		given(input.getApplicationAccountUsername()).willReturn(username);
+		String applicationName = "applicationName";
+		given(input.getApplicationName()).willReturn(applicationName);
+		Application application = mock(Application.class);
+		given(application.getName()).willReturn(applicationName);
+		given(applicationRepository.findByAccountUsernameAndName(username,applicationName)).willReturn(Optional.of(application));
+		given(applicationService.findByAccountUsernameAndName(username,applicationName)).willReturn(application);
+
 		//set up teams, sharedwith user is a member of only one of these teams
 		Set<Account> teamAccounts = new HashSet<>();
 		teamAccounts.add(account);
 		teamAccounts.add(owner);
 		given(team.getAccountsBelongingToTeam()).willReturn(teamAccounts);
 		Set<Team> sharedWithTeams = new HashSet<>();
-		Team secondTeam = mock(Team.class);
 		sharedWithTeams.add(team);
-		sharedWithTeams.add(secondTeam);
 		
-		//application
-		given(input.getApplicationAccountUsername()).willReturn(username);
-		String applicationName = "applicationName";
-		given(input.getApplicationName()).willReturn(applicationName);
-		Application application = mock(Application.class);
+		//application is shared not owned
+		given(applicationRepository.findByAccountUsernameAndName(sharedWithUsername,applicationName))
+		.willThrow(ApplicationNotFoundException.class);
+		given(applicationService.findByAccountUsernameAndName(sharedWithUsername,applicationName))
+		.willThrow(ApplicationNotFoundException.class);
+		
+		Set<Application> applications = new HashSet<>();
+		applications.add(application);
+		given(team.getApplicationsBelongingToTeam()).willReturn(applications);
 		when(application.getSharedWithTeams()).thenReturn(sharedWithTeams);
-		given(application.getName()).willReturn(applicationName);
-		given(applicationRepository.findByAccountUsernameAndName(username,applicationName)).willReturn(Optional.of(application));
-		given(applicationService.findByAccountUsernameAndName(username,applicationName)).willReturn(application);
-		given(applicationService.isApplicationSharedWithAccount(team, account, application)).willCallRealMethod();
+		
+		given(account.getMemberOfTeams()).willReturn(sharedWithTeams);
+		given(applicationService.isApplicationSharedWithAccount(account, application)).willCallRealMethod();
 		
 		//configuration
 		String configurationName = "config";
@@ -509,7 +519,7 @@ public class DeploymentRestControllerTest {
 		given(selectedCloudProviderParameters.getReference()).willReturn(cloudProviderParametersReference);
 		String cloudProvider = "ostack";
 		given(selectedCloudProviderParameters.getCloudProvider()).willReturn(cloudProvider);
-		given(cloudProviderParametersService.isCloudProviderParametersSharedWithAccount(team, account, selectedCloudProviderParameters)).willCallRealMethod();
+		given(cloudProviderParametersService.isCloudProviderParametersSharedWithAccount(account, selectedCloudProviderParameters)).willCallRealMethod();
 		
 		//application cloud providers
 		Collection<ApplicationCloudProvider> acpList = new ArrayList<>();

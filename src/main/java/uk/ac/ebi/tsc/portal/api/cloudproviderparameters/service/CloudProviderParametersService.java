@@ -59,7 +59,7 @@ public class CloudProviderParametersService {
 	private final DomainService domainService;
 	private final CloudProviderParamsCopyService cloudProviderParametersCopyService;
 	private final EncryptionService encryptionService;
-	
+
 	@Autowired
 	public CloudProviderParametersService(CloudProviderParametersRepository cloudProviderParametersRepository,
 			DomainService domainService,
@@ -70,7 +70,7 @@ public class CloudProviderParametersService {
 		this.cloudProviderParametersCopyService = cloudProviderParametersCopyService;
 		this.encryptionService = encryptionService;
 	}
-	
+
 	public Collection<CloudProviderParameters> findByAccountUsername(String username) throws InvalidAlgorithmParameterException, InvalidKeyException, NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeySpecException, IOException, BadPaddingException, IllegalBlockSizeException {
 		Collection<CloudProviderParameters> encryptedRes = this.cloudProviderParametersRepository.findByAccountUsername(username);
 		return decryptAll(encryptedRes);
@@ -116,13 +116,13 @@ public class CloudProviderParametersService {
 		cloudProviderParameters.getFields().forEach(field -> {
 			paramValues.put(field.getKey(), field.getValue());
 		});
-	
+
 		Map<String, String> encyptedValues = encryptionService.encrypt(paramValues);
 		for (CloudProviderParametersField cloudProviderParametersField : cloudProviderParameters.getFields()) {
 			cloudProviderParametersField.setValue(
 					encyptedValues.get(cloudProviderParametersField.getKey()));
 		}
-		
+
 		return this.cloudProviderParametersRepository.save(cloudProviderParameters);
 	}
 
@@ -142,23 +142,23 @@ public class CloudProviderParametersService {
 	private Collection<CloudProviderParameters> decryptAll(Collection<CloudProviderParameters> encryptedAll) {
 
 		Collection<CloudProviderParameters> decryptedRes = new LinkedList<>();
-		
+
 		encryptedAll.forEach(encryptedCloudProviderParameters -> {
 			decryptedRes.add(decryptOne(encryptedCloudProviderParameters));
 		});
-		
+
 		return decryptedRes;
 	}
 
 	private CloudProviderParameters decryptOne(CloudProviderParameters encryptedCloudProviderParameters) {
-		
+
 		Map<String, String> paramValues = new HashMap<>();
 		encryptedCloudProviderParameters.getFields().forEach(field -> {
 			paramValues.put(field.getKey(), field.getValue());
 		});
-		
+
 		Map<String, String> decryptedValues = encryptionService.decryptOne(paramValues);
-		
+
 		CloudProviderParameters decryptedCloudProviderParameters =
 				new CloudProviderParameters(
 						encryptedCloudProviderParameters.getName(),
@@ -180,7 +180,7 @@ public class CloudProviderParametersService {
 		decryptedCloudProviderParameters.setSharedWith(encryptedCloudProviderParameters.getSharedWith());
 		decryptedCloudProviderParameters.setSharedWithTeams(encryptedCloudProviderParameters.getSharedWithTeams());
 		decryptedCloudProviderParameters.setReference(encryptedCloudProviderParameters.getReference());
-	
+
 		return decryptedCloudProviderParameters;
 	}
 
@@ -378,17 +378,13 @@ public class CloudProviderParametersService {
 			}
 		}
 	}
-	
-	public boolean isCloudProviderParametersSharedWithAccount(Team team, Account account, CloudProviderParameters cloudParameters){
-		if( (cloudParameters.getSharedWithTeams().contains(team)) && (team.getAccountsBelongingToTeam().contains(account)) ){
-			return true;
-		}else{
-			if(account.getMemberOfTeams().stream().anyMatch(t ->
-			t.getCppBelongingToTeam().stream().anyMatch(c -> c.equals(cloudParameters)))){
-				return true;
-			}
-			return false;
-		}
-	}
 
+	public boolean isCloudProviderParametersSharedWithAccount(Account account, CloudProviderParameters cloudParameters){
+
+		if(account.getMemberOfTeams().stream().anyMatch(t ->
+		t.getCppBelongingToTeam().stream().anyMatch(c -> c.equals(cloudParameters)))){
+			return true;
+		}
+		return false;
+	}
 }
