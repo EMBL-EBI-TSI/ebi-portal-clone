@@ -57,9 +57,15 @@ import uk.ac.ebi.tsc.portal.usage.tracker.DeploymentStatusTracker;
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
+import javax.servlet.http.HttpServletRequest;
+
+import static java.lang.String.format;
+
 import java.io.File;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URI;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -190,7 +196,7 @@ public class DeploymentRestController {
 	}
 
 	@RequestMapping(method = RequestMethod.POST)
-	public ResponseEntity<?> addDeployment(Principal principal, @RequestBody DeploymentResource input)
+	public ResponseEntity<?> addDeployment(HttpServletRequest request, Principal principal, @RequestBody DeploymentResource input)
 			throws IOException, NoSuchPaddingException, InvalidKeyException,
 			NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException,
 			InvalidAlgorithmParameterException, InvalidKeySpecException, NoSuchProviderException, ApplicationDeployerException {
@@ -377,15 +383,16 @@ public class DeploymentRestController {
 				input.getAssignedInputs()!=null ?
 						input.getAssignedInputs().stream().collect(Collectors.toMap(s -> s.getInputName(), s-> s.getAssignedValue()))
 						: null,
-						//the following based on precedence discussion might change, so placeholder here
-						deploymentParameterKV!=null ? deploymentParameterKV :null,
-								input.getAttachedVolumes()!=null? toProviderIdHashMap(input.getAttachedVolumes()) : null,
-										deploymentParameterKV!=null ? deploymentParameterKV :null,
-												cloudProviderParametersCopy,
-												configuration,
-												new java.sql.Timestamp(startTime.getTime()),
-												input.getUserSshKey()
-				);
+				//the following based on precedence discussion might change, so placeholder here
+				deploymentParameterKV!=null ? deploymentParameterKV :null,
+				input.getAttachedVolumes()!=null? toProviderIdHashMap(input.getAttachedVolumes()) : null,
+				deploymentParameterKV!=null ? deploymentParameterKV :null,
+				cloudProviderParametersCopy,
+				configuration,
+				new java.sql.Timestamp(startTime.getTime()),
+				input.getUserSshKey(),
+				baseURL(request)
+		);
 
 		// set input assignments
 		if (input.getAssignedInputs()!=null) {
@@ -466,6 +473,28 @@ public class DeploymentRestController {
 
 		return new ResponseEntity<>(deploymentResource, httpHeaders, HttpStatus.CREATED);
 	}
+
+	String baseURL(HttpServletRequest request) throws MalformedURLException {
+	    
+	    String requestUrl = request.getRequestURL().toString(); // includes the server path
+	    
+	    // Let's remove it
+	    URL url = new URL(requestUrl);
+	    
+        return String.format("%s://%s%s" , url.getProtocol()
+	                                     , url.getHost()
+	                                     , getPortStr(url)
+	                                     );
+    }
+
+    String getPortStr(URL url) {
+        
+        int port = url.getPort();
+	    
+	    return port == -1 ? ""
+                          : format(":%d", port)
+  	                      ;
+    }
 
 	private String getCloudProviderPathFromApplication(Application application, String cloudProvider) {
 		Iterator<ApplicationCloudProvider> it = application.getCloudProviders().iterator();

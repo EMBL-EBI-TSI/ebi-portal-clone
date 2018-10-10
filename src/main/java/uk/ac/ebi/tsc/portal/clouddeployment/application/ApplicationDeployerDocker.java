@@ -76,7 +76,8 @@ public class ApplicationDeployerDocker extends AbstractApplicationDeployer {
                        CloudProviderParamsCopy cloudProviderParametersCopy,
                        Configuration configuration,
                        java.sql.Timestamp startTime,
-                       String userSshKey)  throws IOException,
+                       String userSshKey,
+                       String baseUrl)  throws IOException,
             ApplicationDeployerException, NoSuchAlgorithmException, NoSuchProviderException {
 
         throw new NotImplementedException();

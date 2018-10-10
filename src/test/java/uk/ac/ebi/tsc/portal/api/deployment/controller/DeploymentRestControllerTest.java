@@ -27,6 +27,7 @@ import java.util.Set;
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
+import javax.servlet.http.HttpServletRequest;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -36,6 +37,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -392,7 +394,7 @@ public class DeploymentRestControllerTest {
 		when(applicationRepository.findByAccountUsernameAndName(accountUserName, appName))
 		.thenReturn(Optional.of(applicationMock));
 
-		subject.addDeployment(principal, deploymentResourceMock);
+		subject.addDeployment(new MockHttpServletRequest(), principal, deploymentResourceMock);
 
 	}
 
@@ -561,7 +563,7 @@ public class DeploymentRestControllerTest {
 		given(deployment.getAccount()).willReturn(account);
 		given(deployment.getDeploymentApplication()).willReturn(deploymentApplication);
 
-		ResponseEntity<?> addedDeployment = subject.addDeployment(principal, input);
+		ResponseEntity<?> addedDeployment = subject.addDeployment(new MockHttpServletRequest(), principal, input);
 		assertNotNull(addedDeployment.getBody());
 		assertTrue(addedDeployment.getStatusCode().equals(HttpStatus.CREATED));
 		assertTrue(application.getCloudProviders().containsAll(deploymentApplication.getCloudProviders()));
@@ -595,7 +597,7 @@ public class DeploymentRestControllerTest {
 		given(applicationRepository.findByAccountUsernameAndName(username,applicationName)).willReturn(Optional.of(application));
 		given(applicationService.findByAccountUsernameAndName(username,applicationName)).willCallRealMethod();
 
-		ResponseEntity<?> addedDeployment = subject.addDeployment(principal, input);
+		ResponseEntity<?> addedDeployment = subject.addDeployment(new MockHttpServletRequest(), principal, input);
 	}
 
 
@@ -627,7 +629,7 @@ public class DeploymentRestControllerTest {
 		given(applicationRepository.findByAccountUsernameAndName(username,applicationName)).willReturn(Optional.of(application));
 		given(applicationService.findByAccountUsernameAndName(username,applicationName)).willCallRealMethod();
 
-		ResponseEntity<?> addedDeployment = subject.addDeployment(principal, input);
+		ResponseEntity<?> addedDeployment = subject.addDeployment(new MockHttpServletRequest(), principal, input);
 	}
 
 	@Test(expected = InvalidApplicationInputException.class)
@@ -640,7 +642,7 @@ public class DeploymentRestControllerTest {
 		DeploymentResource input = mock(DeploymentResource.class);
 		given(input.getApplicationName()).willReturn(null);
 
-		ResponseEntity<?> addedDeployment = subject.addDeployment(principal, input);
+		ResponseEntity<?> addedDeployment = subject.addDeployment(new MockHttpServletRequest(), principal, input);
 	}
 
 	@Test(expected = InvalidApplicationInputException.class)
@@ -653,7 +655,7 @@ public class DeploymentRestControllerTest {
 		DeploymentResource input = mock(DeploymentResource.class);
 		given(input.getApplicationAccountUsername()).willReturn(null);
 
-		ResponseEntity<?> addedDeployment = subject.addDeployment(principal, input);
+		ResponseEntity<?> addedDeployment = subject.addDeployment(new MockHttpServletRequest(), principal, input);
 	}
 
 	@Test(expected=ApplicationNotFoundException.class)
@@ -690,7 +692,7 @@ public class DeploymentRestControllerTest {
 		given(applicationRepository.findByAccountUsernameAndName(username,applicationName)).willThrow(ApplicationNotFoundException.class);
 		given(applicationService.findByAccountUsernameAndName(username,applicationName)).willCallRealMethod();
 
-		ResponseEntity<?> addedDeployment = subject.addDeployment(principal, input);
+		ResponseEntity<?> addedDeployment = subject.addDeployment(new MockHttpServletRequest(), principal, input);
 
 	}
 
@@ -722,5 +724,46 @@ public class DeploymentRestControllerTest {
 		when(cdps.getReference()).thenReturn(reference);
 		return mockDeployment;
 	}
+	
+	@Test
+    public void baseUrl() throws Exception {
+	    
+        /*	    
+            Portal Dev          https://dev.api.portal.tsi.ebi.ac.uk
+            Portal Master       https://api.portal.tsi.ebi.ac.uk
+            Local Deployment    http://localhost:8080
+            
+            With server path    https://api.portal.tsi.ebi.ac.uk/deployments/TSI000000000000001/stopme
+            
+         */
+	    
+	    assertEquals( "http://localhost:8080"               , subject.baseURL(mockRequest("localhost", 8080)) );
+	    assertEquals( "http://dev.api.portal.tsi.ebi.ac.uk" , subject.baseURL(mockRequest("dev.api.portal.tsi.ebi.ac.uk")) );
+	    assertEquals( "http://api.portal.tsi.ebi.ac.uk"     , subject.baseURL(mockRequest("api.portal.tsi.ebi.ac.uk", -1, "/deployments/TSI000000000000001/stopme")) );
+    }
 
+	MockHttpServletRequest mockRequest(String host)            {  return mockRequest(host, -1);	          }
+	MockHttpServletRequest mockRequest(String host, int port)  {  return mockRequest(host, port, null);   }
+	
+    MockHttpServletRequest mockRequest(String host, int port, String path) {
+        
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        
+        if (path != null)
+            request.setRequestURI(path);
+	    
+//	    request.setLocalPort(8080);
+//	    request.setRemotePort(8080);
+        
+        if (port != -1)
+            request.setServerPort(port);
+	    
+//	    request.setProtocol("https");
+	    
+//	    request.setRemoteHost("remoteHost");
+//	    request.setLocalName("remoteHost");
+	    request.setServerName(host);
+	    
+        return request;
+    }
 }
