@@ -380,9 +380,8 @@ public class CloudProviderParametersService {
 	}
 
 	public boolean isCloudProviderParametersSharedWithAccount(Account account, CloudProviderParameters cloudParameters){
-
 		if(account.getMemberOfTeams().stream().anyMatch(t ->
-		t.getCppBelongingToTeam().stream().anyMatch(c -> c.equals(cloudParameters)))){
+		t.getCppBelongingToTeam().stream().anyMatch(c -> c.getReference().equals(cloudParameters.getReference())))){
 			return true;
 		}
 		return false;
