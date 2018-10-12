@@ -33,10 +33,7 @@ import uk.ac.ebi.tsc.portal.api.configuration.controller.InvalidConfigurationInp
 import uk.ac.ebi.tsc.portal.api.configuration.repo.*;
 import uk.ac.ebi.tsc.portal.api.configuration.service.*;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.*;
-import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentApplicationService;
-import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentConfigurationService;
-import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentNotFoundException;
-import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
+import uk.ac.ebi.tsc.portal.api.deployment.service.*;
 import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
 import uk.ac.ebi.tsc.portal.api.error.MissingParameterException;
 import uk.ac.ebi.tsc.portal.api.team.repo.Team;
@@ -102,6 +99,8 @@ public class DeploymentRestController {
 
 	private final DeploymentService deploymentService;
 
+	private final DeploymentGeneratedOutputService deploymentGeneratedOutputService;
+
 	private final AccountService accountService;
 
 	private final ApplicationService applicationService;
@@ -132,30 +131,30 @@ public class DeploymentRestController {
 
 	@Autowired
 	DeploymentRestController(DeploymentRepository deploymentRepository,
-			DeploymentStatusRepository deploymentStatusRepository,
-			AccountRepository accountRepository,
-			ApplicationRepository applicationRepository,
-			VolumeInstanceRepository volumeInstanceRepository,
-			VolumeInstanceStatusRepository volumeInstanceStatusRepository,
-			CloudProviderParametersRepository cloudProviderParametersRepository,
-			ConfigurationRepository configurationRepository,
-			TeamRepository teamRepository,
-			ApplicationDeployerBash applicationDeployerBash,
+							 DeploymentStatusRepository deploymentStatusRepository,
+							 AccountRepository accountRepository,
+							 ApplicationRepository applicationRepository,
+							 VolumeInstanceRepository volumeInstanceRepository,
+							 VolumeInstanceStatusRepository volumeInstanceStatusRepository,
+							 CloudProviderParametersRepository cloudProviderParametersRepository,
+							 ConfigurationRepository configurationRepository,
+							 TeamRepository teamRepository,
+							 ApplicationDeployerBash applicationDeployerBash,
 
-			DeploymentStatusTracker deploymentStatusTracker,
+							 DeploymentStatusTracker deploymentStatusTracker,
 
-			ConfigurationDeploymentParametersRepository deploymentParametersRepository,
-			DomainService domainService,
-			DeploymentConfigurationRepository deploymentConfigurationRepository,
-			DeploymentApplicationRepository deploymentApplicationRepository,
+							 ConfigurationDeploymentParametersRepository deploymentParametersRepository,
+							 DomainService domainService,
+							 DeploymentConfigurationRepository deploymentConfigurationRepository,
+							 DeploymentApplicationRepository deploymentApplicationRepository,
 
-			CloudProviderParamsCopyRepository cloudProviderParametersCopyRepository,
-			ConfigDeploymentParamsCopyRepository configDeploymentParamsCopyRepository,
-			EncryptionService encryptionService,
-			StopMeSecretService stopMeSecretService,
-
-			@Value("${ecp.security.salt}") final String salt, 
-			@Value("${ecp.security.password}") final String password
+							 CloudProviderParamsCopyRepository cloudProviderParametersCopyRepository,
+							 ConfigDeploymentParamsCopyRepository configDeploymentParamsCopyRepository,
+							 EncryptionService encryptionService,
+							 StopMeSecretService stopMeSecretService,
+							 DeploymentGeneratedOutputService deploymentGeneratedOutputService,
+							 @Value("${ecp.security.salt}") final String salt,
+							 @Value("${ecp.security.password}") final String password
 			) {
 		this.cloudProviderParametersCopyService = new CloudProviderParamsCopyService(cloudProviderParametersCopyRepository, encryptionService);
 		this.deploymentService = new DeploymentService(deploymentRepository, deploymentStatusRepository);
@@ -178,8 +177,8 @@ public class DeploymentRestController {
 		this.configDeploymentParamsCopyService = new ConfigDeploymentParamsCopyService(configDeploymentParamsCopyRepository);
 		this.teamService = new TeamService(teamRepository, accountRepository, domainService,
 				deploymentService, cloudProviderParametersCopyService, deploymentConfigurationService, applicationDeployerBash);
-
 		this.stopMeSecretService = stopMeSecretService;
+		this.deploymentGeneratedOutputService = deploymentGeneratedOutputService;
 	}
 
 	/* useful to inject values without involving spring - i.e. tests */
@@ -587,7 +586,34 @@ public class DeploymentRestController {
 
 		return new Resources<>(
 				theDeployment.getGeneratedOutputs().stream().map(DeploymentGeneratedOutputResource::new).collect(Collectors.toList())
-				);
+		);
+	}
+
+	@RequestMapping(value = "/{deploymentReference}/outputs", method = RequestMethod.PUT)
+	public ResponseEntity<?> createDeploymentOutputsByReference( @PathVariable("deploymentReference") String                     deploymentReference
+			, @RequestBody                         HashMap<String, String>    body
+	) {
+		String secret = body.get("secret");
+		if (secret == null || secret.isEmpty()) {
+			throw new MissingParameterException("secret");
+		}
+		String key = body.get("key");
+		String value = body.get("value");
+		if (key == null || key.isEmpty() | value == null || value.isEmpty()) {
+			throw new MissingParameterException("key/value");
+		}
+		if(value.length() > 1024000)
+			return new ResponseEntity<>("Value exceeds more than the limit of 1MB",null,HttpStatus.BAD_REQUEST);
+		if (!stopMeSecretService.exists(deploymentReference, secret)) {
+			throw new DeploymentNotFoundException(deploymentReference+" and secret : "+secret);
+		}
+		if(deploymentGeneratedOutputService.isExistDeploymentGeneratedOutput(deploymentReference,key))
+		return new ResponseEntity<>("",null,HttpStatus.CONFLICT);
+
+		Deployment theDeployment = deploymentService.findByReference(deploymentReference);
+		DeploymentGeneratedOutput deploymentGeneratedOutput = new DeploymentGeneratedOutput(key,value,theDeployment);
+		deploymentGeneratedOutputService.saveDeploymentGeneratedOutput(deploymentGeneratedOutput);
+		return new ResponseEntity<>(null,null,HttpStatus.NO_CONTENT);
 	}
 
 	@RequestMapping(value = "/{deploymentReference}/logs", method = RequestMethod.GET)

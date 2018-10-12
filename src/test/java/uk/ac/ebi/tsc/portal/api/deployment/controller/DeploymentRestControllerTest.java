@@ -16,13 +16,7 @@ import java.security.NoSuchProviderException;
 import java.security.Principal;
 import java.security.spec.InvalidKeySpecException;
 import java.sql.Date;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Properties;
-import java.util.Set;
+import java.util.*;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
@@ -75,11 +69,9 @@ import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentConfiguration;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentConfigurationRepository;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentRepository;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentStatusRepository;
-import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentApplicationService;
-import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentConfigurationService;
-import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentNotFoundException;
-import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
+import uk.ac.ebi.tsc.portal.api.deployment.service.*;
 import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
+import uk.ac.ebi.tsc.portal.api.error.MissingParameterException;
 import uk.ac.ebi.tsc.portal.api.team.repo.Team;
 import uk.ac.ebi.tsc.portal.api.team.repo.TeamRepository;
 import uk.ac.ebi.tsc.portal.api.team.service.TeamService;
@@ -148,6 +140,9 @@ public class DeploymentRestControllerTest {
 
 	@MockBean
 	DeploymentApplicationService deploymentApplicationService;
+
+	@MockBean
+	DeploymentGeneratedOutputService deploymentGeneratedOutputService;
 
 	DeploymentRestController subject;
 
@@ -239,6 +234,7 @@ public class DeploymentRestControllerTest {
 				configurationDeploymentParamsCopyRepository,
 				encryptionService,
 				stopMeSecretService,
+				deploymentGeneratedOutputService,
 				salt,
 				password);
 
@@ -712,5 +708,69 @@ public class DeploymentRestControllerTest {
 		when(cdps.getReference()).thenReturn(reference);
 		return mockDeployment;
 	}
+
+	@Test(expected = MissingParameterException.class)
+	public void deployment_output_missing_secret() throws DeploymentNotFoundException{
+
+		String deploymentReference = "TSI000001";
+		HashMap<String,String> inputMap = new HashMap<>();
+		inputMap.put("key","limit");
+		inputMap.put("value","10");
+		subject.createDeploymentOutputsByReference(deploymentReference,inputMap);
+	}
+
+	@Test(expected = MissingParameterException.class)
+	public void deployment_output_missing_key() throws DeploymentNotFoundException{
+
+		String deploymentReference = "TSI000001";
+		HashMap<String,String> inputMap = new HashMap<>();
+		inputMap.put("secret","invalid_secret");
+		inputMap.put("value","10");
+		subject.createDeploymentOutputsByReference(deploymentReference,inputMap);
+	}
+
+	@Test(expected = DeploymentNotFoundException.class)
+	public void invalid_deployment_reference_secret() throws DeploymentNotFoundException{
+
+		String deploymentReference = "TSI000001";
+		HashMap<String,String> inputMap = new HashMap<>();
+		inputMap.put("secret","invalid_secret");
+		inputMap.put("key","limit");
+		inputMap.put("value","10");
+		given(stopMeSecretService.exists(deploymentReference,inputMap.get("secret"))).willThrow(DeploymentNotFoundException.class);
+		subject.createDeploymentOutputsByReference(deploymentReference,inputMap);
+	}
+
+	@Test
+	public void existing_deployment_output() {
+
+		String deploymentReference = "TSI000001";
+		HashMap<String,String> inputMap = new HashMap<>();
+		inputMap.put("secret","invalid_secret");
+		inputMap.put("key","limit");
+		inputMap.put("value","10");
+		given(stopMeSecretService.exists(deploymentReference,inputMap.get("secret"))).willReturn(true);
+		given(deploymentGeneratedOutputService.isExistDeploymentGeneratedOutput(deploymentReference,inputMap.get("key"))).willReturn(true);
+		ResponseEntity<?> deploymentGenOutput = subject.createDeploymentOutputsByReference(deploymentReference,inputMap);
+		assertEquals(deploymentGenOutput.getStatusCode(),HttpStatus.CONFLICT);
+	}
+
+	@Test
+	public void add_deployment_output() throws DeploymentNotFoundException{
+
+		String deploymentReference = "TSI000001";
+		HashMap<String,String> inputMap = new HashMap<>();
+		inputMap.put("secret","invalid_secret");
+		inputMap.put("key","limit");
+		inputMap.put("value","10");
+		Deployment theDeployment = mock(Deployment.class);
+		given(stopMeSecretService.exists(deploymentReference,inputMap.get("secret"))).willReturn(true);
+		given(deploymentGeneratedOutputService.isExistDeploymentGeneratedOutput(deploymentReference,inputMap.get("key"))).willReturn(false);
+		given(deploymentRepository.findByReference(deploymentReference)).willReturn(Optional.of(theDeployment));
+		given(deploymentService.findByReference(deploymentReference)).willCallRealMethod();
+		ResponseEntity<?> deploymentGenOutput = subject.createDeploymentOutputsByReference(deploymentReference,inputMap);
+		assertEquals(deploymentGenOutput.getStatusCode(),HttpStatus.NO_CONTENT);
+	}
+
 
 }
