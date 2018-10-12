@@ -71,8 +71,10 @@ public abstract class AbstractApplicationDeployer {
                                 CloudProviderParamsCopy cloudProviderParametersCopy,
                                 Configuration configuration,
                                 java.sql.Timestamp startTime,
-                                String userSshKey)  throws IOException,
-            ApplicationDeployerException, NoSuchAlgorithmException, NoSuchProviderException;
+                                String userSshKey,
+                                String baseUrl                    
+                               )
+                               throws IOException, ApplicationDeployerException, NoSuchAlgorithmException, NoSuchProviderException;
 
     public abstract StateFromTerraformOutput state(String repoPath,
                                           String reference,

@@ -87,6 +87,10 @@ public class ApplicationService {
 				logger.error("Could not add all shared applications from team " + memberTeam.getName());
 			}
 		}
+		//print the shared application info
+		for(Application a: sharedApplications){
+			logger.info("Application name: " + a.getName() + "from repo " + a.getRepoPath());
+		}
 		return sharedApplications;
 	}
 
@@ -120,16 +124,11 @@ public class ApplicationService {
 		return null;
 	}
 
-	public boolean isApplicationSharedWithAccount(Team team, Account account, Application application){
-		if( (team.getAccountsBelongingToTeam().contains(account)) && 
-				(application.getSharedWithTeams().contains(team)) ){
+	public boolean isApplicationSharedWithAccount(Account account, Application application){
+		if(account.getMemberOfTeams().stream().anyMatch(t ->
+		t.getApplicationsBelongingToTeam().stream().anyMatch(a -> a.equals(application)))){
 			return true;
-		}else{
-			if(account.getMemberOfTeams().stream().anyMatch(t ->
-			t.getApplicationsBelongingToTeam().stream().anyMatch(a -> a.equals(application)))){
-				return true;
-			}
-			return false;
 		}
+		return false;
 	}
 }

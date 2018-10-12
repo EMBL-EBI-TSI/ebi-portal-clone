@@ -21,6 +21,7 @@ import java.util.*;
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
+import javax.servlet.http.HttpServletRequest;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -30,6 +31,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -388,7 +390,7 @@ public class DeploymentRestControllerTest {
 		when(applicationRepository.findByAccountUsernameAndName(accountUserName, appName))
 		.thenReturn(Optional.of(applicationMock));
 
-		subject.addDeployment(principal, deploymentResourceMock);
+		subject.addDeployment(new MockHttpServletRequest(), principal, deploymentResourceMock);
 
 	}
 
@@ -439,26 +441,36 @@ public class DeploymentRestControllerTest {
 		given(teamRepository.findByDomainReference(domainReference)).willReturn(Optional.of(team));
 		given(teamService.findByDomainReference(domainReference)).willCallRealMethod();
 		
+		//application
+		given(input.getApplicationAccountUsername()).willReturn(username);
+		String applicationName = "applicationName";
+		given(input.getApplicationName()).willReturn(applicationName);
+		Application application = mock(Application.class);
+		given(application.getName()).willReturn(applicationName);
+		given(applicationRepository.findByAccountUsernameAndName(username,applicationName)).willReturn(Optional.of(application));
+		given(applicationService.findByAccountUsernameAndName(username,applicationName)).willReturn(application);
+
 		//set up teams, sharedwith user is a member of only one of these teams
 		Set<Account> teamAccounts = new HashSet<>();
 		teamAccounts.add(account);
 		teamAccounts.add(owner);
 		given(team.getAccountsBelongingToTeam()).willReturn(teamAccounts);
 		Set<Team> sharedWithTeams = new HashSet<>();
-		Team secondTeam = mock(Team.class);
 		sharedWithTeams.add(team);
-		sharedWithTeams.add(secondTeam);
 		
-		//application
-		given(input.getApplicationAccountUsername()).willReturn(username);
-		String applicationName = "applicationName";
-		given(input.getApplicationName()).willReturn(applicationName);
-		Application application = mock(Application.class);
+		//application is shared not owned
+		given(applicationRepository.findByAccountUsernameAndName(sharedWithUsername,applicationName))
+		.willThrow(ApplicationNotFoundException.class);
+		given(applicationService.findByAccountUsernameAndName(sharedWithUsername,applicationName))
+		.willThrow(ApplicationNotFoundException.class);
+		
+		Set<Application> applications = new HashSet<>();
+		applications.add(application);
+		given(team.getApplicationsBelongingToTeam()).willReturn(applications);
 		when(application.getSharedWithTeams()).thenReturn(sharedWithTeams);
-		given(application.getName()).willReturn(applicationName);
-		given(applicationRepository.findByAccountUsernameAndName(username,applicationName)).willReturn(Optional.of(application));
-		given(applicationService.findByAccountUsernameAndName(username,applicationName)).willReturn(application);
-		given(applicationService.isApplicationSharedWithAccount(team, account, application)).willCallRealMethod();
+		
+		given(account.getMemberOfTeams()).willReturn(sharedWithTeams);
+		given(applicationService.isApplicationSharedWithAccount(account, application)).willCallRealMethod();
 		
 		//configuration
 		String configurationName = "config";
@@ -505,7 +517,7 @@ public class DeploymentRestControllerTest {
 		given(selectedCloudProviderParameters.getReference()).willReturn(cloudProviderParametersReference);
 		String cloudProvider = "ostack";
 		given(selectedCloudProviderParameters.getCloudProvider()).willReturn(cloudProvider);
-		given(cloudProviderParametersService.isCloudProviderParametersSharedWithAccount(team, account, selectedCloudProviderParameters)).willCallRealMethod();
+		given(cloudProviderParametersService.isCloudProviderParametersSharedWithAccount(account, selectedCloudProviderParameters)).willCallRealMethod();
 		
 		//application cloud providers
 		Collection<ApplicationCloudProvider> acpList = new ArrayList<>();
@@ -547,7 +559,7 @@ public class DeploymentRestControllerTest {
 		given(deployment.getAccount()).willReturn(account);
 		given(deployment.getDeploymentApplication()).willReturn(deploymentApplication);
 
-		ResponseEntity<?> addedDeployment = subject.addDeployment(principal, input);
+		ResponseEntity<?> addedDeployment = subject.addDeployment(new MockHttpServletRequest(), principal, input);
 		assertNotNull(addedDeployment.getBody());
 		assertTrue(addedDeployment.getStatusCode().equals(HttpStatus.CREATED));
 		assertTrue(application.getCloudProviders().containsAll(deploymentApplication.getCloudProviders()));
@@ -581,7 +593,7 @@ public class DeploymentRestControllerTest {
 		given(applicationRepository.findByAccountUsernameAndName(username,applicationName)).willReturn(Optional.of(application));
 		given(applicationService.findByAccountUsernameAndName(username,applicationName)).willCallRealMethod();
 
-		ResponseEntity<?> addedDeployment = subject.addDeployment(principal, input);
+		ResponseEntity<?> addedDeployment = subject.addDeployment(new MockHttpServletRequest(), principal, input);
 	}
 
 
@@ -613,7 +625,7 @@ public class DeploymentRestControllerTest {
 		given(applicationRepository.findByAccountUsernameAndName(username,applicationName)).willReturn(Optional.of(application));
 		given(applicationService.findByAccountUsernameAndName(username,applicationName)).willCallRealMethod();
 
-		ResponseEntity<?> addedDeployment = subject.addDeployment(principal, input);
+		ResponseEntity<?> addedDeployment = subject.addDeployment(new MockHttpServletRequest(), principal, input);
 	}
 
 	@Test(expected = InvalidApplicationInputException.class)
@@ -626,7 +638,7 @@ public class DeploymentRestControllerTest {
 		DeploymentResource input = mock(DeploymentResource.class);
 		given(input.getApplicationName()).willReturn(null);
 
-		ResponseEntity<?> addedDeployment = subject.addDeployment(principal, input);
+		ResponseEntity<?> addedDeployment = subject.addDeployment(new MockHttpServletRequest(), principal, input);
 	}
 
 	@Test(expected = InvalidApplicationInputException.class)
@@ -639,7 +651,7 @@ public class DeploymentRestControllerTest {
 		DeploymentResource input = mock(DeploymentResource.class);
 		given(input.getApplicationAccountUsername()).willReturn(null);
 
-		ResponseEntity<?> addedDeployment = subject.addDeployment(principal, input);
+		ResponseEntity<?> addedDeployment = subject.addDeployment(new MockHttpServletRequest(), principal, input);
 	}
 
 	@Test(expected=ApplicationNotFoundException.class)
@@ -676,7 +688,7 @@ public class DeploymentRestControllerTest {
 		given(applicationRepository.findByAccountUsernameAndName(username,applicationName)).willThrow(ApplicationNotFoundException.class);
 		given(applicationService.findByAccountUsernameAndName(username,applicationName)).willCallRealMethod();
 
-		ResponseEntity<?> addedDeployment = subject.addDeployment(principal, input);
+		ResponseEntity<?> addedDeployment = subject.addDeployment(new MockHttpServletRequest(), principal, input);
 
 	}
 
@@ -772,5 +784,45 @@ public class DeploymentRestControllerTest {
 		assertEquals(deploymentGenOutput.getStatusCode(),HttpStatus.NO_CONTENT);
 	}
 
+	@Test
+	public void baseUrl() throws Exception {
 
+        /*
+            Portal Dev          https://dev.api.portal.tsi.ebi.ac.uk
+            Portal Master       https://api.portal.tsi.ebi.ac.uk
+            Local Deployment    http://localhost:8080
+
+            With server path    https://api.portal.tsi.ebi.ac.uk/deployments/TSI000000000000001/stopme
+
+         */
+
+		assertEquals( "http://localhost:8080"               , subject.baseURL(mockRequest("localhost", 8080)) );
+		assertEquals( "http://dev.api.portal.tsi.ebi.ac.uk" , subject.baseURL(mockRequest("dev.api.portal.tsi.ebi.ac.uk")) );
+		assertEquals( "http://api.portal.tsi.ebi.ac.uk"     , subject.baseURL(mockRequest("api.portal.tsi.ebi.ac.uk", -1, "/deployments/TSI000000000000001/stopme")) );
+	}
+
+	MockHttpServletRequest mockRequest(String host)            {  return mockRequest(host, -1);	          }
+	MockHttpServletRequest mockRequest(String host, int port)  {  return mockRequest(host, port, null);   }
+
+	MockHttpServletRequest mockRequest(String host, int port, String path) {
+
+		MockHttpServletRequest request = new MockHttpServletRequest();
+
+		if (path != null)
+			request.setRequestURI(path);
+
+//	    request.setLocalPort(8080);
+//	    request.setRemotePort(8080);
+
+		if (port != -1)
+			request.setServerPort(port);
+
+//	    request.setProtocol("https");
+
+//	    request.setRemoteHost("remoteHost");
+//	    request.setLocalName("remoteHost");
+		request.setServerName(host);
+
+		return request;
+	}
 }

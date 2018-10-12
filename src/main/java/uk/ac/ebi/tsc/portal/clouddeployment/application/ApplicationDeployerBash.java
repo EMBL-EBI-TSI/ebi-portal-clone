@@ -84,6 +84,7 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
         );
 	}
 
+	@Override
 	public void deploy(String userEmail,
 			Application theApplication,
 			String reference,
@@ -95,7 +96,8 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 			CloudProviderParamsCopy cloudProviderParametersCopy,
 			Configuration configuration,
 			java.sql.Timestamp startTime, 
-			String userSshKey) throws IOException,
+			String userSshKey,
+			String baseUrl) throws IOException,
 	ApplicationDeployerException, NoSuchAlgorithmException, NoSuchProviderException {
 
 		DeploymentIndexService deploymentIndexService = new DeploymentIndexService(
@@ -135,7 +137,9 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 		env.put("PORTAL_DEPLOYMENTS_ROOT", deploymentsRoot);
 		env.put("PORTAL_DEPLOYMENT_REFERENCE", reference);
 		env.put("PORTAL_APP_REPO_FOLDER", theApplication.repoPath);
-		env.put("PORTAL_STOP_ME_SECRET", secretService.create(theDeployment));
+		env.put("PORTAL_CALLBACK_SECRET", secretService.create(theDeployment));
+		env.put("PORTAL_BASE_URL", baseUrl);
+		
 		env.put("TF_VAR_key_pair", "demo-key"); 
 
 

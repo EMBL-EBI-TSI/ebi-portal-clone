@@ -1,3 +1,4 @@
+
 package uk.ac.ebi.tsc.portal.api.deployment.controller;
 
 import org.slf4j.Logger;
@@ -53,9 +54,15 @@ import uk.ac.ebi.tsc.portal.usage.tracker.DeploymentStatusTracker;
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
+import javax.servlet.http.HttpServletRequest;
+
+import static java.lang.String.format;
+
 import java.io.File;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URI;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -188,7 +195,7 @@ public class DeploymentRestController {
 	}
 
 	@RequestMapping(method = RequestMethod.POST)
-	public ResponseEntity<?> addDeployment(Principal principal, @RequestBody DeploymentResource input)
+	public ResponseEntity<?> addDeployment(HttpServletRequest request, Principal principal, @RequestBody DeploymentResource input)
 			throws IOException, NoSuchPaddingException, InvalidKeyException,
 			NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException,
 			InvalidAlgorithmParameterException, InvalidKeySpecException, NoSuchProviderException, ApplicationDeployerException {
@@ -215,35 +222,24 @@ public class DeploymentRestController {
 		Account configurationOwnerAccount = this.accountService.findByUsername(input.getConfigurationAccountUsername());
 		logger.debug("Found configuration owner account {}", configurationOwnerAccount.getGivenName());
 
-		//get the team
-		Team team = null;
-		if(input.getDomainReference() != null){
-			team = teamService.findByDomainReference(input.getDomainReference());
-		}
-
 		// Get the application
 		logger.info("Looking for application " + input.getApplicationName() + " for user " + account.getGivenName());
 		Application theApplication;
-		//if it is the account owner himself
-		if(input.getDomainReference() == null){
-			try{
-				theApplication = this.applicationService.findByAccountUsernameAndName(
-						account.getUsername(), input.getApplicationName());
-				logger.debug("The account user is the owner of the application");
-			}catch(ApplicationNotFoundException e){
-				throw new ApplicationNotFoundException(account.getGivenName(), input.getApplicationName());
+
+		try{
+			//if it is the account owner himself
+			theApplication = this.applicationService.findByAccountUsernameAndName(
+					account.getUsername(), input.getApplicationName());
+			logger.debug("The account user is the owner of the application");
+		}catch(ApplicationNotFoundException e){
+			//find if the application is shared with user
+			logger.debug("Account user is not application owner, checking if it has been shared with him" );
+			theApplication = this.applicationService.findByAccountUsernameAndName(
+					applicationOwnerAccount.getUsername(), input.getApplicationName());
+			if(!applicationService.isApplicationSharedWithAccount(account, theApplication)){
+				throw new ApplicationNotSharedException(account.getGivenName(), theApplication.getName());
 			}
-		}else{
-			try{
-				theApplication = this.applicationService.findByAccountUsernameAndName(
-						applicationOwnerAccount.getUsername(), input.getApplicationName());
-				if(!applicationService.isApplicationSharedWithAccount(team, account, theApplication)){
-					throw new ApplicationNotSharedException(account.getGivenName(), theApplication.getName());
-				}
-				logger.debug("Application " + theApplication.getName() + " has been shared with " + account.getGivenName());
-			}catch(ApplicationNotFoundException e){
-				throw new ApplicationNotFoundException(applicationOwnerAccount.getGivenName(), input.getApplicationName());
-			}
+			logger.debug("Application " + theApplication.getName() + " has been shared with " + account.getGivenName());
 		}
 
 
@@ -264,6 +260,7 @@ public class DeploymentRestController {
 			try{
 				configuration = this.configurationService.findByNameAndAccountUsername(
 						input.getConfigurationName(), configurationOwnerAccount.getUsername());
+				Team team = teamService.findByDomainReference(input.getDomainReference());
 				if(!configurationService.isConfigurationSharedWithAccount(team, account, configuration)){
 					throw new ConfigurationNotSharedException(account.getGivenName(), configuration.getName());
 				}
@@ -287,14 +284,10 @@ public class DeploymentRestController {
 				try{
 					selectedCloudProviderParameters = this.cloudProviderParametersService.findByReference(
 							configuration.getCloudProviderParametersReference());
-					if(input.getDomainReference() != null){
-						if(!cloudProviderParametersService.isCloudProviderParametersSharedWithAccount(team, account, selectedCloudProviderParameters)){
-							throw new CloudProviderParametersNotSharedException(account.getGivenName(), selectedCloudProviderParameters.getName());
-						}
-						logger.debug("Cloud provider parameters" + selectedCloudProviderParameters.getName() + " has been shared with " + account.getGivenName());
-					}else{
-						throw e;
+					if(!cloudProviderParametersService.isCloudProviderParametersSharedWithAccount(account, selectedCloudProviderParameters)){
+						throw new CloudProviderParametersNotSharedException(account.getGivenName(), selectedCloudProviderParameters.getName());
 					}
+					logger.debug("Cloud provider parameters" + selectedCloudProviderParameters.getName() + " has been shared with " + account.getGivenName());
 				}catch(CloudProviderParametersNotFoundException ex){
 					throw new CloudProviderParametersNotFoundException(credentialOwnerAccount.getUsername(), configuration.cloudProviderParametersName);
 				}
@@ -378,7 +371,7 @@ public class DeploymentRestController {
 				input.getUserSshKey(),
 				input.getDomainReference()
 				);
-        Deployment resDeployment = this.deploymentService.save(deployment);
+		Deployment resDeployment = this.deploymentService.save(deployment);
 
 		//Deploy
 		this.applicationDeployerBash.deploy(
@@ -396,7 +389,8 @@ public class DeploymentRestController {
 				cloudProviderParametersCopy,
 				configuration,
 				new java.sql.Timestamp(startTime.getTime()),
-				input.getUserSshKey()
+				input.getUserSshKey(),
+				baseURL(request)
 		);
 
 		// set input assignments
@@ -478,6 +472,28 @@ public class DeploymentRestController {
 
 		return new ResponseEntity<>(deploymentResource, httpHeaders, HttpStatus.CREATED);
 	}
+
+	String baseURL(HttpServletRequest request) throws MalformedURLException {
+	    
+	    String requestUrl = request.getRequestURL().toString(); // includes the server path
+	    
+	    // Let's remove it
+	    URL url = new URL(requestUrl);
+	    
+        return String.format("%s://%s%s" , url.getProtocol()
+	                                     , url.getHost()
+	                                     , getPortStr(url)
+	                                     );
+    }
+
+    String getPortStr(URL url) {
+        
+        int port = url.getPort();
+	    
+	    return port == -1 ? ""
+                          : format(":%d", port)
+  	                      ;
+    }
 
 	private String getCloudProviderPathFromApplication(Application application, String cloudProvider) {
 		Iterator<ApplicationCloudProvider> it = application.getCloudProviders().iterator();
@@ -657,52 +673,52 @@ public class DeploymentRestController {
 			return "There are no destroy logs for this deployment";
 		}
 	}
-	
+
 	@ExceptionHandler
-    @ResponseStatus(HttpStatus.NOT_ACCEPTABLE)
+	@ResponseStatus(HttpStatus.NOT_ACCEPTABLE)
 	VndErrors handleException(MissingParameterException e) {
-	    
-	    return new VndErrors("error", e.getMessage());
+
+		return new VndErrors("error", e.getMessage());
 	}
 
 	@RequestMapping(value = "/{deploymentReference}/stopme", method = RequestMethod.PUT)
 	public void stopMe( @PathVariable("deploymentReference") String                     deploymentReference
-                      , @RequestBody                         HashMap<String, String>    body
-                      )
-	        throws IOException, ApplicationDeployerException, NoSuchPaddingException, InvalidKeyException,
-	        NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException,
-	        InvalidAlgorithmParameterException, InvalidKeySpecException 
+			, @RequestBody                         HashMap<String, String>    body
+			)
+					throws IOException, ApplicationDeployerException, NoSuchPaddingException, InvalidKeyException,
+					NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException,
+					InvalidAlgorithmParameterException, InvalidKeySpecException 
 	{
-	    String secret = body.get("secret");
+		String secret = body.get("secret");
 
-	    if (secret == null || secret.isEmpty()) {
+		if (secret == null || secret.isEmpty()) {
 
-	        throw new MissingParameterException("secret");
-	    }
+			throw new MissingParameterException("secret");
+		}
 
-	    if (!stopMeSecretService.exists(deploymentReference, secret)) {
-	        
-	        throw new DeploymentNotFoundException(deploymentReference);
-	    }
-        
-	    stop(deploymentReference);
+		if (!stopMeSecretService.exists(deploymentReference, secret)) {
+
+			throw new DeploymentNotFoundException(deploymentReference);
+		}
+
+		stop(deploymentReference);
 	}
 
 	@RequestMapping(value = "/{deploymentReference}/stop", method = RequestMethod.PUT)
 	public ResponseEntity<?> stopByReference(@PathVariable("deploymentReference") String reference)
-           throws IOException, ApplicationDeployerException, NoSuchPaddingException, InvalidKeyException,
-           NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException,
-           InvalidAlgorithmParameterException, InvalidKeySpecException 
+			throws IOException, ApplicationDeployerException, NoSuchPaddingException, InvalidKeyException,
+			NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException,
+			InvalidAlgorithmParameterException, InvalidKeySpecException 
 	{
-        stop(reference);
-        
-        return new ResponseEntity<>(null, new HttpHeaders(), HttpStatus.OK);
+		stop(reference);
+
+		return new ResponseEntity<>(null, new HttpHeaders(), HttpStatus.OK);
 	}
-	
+
 	void stop(String reference)
-	throws IOException, ApplicationDeployerException, NoSuchPaddingException, InvalidKeyException,
-           NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException,
-           InvalidAlgorithmParameterException, InvalidKeySpecException 
+			throws IOException, ApplicationDeployerException, NoSuchPaddingException, InvalidKeyException,
+			NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException,
+			InvalidAlgorithmParameterException, InvalidKeySpecException 
 	{
 		logger.info("Stopping deployment '" + reference + "'");
 

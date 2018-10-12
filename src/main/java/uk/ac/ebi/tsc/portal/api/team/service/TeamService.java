@@ -506,11 +506,11 @@ public class TeamService {
 
 		// To keep track who to notify
 		List<String> toNotify = new ArrayList<>();
-		toNotify.add(account.getEmail());
 
 		deployments.forEach(deployment -> {
 			try{
 				this.stopDeployment(deployment);
+				toNotify.add(account.getEmail());
 			} catch (Exception e) {
 				logger.error("Failed to stop deployment " + deployment.getReference()
 				+ ", using team's shared configuration "
