@@ -5,7 +5,6 @@ import org.apache.http.MethodNotSupportedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.hateoas.Resources;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -53,8 +52,11 @@ import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
 import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
 import uk.ac.ebi.tsc.portal.api.team.repo.Team;
 import uk.ac.ebi.tsc.portal.api.team.repo.TeamRepository;
-import uk.ac.ebi.tsc.portal.api.team.service.*;
-import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployerBash;
+import uk.ac.ebi.tsc.portal.api.team.service.TeamNameInvalidInputException;
+import uk.ac.ebi.tsc.portal.api.team.service.TeamNotCreatedException;
+import uk.ac.ebi.tsc.portal.api.team.service.TeamNotFoundException;
+import uk.ac.ebi.tsc.portal.api.team.service.TeamService;
+import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployerDocker;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
@@ -121,7 +123,7 @@ public class TeamRestController {
 			DeploymentRestController deploymentRestController,
 			CloudProviderParamsCopyRepository cloudProviderParametersCopyRepository,
 			EncryptionService encryptionService,
-			ApplicationDeployerBash applicationDeployerBash){
+			ApplicationDeployerDocker applicationDeployer) {
 		this.cloudProviderParametersCopyService = new CloudProviderParamsCopyService(cloudProviderParametersCopyRepository, encryptionService);
 		this.accountService = new AccountService(accountRepository);
 		this.applicationService = new ApplicationService(applicationRepository, domainService);
@@ -133,7 +135,7 @@ public class TeamRestController {
 				cloudProviderParametersService, configDepParamsService, cloudProviderParametersCopyService, deploymentService);
 		this.deploymentConfigurationService = new DeploymentConfigurationService(deploymentConfigurationRepository); 
 		this.teamService = new TeamService(teamRepository, accountRepository, domainService, deploymentService, cloudProviderParametersCopyService,
-				deploymentConfigurationService, applicationDeployerBash);
+				deploymentConfigurationService, applicationDeployer);
 	}
 
 	@RequestMapping(method=RequestMethod.GET)

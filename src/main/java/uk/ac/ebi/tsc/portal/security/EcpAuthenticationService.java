@@ -25,7 +25,7 @@ import uk.ac.ebi.tsc.portal.api.team.repo.Team;
 import uk.ac.ebi.tsc.portal.api.team.repo.TeamRepository;
 import uk.ac.ebi.tsc.portal.api.team.service.TeamNotFoundException;
 import uk.ac.ebi.tsc.portal.api.team.service.TeamService;
-import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployerBash;
+import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployerDocker;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
@@ -55,7 +55,7 @@ public class EcpAuthenticationService {
     private final DeploymentService deploymentService;
     private final CloudProviderParamsCopyService cloudProviderParamsCopyService;
     private final DeploymentConfigurationService deploymentConfigurationService;
-    private final ApplicationDeployerBash applicationDeployerBash;
+    private final ApplicationDeployerDocker applicationDeployer;
     private final String ecpAapUsername;
     private final String ecpAapPassword;
     private final Map<String, List<DefaultTeamMap>> defaultTeamsMap;
@@ -67,7 +67,7 @@ public class EcpAuthenticationService {
                                     DeploymentConfigurationRepository deploymentConfigurationRepository,
                                     CloudProviderParamsCopyRepository cloudProviderParamsCopyRepository,
                                     TeamRepository teamRepository,
-                                    ApplicationDeployerBash applicationDeployerBash,
+                                    ApplicationDeployerDocker applicationDeployer,
                                     DomainService domainService,
                                     TokenService tokenService,
                                     EncryptionService encryptionService,
@@ -79,7 +79,7 @@ public class EcpAuthenticationService {
         this.ecpAapPassword = ecpAapPassword;
         this.tokenService = tokenService;
         this.accountService = new AccountService(accountRepository);
-        this.applicationDeployerBash = applicationDeployerBash;
+        this.applicationDeployer = applicationDeployer;
         this.deploymentService = new DeploymentService(deploymentRepository, deploymentStatusRepository);
         this.cloudProviderParamsCopyService = new CloudProviderParamsCopyService(
                 cloudProviderParamsCopyRepository,
@@ -88,7 +88,7 @@ public class EcpAuthenticationService {
         this.teamService = new TeamService(
                 teamRepository, accountRepository, domainService, this.deploymentService,
                 this.cloudProviderParamsCopyService, this.deploymentConfigurationService,
-                this.applicationDeployerBash);
+                this.applicationDeployer);
         this.defaultTeamsMap = new HashMap<>();
         // Read maps from json file
         ObjectMapper mapper = new ObjectMapper();

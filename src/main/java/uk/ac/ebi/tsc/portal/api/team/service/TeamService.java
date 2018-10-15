@@ -14,10 +14,8 @@ import uk.ac.ebi.tsc.portal.api.account.service.AccountService;
 import uk.ac.ebi.tsc.portal.api.account.service.UserNotFoundException;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParameters;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParamsCopy;
-import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParametersNotFoundException;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParamsCopyService;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.Configuration;
-import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationNotFoundException;
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationService;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.Deployment;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentApplication;
@@ -29,7 +27,7 @@ import uk.ac.ebi.tsc.portal.api.team.controller.TeamResource;
 import uk.ac.ebi.tsc.portal.api.team.repo.Team;
 import uk.ac.ebi.tsc.portal.api.team.repo.TeamRepository;
 import uk.ac.ebi.tsc.portal.api.utils.SendMail;
-import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployerBash;
+import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployerDocker;
 import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDeployerException;
 
 import javax.security.auth.login.AccountNotFoundException;
@@ -49,7 +47,7 @@ public class TeamService {
 	private final DomainService domainService;
 	private final DeploymentService deploymentService;
 	private final CloudProviderParamsCopyService cloudProviderParametersCopyService;
-	private final ApplicationDeployerBash applicationDeployerBash;
+	private final ApplicationDeployerDocker applicationDeployerBash;
 
 	private static final Logger logger = LoggerFactory.getLogger(TeamService.class);
 
@@ -60,14 +58,14 @@ public class TeamService {
 			DeploymentService deploymentService,
 			CloudProviderParamsCopyService cloudProviderParametersCopyService,
 			DeploymentConfigurationService deploymentConfigurationService,
-			ApplicationDeployerBash applicationDeployerBash
+			ApplicationDeployerDocker applicationDeployer
 			){
 		this.teamRepository = teamRepository;
 		this.accountService = new AccountService(accountRepository);
 		this.domainService = domainService;
 		this.deploymentService = deploymentService ;
 		this.cloudProviderParametersCopyService = cloudProviderParametersCopyService;
-		this.applicationDeployerBash = applicationDeployerBash;
+		this.applicationDeployerBash = applicationDeployer;
 
 	}
 
@@ -537,7 +535,7 @@ public class TeamService {
 	 * TODO: this method has the same problem as all the previous stop ones - it needs to separate what has been
 	 * deployed with something shared withing this team from everything else.
 	 * @param team
-	 * @param sharedCloudProviderParameters
+	 * @param cloudParameters
 	 */
 	public void stopDeploymentsUsingGivenTeamSharedCloudProvider(
 			Team team,

@@ -22,7 +22,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Created by jdianes on 26/09/2018.
+ * @author Jose A. Dianes <jdianes@ebi.ac.uk>
+ * @since v0.0.1
  */
 public class ApplicationDeployerHelper {
 
@@ -31,6 +32,7 @@ public class ApplicationDeployerHelper {
     private static final String IMAGE_NAME_ERROR_MESSAGE = "Error resolving image name";
     private static final String TIMEOUT_ERROR_MESSAGE = "Error waiting for instance";
     private static final String QUOTA_EXCEEDED_ERROR_MESSAGE = "Quota exceeded for ";
+
 
     public static String getOutputFromFile(File file, Logger logger) {
         logger.info("Retrieving output for process from " + file.getAbsolutePath());
@@ -55,6 +57,7 @@ public class ApplicationDeployerHelper {
             env.put(cloudProviderParametersCopyField.getKey(), cloudProviderParametersCopyField.getValue());
         }
     }
+
 
     public static StateFromTerraformOutput terraformStateFromString(String output, Map<String, String> outputs, Logger logger) throws IOException {
 
@@ -90,6 +93,7 @@ public class ApplicationDeployerHelper {
         return stateFromTerraformOutput;
     }
 
+
     public static void getOutputs(String[] lines, Map<String, String> outputs, Logger logger) {
         for (int i = 0; i<lines.length; i++) {
             String line = lines[i].replaceAll(" ","");
@@ -100,6 +104,7 @@ public class ApplicationDeployerHelper {
             }
         }
     }
+
 
     public static ErrorFromTerraformOutput errorFromTerraformOutput(String terraformOutput, Logger logger) {
         ErrorFromTerraformOutput res = new ErrorFromTerraformOutput();
@@ -127,6 +132,7 @@ public class ApplicationDeployerHelper {
 
         return res;
     }
+
 
     public static long updateResourceConsumptionFromTerraformState(TerraformState terraformState, DeploymentDocument deploymentDocument) {
         long res = 0;

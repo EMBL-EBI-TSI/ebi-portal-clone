@@ -46,7 +46,7 @@ import uk.ac.ebi.tsc.portal.api.volumeinstance.repo.VolumeInstance;
 import uk.ac.ebi.tsc.portal.api.volumeinstance.repo.VolumeInstanceRepository;
 import uk.ac.ebi.tsc.portal.api.volumeinstance.repo.VolumeInstanceStatusRepository;
 import uk.ac.ebi.tsc.portal.api.volumeinstance.service.VolumeInstanceService;
-import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployerBash;
+import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployerDocker;
 import uk.ac.ebi.tsc.portal.clouddeployment.application.StopMeSecretService;
 import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDeployerException;
 import uk.ac.ebi.tsc.portal.usage.deployment.model.DeploymentDocument;
@@ -118,7 +118,7 @@ public class DeploymentRestController {
 
 	private final TeamService teamService;
 
-	private final ApplicationDeployerBash applicationDeployerBash;
+	private final ApplicationDeployerDocker applicationDeployer;
 
 	private final DeploymentStatusTracker deploymentStatusTracker;
 
@@ -140,7 +140,7 @@ public class DeploymentRestController {
 			CloudProviderParametersRepository cloudProviderParametersRepository,
 			ConfigurationRepository configurationRepository,
 			TeamRepository teamRepository,
-			ApplicationDeployerBash applicationDeployerBash,
+			ApplicationDeployerDocker applicationDeployer,
 
 			DeploymentStatusTracker deploymentStatusTracker,
 
@@ -165,7 +165,7 @@ public class DeploymentRestController {
 				volumeInstanceStatusRepository);
 		this.cloudProviderParametersService = new CloudProviderParametersService(cloudProviderParametersRepository, domainService, 
 				cloudProviderParametersCopyService, encryptionService);
-		this.applicationDeployerBash = applicationDeployerBash;
+		this.applicationDeployer = applicationDeployer;
 		this.deploymentStatusTracker = deploymentStatusTracker;
 		this.deploymentStatusTracker.start(0, UPDATE_TRACKER_PERIOD);
 		this.deploymentParametersService = new ConfigurationDeploymentParametersService(deploymentParametersRepository, domainService);
@@ -177,7 +177,7 @@ public class DeploymentRestController {
 		this.deploymentApplicationService = new DeploymentApplicationService(deploymentApplicationRepository);
 		this.configDeploymentParamsCopyService = new ConfigDeploymentParamsCopyService(configDeploymentParamsCopyRepository);
 		this.teamService = new TeamService(teamRepository, accountRepository, domainService,
-				deploymentService, cloudProviderParametersCopyService, deploymentConfigurationService, applicationDeployerBash);
+				deploymentService, cloudProviderParametersCopyService, deploymentConfigurationService, applicationDeployer);
 
 		this.stopMeSecretService = stopMeSecretService;
 	}
@@ -382,7 +382,7 @@ public class DeploymentRestController {
         Deployment resDeployment = this.deploymentService.save(deployment);
 
 		//Deploy
-		this.applicationDeployerBash.deploy(
+		this.applicationDeployer.deploy(
 				account.getEmail(),
 				theApplication,
 				theReference,
@@ -696,7 +696,7 @@ public class DeploymentRestController {
 		this.deploymentService.save(theDeployment);
 
 		// Proceed to destroy
-		this.applicationDeployerBash.destroy(
+		this.applicationDeployer.destroy(
 				theDeployment.getDeploymentApplication().getRepoPath(),
 				theDeployment.getReference(),
 				getCloudProviderPathFromDeploymentApplication(
