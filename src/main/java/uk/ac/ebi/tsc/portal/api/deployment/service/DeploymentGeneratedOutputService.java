@@ -16,8 +16,7 @@ public class DeploymentGeneratedOutputService {
         deploymentGeneratedOutputRepository.save(deploymentGeneratedOutput);
     }
 
-    public boolean isExistDeploymentGeneratedOutput(String reference,String outputName){
-        Optional<DeploymentGeneratedOutput> depGenOutput = deploymentGeneratedOutputRepository.findByDeploymentReferenceAndOutputName(reference,outputName);
-        return depGenOutput.isPresent();
+    public Optional<DeploymentGeneratedOutput> getDeploymentGeneratedOutput(String reference,String outputName){
+        return deploymentGeneratedOutputRepository.findByDeploymentReferenceAndOutputName(reference,outputName);
     }
 }

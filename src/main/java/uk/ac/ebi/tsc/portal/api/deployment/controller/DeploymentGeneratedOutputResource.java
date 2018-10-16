@@ -38,4 +38,12 @@ class DeploymentGeneratedOutputResource extends ResourceSupport {
     public String getGeneratedValue() {
         return generatedValue;
     }
+
+    public void setOutputName(String outputName) {
+        this.outputName = outputName;
+    }
+
+    public void setGeneratedValue(String generatedValue) {
+        this.generatedValue = generatedValue;
+    }
 }

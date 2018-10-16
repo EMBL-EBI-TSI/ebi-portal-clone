@@ -606,30 +606,39 @@ public class DeploymentRestController {
 	}
 
 	@RequestMapping(value = "/{deploymentReference}/outputs", method = RequestMethod.PUT)
-	public ResponseEntity<?> createDeploymentOutputsByReference( @PathVariable("deploymentReference") String                     deploymentReference
-			, @RequestBody                         HashMap<String, String>    body
-	) {
-		String secret = body.get("secret");
+	public ResponseEntity<?> addDeploymentOutputs(@PathVariable("deploymentReference") String deploymentReference, @RequestHeader("secret") String secret, @RequestBody List<DeploymentGeneratedOutputResource> payLoadGeneratedOutputList) {
 		if (secret == null || secret.isEmpty()) {
-			throw new MissingParameterException("secret");
+			return new ResponseEntity<>("Missing header : secret", null, HttpStatus.BAD_REQUEST);
 		}
-		String key = body.get("key");
-		String value = body.get("value");
-		if (key == null || key.isEmpty() | value == null || value.isEmpty()) {
-			throw new MissingParameterException("key/value");
-		}
-		if(value.length() > 1024000)
-			return new ResponseEntity<>("Value exceeds more than the limit of 1MB",null,HttpStatus.BAD_REQUEST);
 		if (!stopMeSecretService.exists(deploymentReference, secret)) {
-			throw new DeploymentNotFoundException(deploymentReference+" and secret : "+secret);
+			throw new DeploymentNotFoundException(deploymentReference + " and secret : " + secret);
 		}
-		if(deploymentGeneratedOutputService.isExistDeploymentGeneratedOutput(deploymentReference,key))
-		return new ResponseEntity<>("",null,HttpStatus.CONFLICT);
+		String payLoadOutputValues = payLoadGeneratedOutputList.stream().map(o -> o.getGeneratedValue()).reduce("", String::concat);
+		Deployment theDeployment = this.deploymentService.findByReference(deploymentReference);
+		String existingOutputValues = theDeployment.getGeneratedOutputs().stream().map(o -> o.getValue()).reduce("", String::concat);
+		if (payLoadOutputValues.length() + existingOutputValues.length() > 1024000)
+			return new ResponseEntity<>("Key/Value pair exceeds more than 1MB for this deployment", null, HttpStatus.BAD_REQUEST);
 
-		Deployment theDeployment = deploymentService.findByReference(deploymentReference);
-		DeploymentGeneratedOutput deploymentGeneratedOutput = new DeploymentGeneratedOutput(key,value,theDeployment);
-		deploymentGeneratedOutputService.saveDeploymentGeneratedOutput(deploymentGeneratedOutput);
-		return new ResponseEntity<>(null,null,HttpStatus.NO_CONTENT);
+		Map<String, String> outputMap;
+		try {
+			outputMap = payLoadGeneratedOutputList.stream().collect(
+					Collectors.toMap(DeploymentGeneratedOutputResource::getOutputName, DeploymentGeneratedOutputResource::getGeneratedValue));
+		} catch (Exception e) {
+			return new ResponseEntity<>("outputName should be unique for given List", null, HttpStatus.CONFLICT);
+		}
+
+		for (Map.Entry<String, String> entry : outputMap.entrySet()) {
+			Optional<DeploymentGeneratedOutput> deploymentGeneratedOutputOpt = deploymentGeneratedOutputService.getDeploymentGeneratedOutput(deploymentReference, entry.getKey());
+			if (deploymentGeneratedOutputOpt.isPresent()) {
+				DeploymentGeneratedOutput deploymentGeneratedOutput = deploymentGeneratedOutputOpt.get();
+				deploymentGeneratedOutput.setValue(entry.getValue());
+				deploymentGeneratedOutputService.saveDeploymentGeneratedOutput(deploymentGeneratedOutput);
+			} else {
+				DeploymentGeneratedOutput deploymentGeneratedOutput = new DeploymentGeneratedOutput(entry.getKey(), entry.getValue(), theDeployment);
+				deploymentGeneratedOutputService.saveDeploymentGeneratedOutput(deploymentGeneratedOutput);
+			}
+		}
+		return new ResponseEntity<>(null, null, HttpStatus.NO_CONTENT);
 	}
 
 	@RequestMapping(value = "/{deploymentReference}/logs", method = RequestMethod.GET)
