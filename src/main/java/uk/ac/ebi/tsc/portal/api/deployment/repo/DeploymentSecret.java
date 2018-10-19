@@ -1,6 +1,5 @@
 package uk.ac.ebi.tsc.portal.api.deployment.repo;
 
-import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
@@ -10,7 +9,7 @@ import javax.validation.constraints.NotNull;
 
 
 @Entity
-public class StopMeSecret {
+public class DeploymentSecret {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -24,10 +23,10 @@ public class StopMeSecret {
     private String secret;
 
     
-    public StopMeSecret() 
+    public DeploymentSecret()
     {}
     
-    public StopMeSecret(Deployment deployment, String secret) {
+    public DeploymentSecret(Deployment deployment, String secret) {
         
         this.deployment = deployment;
         this.secret = secret;

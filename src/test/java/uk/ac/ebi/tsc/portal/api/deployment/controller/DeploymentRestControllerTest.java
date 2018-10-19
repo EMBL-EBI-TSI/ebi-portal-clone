@@ -21,7 +21,6 @@ import java.util.*;
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
-import javax.servlet.http.HttpServletRequest;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -72,7 +71,7 @@ import uk.ac.ebi.tsc.portal.api.team.service.TeamService;
 import uk.ac.ebi.tsc.portal.api.volumeinstance.repo.VolumeInstanceRepository;
 import uk.ac.ebi.tsc.portal.api.volumeinstance.repo.VolumeInstanceStatusRepository;
 import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployerBash;
-import uk.ac.ebi.tsc.portal.clouddeployment.application.StopMeSecretService;
+import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentSecretService;
 import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDeployerException;
 import uk.ac.ebi.tsc.portal.usage.deployment.service.DeploymentIndexService;
 import uk.ac.ebi.tsc.portal.usage.tracker.DeploymentStatusTracker;
@@ -203,7 +202,7 @@ public class DeploymentRestControllerTest {
 	EncryptionService encryptionService;
 	
 	@MockBean
-	StopMeSecretService stopMeSecretService;
+	DeploymentSecretService deploymentSecretService;
 
 	String cppReference = "cppReference";
 	@Before 
@@ -227,7 +226,7 @@ public class DeploymentRestControllerTest {
 				cloudProviderParametersCopyRepository,
 				configurationDeploymentParamsCopyRepository,
 				encryptionService,
-				stopMeSecretService,
+				deploymentSecretService,
 				deploymentGeneratedOutputService,
 				salt,
 				password);
@@ -736,7 +735,7 @@ public class DeploymentRestControllerTest {
         outputResource.setOutputName("externalIP");
         outputResource.setGeneratedValue("193.167.5.4");
         payLoadGeneratedOutputList.add(outputResource);
-        given(stopMeSecretService.exists(deploymentReference,secret)).willThrow(DeploymentNotFoundException.class);
+        given(deploymentSecretService.exists(deploymentReference,secret)).willThrow(DeploymentNotFoundException.class);
         subject.addDeploymentOutputs(deploymentReference,secret,payLoadGeneratedOutputList);
 	}
 
@@ -753,7 +752,7 @@ public class DeploymentRestControllerTest {
         Deployment theDeployment = mock(Deployment.class);
         List<DeploymentGeneratedOutput> depGenlist = new ArrayList<>();
 
-        given(stopMeSecretService.exists(deploymentReference,secret)).willReturn(true);
+        given(deploymentSecretService.exists(deploymentReference,secret)).willReturn(true);
         given(deploymentRepository.findByReference(deploymentReference)).willReturn(Optional.of(theDeployment));
         given(deploymentService.findByReference(deploymentReference)).willCallRealMethod();
         given(theDeployment.getGeneratedOutputs()).willReturn(depGenlist);
@@ -780,7 +779,7 @@ public class DeploymentRestControllerTest {
         Deployment theDeployment = mock(Deployment.class);
         List<DeploymentGeneratedOutput> depGenlist = new ArrayList<>();
 
-        given(stopMeSecretService.exists(deploymentReference,secret)).willReturn(true);
+        given(deploymentSecretService.exists(deploymentReference,secret)).willReturn(true);
         given(deploymentRepository.findByReference(deploymentReference)).willReturn(Optional.of(theDeployment));
         given(deploymentService.findByReference(deploymentReference)).willCallRealMethod();
         given(theDeployment.getGeneratedOutputs()).willReturn(depGenlist);
@@ -806,7 +805,7 @@ public class DeploymentRestControllerTest {
 		Deployment theDeployment = mock(Deployment.class);
 		List<DeploymentGeneratedOutput> depGenlist = new ArrayList<>();
 
-		given(stopMeSecretService.exists(deploymentReference,secret)).willReturn(true);
+		given(deploymentSecretService.exists(deploymentReference,secret)).willReturn(true);
 		given(deploymentRepository.findByReference(deploymentReference)).willReturn(Optional.of(theDeployment));
 		given(deploymentService.findByReference(deploymentReference)).willCallRealMethod();
 		given(theDeployment.getGeneratedOutputs()).willReturn(depGenlist);
@@ -836,7 +835,7 @@ public class DeploymentRestControllerTest {
 		DeploymentGeneratedOutput output1 = new DeploymentGeneratedOutput("sequence","FGGGG",theDeployment);
 		DeploymentGeneratedOutput output2 = new DeploymentGeneratedOutput("externalIP","10.90.10.4",theDeployment);
 
-		given(stopMeSecretService.exists(deploymentReference,secret)).willReturn(true);
+		given(deploymentSecretService.exists(deploymentReference,secret)).willReturn(true);
 		given(deploymentRepository.findByReference(deploymentReference)).willReturn(Optional.of(theDeployment));
 		given(deploymentService.findByReference(deploymentReference)).willCallRealMethod();
 		given(theDeployment.getGeneratedOutputs()).willReturn(depGenlist);

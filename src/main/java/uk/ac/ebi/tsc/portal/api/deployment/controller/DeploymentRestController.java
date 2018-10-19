@@ -45,7 +45,7 @@ import uk.ac.ebi.tsc.portal.api.volumeinstance.repo.VolumeInstanceRepository;
 import uk.ac.ebi.tsc.portal.api.volumeinstance.repo.VolumeInstanceStatusRepository;
 import uk.ac.ebi.tsc.portal.api.volumeinstance.service.VolumeInstanceService;
 import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployerBash;
-import uk.ac.ebi.tsc.portal.clouddeployment.application.StopMeSecretService;
+import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentSecretService;
 import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDeployerException;
 import uk.ac.ebi.tsc.portal.usage.deployment.model.DeploymentDocument;
 import uk.ac.ebi.tsc.portal.usage.deployment.service.DeploymentIndexService;
@@ -134,7 +134,7 @@ public class DeploymentRestController {
 
 	private final ConfigDeploymentParamsCopyService configDeploymentParamsCopyService;
 
-	private StopMeSecretService stopMeSecretService;
+	private DeploymentSecretService deploymentSecretService;
 
 	@Autowired
 	DeploymentRestController(DeploymentRepository deploymentRepository,
@@ -158,7 +158,7 @@ public class DeploymentRestController {
 							 CloudProviderParamsCopyRepository cloudProviderParametersCopyRepository,
 							 ConfigDeploymentParamsCopyRepository configDeploymentParamsCopyRepository,
 							 EncryptionService encryptionService,
-							 StopMeSecretService stopMeSecretService,
+							 DeploymentSecretService deploymentSecretService,
 							 DeploymentGeneratedOutputService deploymentGeneratedOutputService,
 							 @Value("${ecp.security.salt}") final String salt,
 							 @Value("${ecp.security.password}") final String password
@@ -184,7 +184,7 @@ public class DeploymentRestController {
 		this.configDeploymentParamsCopyService = new ConfigDeploymentParamsCopyService(configDeploymentParamsCopyRepository);
 		this.teamService = new TeamService(teamRepository, accountRepository, domainService,
 				deploymentService, cloudProviderParametersCopyService, deploymentConfigurationService, applicationDeployerBash);
-		this.stopMeSecretService = stopMeSecretService;
+		this.deploymentSecretService = deploymentSecretService;
 		this.deploymentGeneratedOutputService = deploymentGeneratedOutputService;
 	}
 
@@ -610,7 +610,7 @@ public class DeploymentRestController {
 		if (secret == null || secret.isEmpty()) {
 			return new ResponseEntity<>("Missing header : secret", null, HttpStatus.BAD_REQUEST);
 		}
-		if (!stopMeSecretService.exists(deploymentReference, secret)) {
+		if (!deploymentSecretService.exists(deploymentReference, secret)) {
 			throw new DeploymentNotFoundException(deploymentReference + " and secret : " + secret);
 		}
 		String payLoadOutputValues = payLoadGeneratedOutputList.stream().map(o -> o.getGeneratedValue()).reduce("", String::concat);
@@ -705,7 +705,7 @@ public class DeploymentRestController {
 			throw new MissingParameterException("secret");
 		}
 
-		if (!stopMeSecretService.exists(deploymentReference, secret)) {
+		if (!deploymentSecretService.exists(deploymentReference, secret)) {
 
 			throw new DeploymentNotFoundException(deploymentReference);
 		}

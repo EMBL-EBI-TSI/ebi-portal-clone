@@ -1,22 +1,22 @@
-package uk.ac.ebi.tsc.portal.clouddeployment.application;
+package uk.ac.ebi.tsc.portal.api.deployment.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.Deployment;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.StopMeSecret;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.StopMeSecretRepository;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentSecret;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentSecretRepository;
 import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.SecretGenerator;
 
 import java.util.Optional;
 
 @Component
-public class StopMeSecretService {
+public class DeploymentSecretService {
 
     @Autowired
     SecretGenerator secretGenerator;
     
     @Autowired
-    StopMeSecretRepository stopMeSecretRepository;
+    DeploymentSecretRepository stopMeSecretRepository;
     
 
     public String create(Deployment deployment) {
@@ -30,14 +30,14 @@ public class StopMeSecretService {
 
     void save(Deployment aDeployment, String secret) {
         
-        StopMeSecret sms = new StopMeSecret(aDeployment, secret);
+        DeploymentSecret sms = new DeploymentSecret(aDeployment, secret);
         
         stopMeSecretRepository.save(sms);
     }
     
     public boolean exists(String reference, String secret) {
         
-        Optional<StopMeSecret> r = stopMeSecretRepository.findByDeploymentReferenceAndSecret(reference, secret);
+        Optional<DeploymentSecret> r = stopMeSecretRepository.findByDeploymentReferenceAndSecret(reference, secret);
         
         return r.isPresent();
     }
