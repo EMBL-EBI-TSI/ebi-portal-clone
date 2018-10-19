@@ -28,7 +28,7 @@ public class DeploymentSecretService {
         return secret;
     }
 
-    void save(Deployment aDeployment, String secret) {
+    public void save(Deployment aDeployment, String secret) {
         
         DeploymentSecret sms = new DeploymentSecret(aDeployment, secret);
         
