@@ -16,6 +16,7 @@ import uk.ac.ebi.tsc.portal.api.configuration.repo.Configuration;
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigDeploymentParamsCopyService;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.*;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
+import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentSecretService;
 import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
 import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDeployerException;
 import uk.ac.ebi.tsc.portal.clouddeployment.model.ErrorFromTerraformOutput;
@@ -43,7 +44,7 @@ public abstract class AbstractApplicationDeployer {
     protected final ApplicationService applicationService;
     protected final CloudProviderParamsCopyService cloudProviderParametersCopyService;
     protected final ConfigDeploymentParamsCopyService configDeploymentParamsCopyService;
-    protected final StopMeSecretService secretService;
+    protected final DeploymentSecretService secretService;
 
     public AbstractApplicationDeployer(DeploymentRepository deploymentRepository,
                                        DeploymentStatusRepository deploymentStatusRepository,
@@ -52,7 +53,7 @@ public abstract class AbstractApplicationDeployer {
                                        CloudProviderParamsCopyRepository cloudProviderParametersRepository,
                                        ConfigDeploymentParamsCopyRepository configDeploymentParamsCopyRepository,
                                        EncryptionService encryptionService,
-                                       StopMeSecretService secretService) {
+                                       DeploymentSecretService secretService) {
         this.deploymentService = new DeploymentService(deploymentRepository, deploymentStatusRepository);
         this.applicationService = new ApplicationService(applicationRepository, domainService);
         this.cloudProviderParametersCopyService = new CloudProviderParamsCopyService(cloudProviderParametersRepository, encryptionService);

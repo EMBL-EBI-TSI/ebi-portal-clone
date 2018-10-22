@@ -24,9 +24,9 @@ import org.springframework.test.web.servlet.ResultActions;
 import uk.ac.ebi.tsc.portal.BePortalApiApplication;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.Deployment;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentRepository;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.StopMeSecretRepository;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentSecretRepository;
+import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentSecretService;
 import uk.ac.ebi.tsc.portal.config.WebConfiguration;
-import uk.ac.ebi.tsc.util.JsonUtil;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -36,10 +36,10 @@ import uk.ac.ebi.tsc.util.JsonUtil;
 public class StopMeIT {
 
     @Autowired
-    StopMeSecretRepository stopMeSecretRepository;
+    DeploymentSecretRepository deploymentSecretRepository;
     
     @Autowired
-    StopMeSecretService stopMeSecretService;
+    DeploymentSecretService deploymentSecretService;
     
     @Autowired
     DeploymentRepository deploymentRepository;
@@ -58,7 +58,7 @@ public class StopMeIT {
         // I need to have at least one record in 'deployment'
         
         // Erasing all the records
-        stopMeSecretRepository.deleteAll();  // Need to erase these first ( FK(deployment.id) )
+        deploymentSecretRepository.deleteAll();  // Need to erase these first ( FK(deployment.id) )
         deploymentRepository.deleteAll();
         
         // Creating the one I need
@@ -68,17 +68,17 @@ public class StopMeIT {
     @Test
     public void save() throws Exception 
     {
-        assertFalse(stopMeSecretService.exists(reference, SECRET));
+        assertFalse(deploymentSecretService.exists(reference, SECRET));
+
+        deploymentSecretService.save(aDeployment, SECRET);
         
-        stopMeSecretService.save(aDeployment, SECRET);
-        
-        assertTrue(stopMeSecretService.exists(reference, SECRET));
+        assertTrue(deploymentSecretService.exists(reference, SECRET));
     }
     
     @Test
     public void stopMe_non_existent_deployment() throws Exception 
     {
-        assertFalse(stopMeSecretService.exists(reference, SECRET));
+        assertFalse(deploymentSecretService.exists(reference, SECRET));
         
         ResultActions r = callStopMe(reference, SECRET);
         assert404(r);
@@ -88,7 +88,7 @@ public class StopMeIT {
     public void stopMe_wrong_secret() throws Exception 
     {
         save();
-        assertTrue(stopMeSecretService.exists(reference, SECRET));
+        assertTrue(deploymentSecretService.exists(reference, SECRET));
         
         ResultActions r = callStopMe(reference, "wrongSecret");
         assert404(r);

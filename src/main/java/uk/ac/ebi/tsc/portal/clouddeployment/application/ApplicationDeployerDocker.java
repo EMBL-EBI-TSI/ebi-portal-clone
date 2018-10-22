@@ -12,6 +12,7 @@ import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParams
 import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigDeploymentParamsCopyRepository;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.Configuration;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.*;
+import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentSecretService;
 import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
 import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDeployerException;
 import uk.ac.ebi.tsc.portal.clouddeployment.model.StateFromTerraformOutput;
@@ -46,13 +47,13 @@ public class ApplicationDeployerDocker extends AbstractApplicationDeployer {
 
     @Autowired
     public ApplicationDeployerDocker(DeploymentRepository deploymentRepository,
-                                   DeploymentStatusRepository deploymentStatusRepository,
-                                   ApplicationRepository applicationRepository,
-                                   DomainService domainService,
-                                   CloudProviderParamsCopyRepository cloudProviderParametersRepository,
-                                   ConfigDeploymentParamsCopyRepository configDeploymentParamsCopyRepository,
-                                   EncryptionService encryptionService,
-                                     StopMeSecretService secretService) {
+                                     DeploymentStatusRepository deploymentStatusRepository,
+                                     ApplicationRepository applicationRepository,
+                                     DomainService domainService,
+                                     CloudProviderParamsCopyRepository cloudProviderParametersRepository,
+                                     ConfigDeploymentParamsCopyRepository configDeploymentParamsCopyRepository,
+                                     EncryptionService encryptionService,
+                                     DeploymentSecretService secretService) {
         super(deploymentRepository,
                 deploymentStatusRepository,
                 applicationRepository,
