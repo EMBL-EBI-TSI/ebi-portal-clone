@@ -428,7 +428,10 @@ public class DeploymentRestControllerTest {
 
 		//team
 		Team team = mock(Team.class);
+		String teamName = "someTeamName";
 		String domainReference = "some ref";
+		given(team.getName()).willReturn(teamName);
+		given(team.getDomainReference()).willReturn(domainReference);
 		given(input.getDomainReference()).willReturn(domainReference);
 		given(teamRepository.findByDomainReference(domainReference)).willReturn(Optional.of(team));
 		given(teamService.findByDomainReference(domainReference)).willCallRealMethod();
@@ -470,6 +473,7 @@ public class DeploymentRestControllerTest {
 		when(config.getSharedWithTeams()).thenReturn(sharedWithTeams);
 		when(input.getConfigurationAccountUsername()).thenReturn(username);
 		when(input.getConfigurationName()).thenReturn(configurationName);
+		when(config.getName()).thenReturn(configurationName);
 		when(configurationService.findByNameAndAccountUsername(input.getConfigurationName(), input.getConfigurationAccountUsername()))
 		.thenReturn(config);
 		when(configurationRepository.findByNameAndAccountUsername(input.getConfigurationName(), input.getConfigurationAccountUsername()))

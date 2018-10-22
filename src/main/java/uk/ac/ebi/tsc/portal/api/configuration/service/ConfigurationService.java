@@ -38,6 +38,7 @@ import uk.ac.ebi.tsc.portal.api.deployment.repo.Deployment;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentStatusEnum;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
 import uk.ac.ebi.tsc.portal.api.team.repo.Team;
+import uk.ac.ebi.tsc.portal.api.team.service.TeamNotFoundException;
 import uk.ac.ebi.tsc.portal.api.utils.SendMail;
 import uk.ac.ebi.tsc.portal.usage.deployment.model.DeploymentDocument;
 import uk.ac.ebi.tsc.portal.usage.deployment.service.DeploymentIndexService;
@@ -60,8 +61,8 @@ public class ConfigurationService {
 
 	@Autowired
 	public ConfigurationService(ConfigurationRepository configurationRepository, DomainService domainService,
-                                CloudProviderParametersService cppService, ConfigurationDeploymentParametersService cdpService,
-                                CloudProviderParamsCopyService cloudProviderParametersCopyService, DeploymentService deploymentService) {
+			CloudProviderParametersService cppService, ConfigurationDeploymentParametersService cdpService,
+			CloudProviderParamsCopyService cloudProviderParametersCopyService, DeploymentService deploymentService) {
 		this.configurationRepository = configurationRepository;
 		this.domainService = domainService;
 		this.cppService = cppService;
@@ -648,22 +649,22 @@ public class ConfigurationService {
 				logger.info("Could not find the cloud provider copy for configuration " + configuration.getName());
 			}
 		});
-		
+
 		return configurationResources;
 	}
 
 	public Configuration getByReference(String username, String reference) {
 		return this.configurationRepository.findByReference(reference).orElseThrow(
 				() -> new ConfigurationNotFoundException(username, reference)
-		);
+				);
 	}
 
 	public double getTotalConsumptionByReference(String username, String reference, DeploymentIndexService deploymentIndexService) {
-        logger.debug("Calculating total usage for configuration " + reference);
+		logger.debug("Calculating total usage for configuration " + reference);
 
-	    Configuration theConfiguration = this.getByReference(username, reference);
+		Configuration theConfiguration = this.getByReference(username, reference);
 
-	    return this.getTotalConsumption(theConfiguration, deploymentIndexService);
+		return this.getTotalConsumption(theConfiguration, deploymentIndexService);
 	}
 
 	public double getTotalConsumption(Configuration configuration, DeploymentIndexService deploymentIndexService) {
@@ -695,13 +696,25 @@ public class ConfigurationService {
 			return totalConsumption;
 		}).sum();
 	}
-	
+
 	public boolean isConfigurationSharedWithAccount(Team team, Account account, Configuration configuration){
-		if( (configuration.getSharedWithTeams().contains(team)) && 
-			(team.getAccountsBelongingToTeam().contains(account)) ){
+
+		logger.info("Looking for shared configuration " + configuration.getName()
+		+ " belonging to " + account.getGivenName()
+		+ " from team " + team.getName());
+		if(	team.getDomainReference() != null
+				&&
+				account.getMemberOfTeams().stream()
+				.anyMatch(t -> t.getDomainReference().equals(team.getDomainReference())
+						) 
+				&& 
+				configuration.getSharedWithTeams().stream()
+				.anyMatch(t ->  t.getDomainReference().equals(team.getDomainReference())
+						)){
 			return true;
 		}else{
 			return false;
 		}
+
 	}
 }

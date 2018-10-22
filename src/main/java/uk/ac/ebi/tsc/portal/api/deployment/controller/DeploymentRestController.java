@@ -213,27 +213,30 @@ public class DeploymentRestController {
 		if((input.getConfigurationName() == null) || (input.getConfigurationAccountUsername() == null)){
 			throw new InvalidConfigurationInputException();
 		}
-
+		
 		// Get the requester and owner accounts
 		Account account = this.accountService.findByUsername(principal.getName());
+		logger.info("Principal username " + principal.getName());
+		logger.info("Account user name " + account.getUsername());
 		logger.debug("Found requesting account {}", account.getGivenName());
 		Account applicationOwnerAccount = this.accountService.findByUsername(input.getApplicationAccountUsername());
 		logger.debug("Found application owner account {}", applicationOwnerAccount.getGivenName());
 		Account configurationOwnerAccount = this.accountService.findByUsername(input.getConfigurationAccountUsername());
 		logger.debug("Found configuration owner account {}", configurationOwnerAccount.getGivenName());
-
+		
 		// Get the application
 		logger.info("Looking for application " + input.getApplicationName() + " for user " + account.getGivenName());
 		Application theApplication;
 
 		try{
 			//if it is the account owner himself
+
+			logger.info("Checking if the account user is the owner of the application");
 			theApplication = this.applicationService.findByAccountUsernameAndName(
 					account.getUsername(), input.getApplicationName());
-			logger.debug("The account user is the owner of the application");
 		}catch(ApplicationNotFoundException e){
 			//find if the application is shared with user
-			logger.debug("Account user is not application owner, checking if it has been shared with him" );
+			logger.info("Account user is not application owner, checking if it has been shared with him" );
 			theApplication = this.applicationService.findByAccountUsernameAndName(
 					applicationOwnerAccount.getUsername(), input.getApplicationName());
 			if(!applicationService.isApplicationSharedWithAccount(account, theApplication)){
@@ -250,21 +253,24 @@ public class DeploymentRestController {
 		//if it is the account owner himself
 		if(input.getDomainReference() == null){
 			try{
+				logger.info("Checking if the account user is the owner of the configuration");
 				configuration = this.configurationService.findByNameAndAccountUsername(
 						input.getConfigurationName(), account.getUsername());
-				logger.debug("The account user is the owner of the configuration");
 			}catch(ConfigurationNotFoundException e){
 				throw new ConfigurationNotFoundException(account.getGivenName(), input.getConfigurationName());
 			}
 		}else{
 			try{
+				logger.info("Checking if the configuration " +
+						input.getConfigurationName() + " has been shared with user by its owner " +
+						configurationOwnerAccount.getUsername() + " in team " + input.getDomainReference());
 				configuration = this.configurationService.findByNameAndAccountUsername(
 						input.getConfigurationName(), configurationOwnerAccount.getUsername());
+				logger.debug("Looking for team " + input.getDomainReference());
 				Team team = teamService.findByDomainReference(input.getDomainReference());
 				if(!configurationService.isConfigurationSharedWithAccount(team, account, configuration)){
 					throw new ConfigurationNotSharedException(account.getGivenName(), configuration.getName());
 				}
-				logger.debug("Configuration " + configuration.getName() + " has been shared with " + account.getGivenName());
 			}catch(ConfigurationNotFoundException e){
 				throw new ConfigurationNotFoundException(configurationOwnerAccount.getGivenName(), input.getConfigurationName());
 			}
