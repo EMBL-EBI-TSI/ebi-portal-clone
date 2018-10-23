@@ -19,5 +19,9 @@ public class ApplicationNotFoundException extends RuntimeException {
     public ApplicationNotFoundException(String repoUri) {
         super("Could not find application with URI '" + repoUri + "'.");
     }
+    
+    public ApplicationNotFoundException(String username, String applicationName) {
+        super("Could not find application '" + applicationName + "' for user \'" + username + "\'.");
+    }
 
 }

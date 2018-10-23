@@ -1,5 +1,33 @@
 package uk.ac.ebi.tsc.portal.api.deployment.controller;
 
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.*;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.mockito.Matchers.isA;
+
+import java.io.IOException;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.Principal;
+import java.security.spec.InvalidKeySpecException;
+import java.sql.Date;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Properties;
+import java.util.Set;
+
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -11,49 +39,56 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.util.ReflectionTestUtils;
+
+import uk.ac.ebi.tsc.aap.client.repo.DomainRepository;
 import uk.ac.ebi.tsc.aap.client.repo.DomainService;
 import uk.ac.ebi.tsc.portal.api.account.repo.Account;
 import uk.ac.ebi.tsc.portal.api.account.repo.AccountRepository;
 import uk.ac.ebi.tsc.portal.api.account.service.AccountService;
+import uk.ac.ebi.tsc.portal.api.application.controller.InvalidApplicationInputException;
 import uk.ac.ebi.tsc.portal.api.application.repo.Application;
 import uk.ac.ebi.tsc.portal.api.application.repo.ApplicationCloudProvider;
 import uk.ac.ebi.tsc.portal.api.application.repo.ApplicationRepository;
+import uk.ac.ebi.tsc.portal.api.application.service.ApplicationNotFoundException;
 import uk.ac.ebi.tsc.portal.api.application.service.ApplicationService;
-import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.controller.CloudProviderParametersCopyResource;
-import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.controller.CloudProviderParametersResource;
-import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.*;
+import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParameters;
+import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParametersRepository;
+import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParamsCopy;
+import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParamsCopyRepository;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParametersService;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParamsCopyService;
-import uk.ac.ebi.tsc.portal.api.configuration.repo.*;
+import uk.ac.ebi.tsc.portal.api.configuration.controller.InvalidConfigurationInputException;
+import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigDeploymentParamsCopy;
+import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigDeploymentParamsCopyRepository;
+import uk.ac.ebi.tsc.portal.api.configuration.repo.Configuration;
+import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationDeploymentParameters;
+import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationDeploymentParametersRepository;
+import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationRepository;
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigDeploymentParamsCopyService;
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationDeploymentParametersService;
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationService;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.*;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.Deployment;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentApplication;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentApplicationCloudProvider;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentApplicationRepository;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentConfiguration;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentConfigurationRepository;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentRepository;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentStatusRepository;
+import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentApplicationService;
+import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentConfigurationService;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentNotFoundException;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
 import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
+import uk.ac.ebi.tsc.portal.api.team.repo.Team;
 import uk.ac.ebi.tsc.portal.api.team.repo.TeamRepository;
 import uk.ac.ebi.tsc.portal.api.team.service.TeamService;
 import uk.ac.ebi.tsc.portal.api.volumeinstance.repo.VolumeInstanceRepository;
 import uk.ac.ebi.tsc.portal.api.volumeinstance.repo.VolumeInstanceStatusRepository;
-import uk.ac.ebi.tsc.portal.api.volumeinstance.service.VolumeInstanceService;
 import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployerBash;
 import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDeployerException;
+import uk.ac.ebi.tsc.portal.usage.deployment.service.DeploymentIndexService;
 import uk.ac.ebi.tsc.portal.usage.tracker.DeploymentStatusTracker;
-
-import javax.crypto.BadPaddingException;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
-import java.io.IOException;
-import java.security.*;
-import java.security.spec.InvalidKeySpecException;
-import java.util.*;
-
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.*;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Matchers.isA;
-import static org.mockito.Mockito.*;
 
 /**
  * @author Jose A. Dianes <jdianes@ebi.ac.uk>
@@ -67,24 +102,13 @@ public class DeploymentRestControllerTest {
 	private static final String A_CLOUD_PROVIDER_PARAMS_NAME = "OS TEST";
 	public final String A_USER_NAME = "A User Name";
 	public final String A_CLOUD_PROVIDER = "OSTACK";
-    String salt= "salt";
-    String password= "password";
+	String salt= "salt";
+	String password= "password";
 
-	DeploymentRepository mockDeploymentRepo = mock(DeploymentRepository.class);
-	DeploymentStatusRepository mockDeploymentStatusRepo = mock(DeploymentStatusRepository.class);
-	AccountRepository mockAccountRepo = mock(AccountRepository.class);
-	ApplicationRepository mockApplicationRepo = mock(ApplicationRepository.class);
-	VolumeInstanceRepository mockVolumeRepo = mock(VolumeInstanceRepository.class);
-	VolumeInstanceStatusRepository mockVolumeStatusRepo = mock(VolumeInstanceStatusRepository.class);
-	CloudProviderParametersRepository mockCloudCredentialsRepo = mock(CloudProviderParametersRepository.class);
-	ConfigurationRepository mockConfigurationRepo = mock(ConfigurationRepository.class);
-	ApplicationDeployerBash mockApplicationDeployerBash = mock(ApplicationDeployerBash.class);
-	DeploymentStatusTracker mockDeploymentStatusTracker = mock(DeploymentStatusTracker.class);
-	ConfigurationDeploymentParametersRepository deploymentParametersRepository = mock(
-			ConfigurationDeploymentParametersRepository.class);
-	TeamRepository teamRepository = mock(TeamRepository.class);
 
-	
+	@MockBean
+	private DeploymentRepository deploymentRepository;
+
 	@MockBean
 	private DeploymentService deploymentService;
 
@@ -92,72 +116,137 @@ public class DeploymentRestControllerTest {
 	private ConfigurationService configurationService;
 
 	@MockBean
-	private ConfigurationDeploymentParametersService deploymentParametersService;
+	private ConfigurationRepository configurationRepository;
+
+	@MockBean
+	private ConfigurationDeploymentParametersService configurationDeploymentParametersService;
+
+	@MockBean
+	private ConfigurationDeploymentParametersRepository configurationDeploymentParametersRepository;
 
 	@MockBean
 	private TeamService teamService;
 
 	@MockBean
-	private DeploymentRepository deploymentRepository;
-	
+	private TeamRepository teamRepository;
+
 	@MockBean
 	DomainService domainService;
-	
+
+	@MockBean
+	DomainRepository domainRepository;
+
+	@MockBean
+	DeploymentConfigurationService deploymentConfigurationService;
+
 	@MockBean
 	DeploymentConfigurationRepository deploymentConfigurationRepository;
-	
+
 	@MockBean
 	DeploymentApplicationRepository deploymentApplicationRepository;
 
+	@MockBean
+	DeploymentApplicationService deploymentApplicationService;
+
 	DeploymentRestController subject;
 
-	private Principal principalMock;
+	@MockBean
+	Principal principal;
 
 	String tempKey = "dGhlcG9ydGFsZGV2ZWxvcGVkYnl0c2lpc2F3ZXNvbWU=";
 
 	@MockBean
 	CloudProviderParamsCopyRepository cloudProviderParametersCopyRepository;
-	
+
 	@MockBean
 	CloudProviderParamsCopyService cloudProviderParametersCopyService;
-	
+
 	@MockBean
-	CloudProviderParametersService cppService;
-	
+	CloudProviderParametersService cloudProviderParametersService;
+
 	@MockBean
-	ConfigDeploymentParamsCopyService cdpCopyService;
-	
+	CloudProviderParametersRepository cloudProviderParametersRepository;
+
 	@MockBean
-	ConfigDeploymentParamsCopyRepository cdpCopyRepository;
-	
-	String cppReference = "some reference";
-	String cdpReference = "some reference";
-	
+	ConfigDeploymentParamsCopyService configurationDeploymentParamsCopyService;
+
+	@MockBean
+	ConfigDeploymentParamsCopyRepository configurationDeploymentParamsCopyRepository;
+
 	@MockBean
 	DeploymentConfiguration deploymentConfiguration;
-	
+
 	@MockBean
-	CloudProviderParameters cppMock;
-	
+	CloudProviderParameters cloudProviderParameters;
+
+	@MockBean
+	AccountService accountService;
+
+	@MockBean
+	AccountRepository accountRepository;
+
+	@MockBean
+	ApplicationRepository applicationRepository;
+
+	@MockBean
+	ApplicationService applicationService;
+
+	@MockBean
+	DeploymentStatusRepository deploymentStatusRepository;
+
+	@MockBean
+	VolumeInstanceRepository volumeInstanceRepositoryRepository;
+
+	@MockBean
+	VolumeInstanceStatusRepository volumeInstanceStatusRepository;
+
+	@MockBean
+	ApplicationDeployerBash applicationDeployerBash;
+
+	@MockBean
+	DeploymentStatusTracker deploymentStatusTracker;
+
+	@MockBean
+	DeploymentIndexService deploymentIndexService;
+
 	@MockBean
 	EncryptionService encryptionService;
-	
+
+	String cppReference = "cppReference";
 	@Before 
 	public void setUp() {
-		subject = new DeploymentRestController(mockDeploymentRepo, mockDeploymentStatusRepo, mockAccountRepo,
-				mockApplicationRepo, mockVolumeRepo, mockVolumeStatusRepo, mockCloudCredentialsRepo,
-				mockConfigurationRepo, teamRepository, mockApplicationDeployerBash, mockDeploymentStatusTracker, deploymentParametersRepository,
+		subject = new DeploymentRestController(
+				deploymentRepository, 
+				deploymentStatusRepository,
+				accountRepository,
+				applicationRepository, 
+				volumeInstanceRepositoryRepository, 
+				volumeInstanceStatusRepository,
+				cloudProviderParametersRepository,
+				configurationRepository, 
+				teamRepository, 
+				applicationDeployerBash,
+				deploymentStatusTracker, 
+				configurationDeploymentParametersRepository,
 				domainService,
 				deploymentConfigurationRepository,
 				deploymentApplicationRepository,
 				cloudProviderParametersCopyRepository,
-				cdpCopyRepository,
+				configurationDeploymentParamsCopyRepository,
 				encryptionService,
 				salt,
 				password);
-		
-		ReflectionTestUtils.setField(cppService, "cloudProviderParametersRepository", mockCloudCredentialsRepo);
-		ReflectionTestUtils.setField(deploymentParametersService, "configurationDeploymentParametersRepository", deploymentParametersRepository);
+
+
+		ReflectionTestUtils.setField(deploymentService, "deploymentRepository", deploymentRepository);
+		ReflectionTestUtils.setField(configurationDeploymentParametersService, "configurationDeploymentParametersRepository",
+				configurationDeploymentParametersRepository);
+		ReflectionTestUtils.setField(cloudProviderParametersCopyService, "cloudProviderParametersCopyRepository", cloudProviderParametersCopyRepository);
+		ReflectionTestUtils.setField(cloudProviderParametersService, "cloudProviderParametersRepository", cloudProviderParametersRepository);
+		ReflectionTestUtils.setField(configurationService, "configurationRepository", configurationRepository);
+		ReflectionTestUtils.setField(accountService, "accountRepository", accountRepository);
+		ReflectionTestUtils.setField(applicationService, "applicationRepository", applicationRepository);
+		ReflectionTestUtils.setField(deploymentApplicationService, "deploymentApplicationRepository", deploymentApplicationRepository);
 
 		Properties props = new Properties();
 		props.put("be.applications.root", "blah");    
@@ -167,24 +256,21 @@ public class DeploymentRestControllerTest {
 		props.put("os.tenancy.name", "bluh");
 		props.put("os.auth.url", "blyh");
 		subject.setProperties(props);
-
-		this.principalMock = mock(Principal.class);
-		when(this.principalMock.getName()).thenReturn("A user name");
 	}
 
 	@Test
 	public void can_delete_deployment_given_id() throws IOException, ApplicationDeployerException,
-			NoSuchPaddingException, InvalidAlgorithmParameterException, NoSuchAlgorithmException,
-			IllegalBlockSizeException, BadPaddingException, InvalidKeyException, InvalidKeySpecException {
+	NoSuchPaddingException, InvalidAlgorithmParameterException, NoSuchAlgorithmException,
+	IllegalBlockSizeException, BadPaddingException, InvalidKeyException, InvalidKeySpecException {
 		String theId = "blah";
 		deployment(theId);
-		
+
 		CloudProviderParameters mockCloudProviderParameters = mock(CloudProviderParameters.class);
 		when(mockCloudProviderParameters.getReference()).thenReturn(cppReference);
-		when(mockCloudCredentialsRepo.findByNameAndAccountUsername(A_CLOUD_PROVIDER_PARAMS_NAME, A_USER_NAME))
-				.thenReturn(Optional.of(mockCloudProviderParameters));
-		when(cppService.findByReference(cppReference)).thenReturn(mockCloudProviderParameters);
-		when(mockCloudCredentialsRepo.findByReference(cppReference)).thenReturn(Optional.of(mockCloudProviderParameters));
+		when(cloudProviderParametersRepository.findByNameAndAccountUsername(A_CLOUD_PROVIDER_PARAMS_NAME, A_USER_NAME))
+		.thenReturn(Optional.of(mockCloudProviderParameters));
+		when(cloudProviderParametersService.findByReference(cppReference)).thenReturn(mockCloudProviderParameters);
+		when(cloudProviderParametersRepository.findByReference(cppReference)).thenReturn(Optional.of(mockCloudProviderParameters));
 		Account mockAccount = mock(Account.class);
 		when(mockAccount.getUsername()).thenReturn(A_USER_NAME);
 		when(mockAccount.getId()).thenReturn(1L);
@@ -192,8 +278,8 @@ public class DeploymentRestControllerTest {
 		when(mockAccount.getPassword()).thenReturn("A password");
 		when(mockAccount.getOrganisation()).thenReturn("An organisation");
 		when(mockCloudProviderParameters.getAccount()).thenReturn(mockAccount);
-		
-		ResponseEntity response = subject.removeDeploymentByReference(this.principalMock, theId);
+
+		ResponseEntity response = subject.removeDeploymentByReference(principal, theId);
 
 		assertThat(response.getStatusCode().value(), is(200));
 	}
@@ -207,8 +293,8 @@ public class DeploymentRestControllerTest {
 		deployment(theId);
 
 		CloudProviderParameters mockCloudProviderParameters = mock(CloudProviderParameters.class);
-		when(mockCloudCredentialsRepo.findByNameAndAccountUsername(A_CLOUD_PROVIDER_PARAMS_NAME, A_USER_NAME))
-				.thenReturn(Optional.of(mockCloudProviderParameters));
+		when(cloudProviderParametersRepository.findByNameAndAccountUsername(A_CLOUD_PROVIDER_PARAMS_NAME, A_USER_NAME))
+		.thenReturn(Optional.of(mockCloudProviderParameters));
 
 		ResponseEntity response = subject.readyToTearDown(tempKey, theId);
 		assertThat(response.getStatusCode().is2xxSuccessful(), is(true));
@@ -226,10 +312,10 @@ public class DeploymentRestControllerTest {
 
 	@Test(expected = DeploymentNotFoundException.class)
 	public void returns_appropriate_error_when_deployment_not_found() throws IOException, ApplicationDeployerException,
-			NoSuchPaddingException, InvalidKeyException, NoSuchAlgorithmException, IllegalBlockSizeException,
-			BadPaddingException, InvalidAlgorithmParameterException, InvalidKeySpecException {
+	NoSuchPaddingException, InvalidKeyException, NoSuchAlgorithmException, IllegalBlockSizeException,
+	BadPaddingException, InvalidAlgorithmParameterException, InvalidKeySpecException {
 		String aNonExistentDeployment = "foo";
-		when(mockDeploymentRepo.findByReference(aNonExistentDeployment)).thenReturn(Optional.empty());
+		when(deploymentRepository.findByReference(aNonExistentDeployment)).thenReturn(Optional.empty());
 
 		subject.readyToTearDown(tempKey, aNonExistentDeployment);
 	}
@@ -245,31 +331,31 @@ public class DeploymentRestControllerTest {
 		//when(mockDeployment.getCloudProviderParameters().getCloudProvider()).thenReturn(A_CLOUD_PROVIDER);
 
 		CloudProviderParameters mockCloudProviderParameters = mock(CloudProviderParameters.class);
-		when(mockCloudCredentialsRepo.findByNameAndAccountUsername(A_CLOUD_PROVIDER_PARAMS_NAME, A_USER_NAME))
-				.thenReturn(Optional.of(mockCloudProviderParameters));
+		when(cloudProviderParametersRepository.findByNameAndAccountUsername(A_CLOUD_PROVIDER_PARAMS_NAME, A_USER_NAME))
+		.thenReturn(Optional.of(mockCloudProviderParameters));
 
 		subject.readyToTearDown(tempKey, aDeploymentReference);
 
-		verify(mockDeploymentRepo).delete(1234L);
+		verify(deploymentRepository).delete(1234L);
 	}
 
 	@Test
 	public void can_recognise_an_IP_has_been_given() throws IOException, ApplicationDeployerException,
-			NoSuchPaddingException, InvalidKeyException, NoSuchAlgorithmException, IllegalBlockSizeException,
-			BadPaddingException, InvalidAlgorithmParameterException, InvalidKeySpecException {
+	NoSuchPaddingException, InvalidKeyException, NoSuchAlgorithmException, IllegalBlockSizeException,
+	BadPaddingException, InvalidAlgorithmParameterException, InvalidKeySpecException {
 		String anIp = "123.123.123.123";
 		String aReference = "bar";
 		Deployment mockDeployment = deployment(aReference);
 		when(mockDeployment.getAccessIp()).thenReturn(anIp);
-		when(mockDeploymentRepo.findByAccessIp(anIp)).thenReturn(Optional.of(mockDeployment));
+		when(deploymentRepository.findByAccessIp(anIp)).thenReturn(Optional.of(mockDeployment));
 
 		CloudProviderParameters mockCloudProviderParameters = mock(CloudProviderParameters.class);
-		when(mockCloudCredentialsRepo.findByNameAndAccountUsername(A_CLOUD_PROVIDER_PARAMS_NAME, A_USER_NAME))
-				.thenReturn(Optional.of(mockCloudProviderParameters));
+		when(cloudProviderParametersRepository.findByNameAndAccountUsername(A_CLOUD_PROVIDER_PARAMS_NAME, A_USER_NAME))
+		.thenReturn(Optional.of(mockCloudProviderParameters));
 
 		subject.readyToTearDown(tempKey, anIp);
 
-		verify(mockDeploymentRepo).findByAccessIp(anIp);
+		verify(deploymentRepository).findByAccessIp(anIp);
 	}
 
 	@Test(expected = NullPointerException.class)
@@ -282,10 +368,10 @@ public class DeploymentRestControllerTest {
 		String accountUserName = "a_name";
 		String appName = "an_app";
 
-		when(principalMock.getName()).thenReturn(accountUserName);
+		when(principal.getName()).thenReturn(accountUserName);
 		Account mockAccount = mock(Account.class);
 		when(mockAccount.getUsername()).thenReturn(accountUserName);
-		when(mockAccountRepo.findByUsername(accountUserName)).thenReturn(Optional.of(mockAccount));
+		when(accountRepository.findByUsername(accountUserName)).thenReturn(Optional.of(mockAccount));
 
 		Application applicationMock = mock(Application.class);
 		when(applicationMock.getName()).thenReturn(appName);
@@ -293,349 +379,292 @@ public class DeploymentRestControllerTest {
 		Set applicationCollection = new HashSet<>();
 		applicationCollection.add(applicationMock);
 
-		when(mockApplicationRepo.findByAccountUsername(accountUserName, new Sort("sort.name"))).thenReturn(applicationCollection);
+		when(applicationRepository.findByAccountUsername(accountUserName,new Sort("sort.name"))).thenReturn(applicationCollection);
 		when(deploymentResourceMock.getApplicationAccountUsername()).thenReturn(accountUserName);
 		when(deploymentResourceMock.getApplicationName()).thenReturn(appName);
-		when(mockApplicationRepo.findByAccountUsernameAndName(accountUserName, appName))
-				.thenReturn(Optional.of(applicationMock));
+		when(deploymentResourceMock.getConfigurationAccountUsername()).thenReturn(accountUserName);
+		when(deploymentResourceMock.getConfigurationName()).thenReturn("some_configuration_name");
+		when(applicationRepository.findByAccountUsernameAndName(accountUserName, appName))
+		.thenReturn(Optional.of(applicationMock));
 
-		subject.addDeployment(principalMock, deploymentResourceMock);
+		subject.addDeployment(principal, deploymentResourceMock);
 
 	}
 
-	// run the flow of the add method and check no hiccups
+	// run the flow of the add method and check no hiccups and deployment is created
 	@Test
-	public void test_add_deployment_parameters()
+	public void test_add_deployment()
 			throws InvalidKeyException, NoSuchPaddingException, NoSuchAlgorithmException, IllegalBlockSizeException,
 			BadPaddingException, InvalidAlgorithmParameterException, InvalidKeySpecException, NoSuchProviderException,
 			IOException, ApplicationDeployerException {
 
-		ReflectionTestUtils.setField(deploymentService, "deploymentRepository", deploymentRepository);
-		ReflectionTestUtils.setField(subject, "deploymentService", deploymentService);
-		AccountService accountService = mock(AccountService.class);
-		ReflectionTestUtils.setField(subject, "accountService", accountService);
-		ApplicationService applicationService = mock(ApplicationService.class);
-		ReflectionTestUtils.setField(subject, "applicationService", applicationService);
-		VolumeInstanceService volumeInstanceService = mock(VolumeInstanceService.class);
-		ReflectionTestUtils.setField(subject, "volumeInstanceService", volumeInstanceService);
-		CloudProviderParametersService cloudProviderParametersService = mock(CloudProviderParametersService.class);
-		ReflectionTestUtils.setField(subject, "cloudProviderParametersService", cloudProviderParametersService);
-		ReflectionTestUtils.setField(subject, "configurationService", configurationService);
-		ApplicationDeployerBash applicationDeployerBash = mock(ApplicationDeployerBash.class);
-		ReflectionTestUtils.setField(subject, "applicationDeployerBash", applicationDeployerBash);
-		ReflectionTestUtils.setField(deploymentParametersService, "configurationDeploymentParametersRepository",
-				deploymentParametersRepository);
-		ReflectionTestUtils.setField(subject, "deploymentParametersService", deploymentParametersService);
-		ReflectionTestUtils.setField(subject, "cloudProviderParametersCopyService", cloudProviderParametersCopyService);
-		ReflectionTestUtils.setField(cloudProviderParametersCopyService, "cloudProviderParametersCopyRepository", cloudProviderParametersCopyRepository);
-		ReflectionTestUtils.setField(cloudProviderParametersCopyService, "encryptionService", encryptionService);
-		
+		String sharedWithUsername = "sharedWithUsername";
 		Principal principal = mock(Principal.class);
-		String principalName = "username";
-		when(principal.getName()).thenReturn(principalName);
+		given(principal.getName()).willReturn(sharedWithUsername);
 
-		Deployment mockDeployment = mock(Deployment.class);
+
+		//get account of the user with whom application and configuration are shared
+		Account account = mock(Account.class);
+		String accountReference = "accountReference";
+		given(accountRepository.findByUsername(sharedWithUsername)).willReturn(Optional.of(account));
+		given(accountService.findByUsername(sharedWithUsername)).willReturn(account);
+		given(account.getGivenName()).willReturn(sharedWithUsername);
+		given(account.getUsername()).willReturn(sharedWithUsername);
+		given(account.getFirstJoinedDate()).willReturn(new Date(0, 0, 0));
+		given(account.getReference()).willReturn(accountReference);
+
+		//get account of the user who owns application and configuration
+		Account owner =  mock(Account.class);
+		String username = "username";
+		given(owner.getUsername()).willReturn(username);
+		given(accountRepository.findByUsername(username)).willReturn(Optional.of(owner));
+		given(accountService.findByUsername(username)).willReturn(owner);
+		given(owner.getGivenName()).willReturn(username);
+		given(owner.getUsername()).willReturn(username);
+		given(owner.getFirstJoinedDate()).willReturn(new Date(0, 0, 0));
+		given(owner.getReference()).willReturn(accountReference);
+
+
 		DeploymentResource input = mock(DeploymentResource.class);
-		String keyName = "keyName";
-		String keyValue = "keyValue";
+		given(input.getConfigurationAccountUsername()).willReturn(username);
+		given(input.getApplicationAccountUsername()).willReturn(username);
+		String sshkey = "sshkey";
+		given(input.getUserSshKey()).willReturn(sshkey);
 
-		// inputs
+		//set up teams, sharedwith user is a member of only one of these teams
+		Team teamOne = mock(Team.class);
+		Set<Account> teamOneAccounts = new HashSet<>();
+		teamOneAccounts.add(account);
+		given(teamOne.getAccountsBelongingToTeam()).willReturn(teamOneAccounts);
+		Team teamTwo = mock(Team.class);
+		given(teamTwo.getAccountsBelongingToTeam()).willReturn(new HashSet<>());
+		Set<Team> sharedWithTeams = new HashSet<>();
+		sharedWithTeams.add(teamOne);
+		sharedWithTeams.add(teamTwo);
+		
+		//application
+		given(input.getApplicationAccountUsername()).willReturn(username);
+		String applicationName = "applicationName";
+		given(input.getApplicationName()).willReturn(applicationName);
+		Application application = mock(Application.class);
+		when(application.getSharedWithTeams()).thenReturn(sharedWithTeams);
+		given(application.getName()).willReturn(applicationName);
+		given(applicationRepository.findByAccountUsernameAndName(username,applicationName)).willReturn(Optional.of(application));
+		given(applicationService.findByAccountUsernameAndName(username,applicationName)).willReturn(application);
+
+		//configuration
+		String configurationName = "config";
+		Configuration config = mock(Configuration.class);
+		when(config.getSharedWithTeams()).thenReturn(sharedWithTeams);
+		when(input.getConfigurationAccountUsername()).thenReturn(username);
+		when(input.getConfigurationName()).thenReturn(configurationName);
+		when(configurationService.findByNameAndAccountUsername(input.getConfigurationName(), input.getConfigurationAccountUsername()))
+		.thenReturn(config);
+		when(configurationRepository.findByNameAndAccountUsername(input.getConfigurationName(), input.getConfigurationAccountUsername()))
+		.thenReturn(Optional.of(config));
+		when(config.getHardUsageLimit()).thenReturn(1.0);
+		when(configurationService.getTotalConsumption(config, deploymentIndexService)).thenReturn(0.5);
+
+
+		//cdp
+		String cdpReference = "cdpReference";
+		String cdpName = "cdpName";
+		given(config.getConfigDeployParamsReference()).willReturn(cdpReference);
+		ConfigDeploymentParamsCopy configDeploymentParamsCopy = mock(ConfigDeploymentParamsCopy.class);
+		given(configDeploymentParamsCopy.getName()).willReturn(cdpName);
+		given(configurationDeploymentParamsCopyRepository.findByConfigurationDeploymentParametersReference(cdpReference))
+		.willReturn(Optional.of(configDeploymentParamsCopy));
+		given(configurationDeploymentParamsCopyService.findByConfigurationDeploymentParametersReference(cdpReference))
+		.willReturn(configDeploymentParamsCopy);
+		List<ConfigDeploymentParamsCopy> cdpCopyList = new ArrayList<>();
+		cdpCopyList.add(configDeploymentParamsCopy);
+		given(configurationDeploymentParamsCopyRepository.findByName(cdpName)).willReturn(cdpCopyList);
+		given(configurationDeploymentParamsCopyService.findByName(cdpName)).willReturn(configDeploymentParamsCopy);
+
+		//assigned cloud provider parameters
+		String cloudProviderParametersName = "cppName";
+		config.cloudProviderParametersName = cloudProviderParametersName;
+		config.setCloudProviderParametersName(cloudProviderParametersName);
+		when(config.getCloudProviderParametersName()).thenReturn(cloudProviderParametersName);
+		when(cloudProviderParameters.getName()).thenReturn(cloudProviderParametersName);
+		CloudProviderParameters selectedCloudProviderParameters = mock(CloudProviderParameters.class);
+		given(cloudProviderParametersRepository.findByNameAndAccountUsername(cloudProviderParametersName,
+				username)).willReturn(Optional.of(selectedCloudProviderParameters));
+		given(cloudProviderParametersService.findByNameAndAccountUsername(cloudProviderParametersName,
+				username)).willReturn(selectedCloudProviderParameters);
+		given(selectedCloudProviderParameters.getAccount()).willReturn(account);
+		String cloudProviderParametersReference = "cppReference";
+		given(selectedCloudProviderParameters.getReference()).willReturn(cloudProviderParametersReference);
+		String cloudProvider = "ostack";
+		given(selectedCloudProviderParameters.getCloudProvider()).willReturn(cloudProvider);
+
+		//application cloud providers
+		Collection<ApplicationCloudProvider> acpList = new ArrayList<>();
+		ApplicationCloudProvider acp = mock(ApplicationCloudProvider.class);
+		given(acp.getName()).willReturn("somename");
+		given(acp.getPath()).willReturn("somepath");
+		acpList.add(acp);
+		given(application.getCloudProviders()).willReturn(acpList);
+
+		//cloud provider parameters copy
+		CloudProviderParamsCopy cppCopy = mock(CloudProviderParamsCopy.class);
+		given(cloudProviderParametersCopyRepository.findByCloudProviderParametersReference(cloudProviderParametersReference))
+		.willReturn(Optional.of(cppCopy));
+		given(cloudProviderParametersCopyService.findByCloudProviderParametersReference(cloudProviderParametersReference))
+		.willReturn(cppCopy);
+		given(cppCopy.getAccount()).willReturn(account);
+
+		//deployment application
+		DeploymentApplication deploymentApplication = mock(DeploymentApplication.class);
+		given(deploymentApplicationService.createDeploymentApplication(application)).willReturn(deploymentApplication);
+		given(deploymentApplication.getName()).willReturn(applicationName);
+		given(deploymentApplication.getAccount()).willReturn(account);
+		Collection<DeploymentApplicationCloudProvider> dacpList = new ArrayList<>();
+		given(deploymentApplicationRepository.save(deploymentApplication)).willReturn(deploymentApplication);
+		given(deploymentApplicationService.save(deploymentApplication)).willReturn(deploymentApplication);
+
+		// application inputs 
 		Collection<DeploymentAssignedInputResource> inputResources = new ArrayList<>();
 		DeploymentAssignedInputResource inputResource = mock(DeploymentAssignedInputResource.class);
-		when(inputResource.getInputName()).thenReturn(keyName);
-		when(inputResource.getAssignedValue()).thenReturn(keyValue);
+		when(inputResource.getInputName()).thenReturn("somename");
+		when(inputResource.getAssignedValue()).thenReturn("somevalue");
 		inputResources.add(inputResource);
 		when(input.getAssignedInputs()).thenReturn(inputResources);
 
-		// volumes
-		Collection<DeploymentAttachedVolumeResource> volumeResources = new ArrayList<>();
-		when(input.getAttachedVolumes()).thenReturn(null);
-
-		// assigned parameters
-		String parameterName = "floating_ip_pool";
-		String parameterValue = "to_change";
-		Map<String, String> assignedParameters = new HashMap<>();
-		assignedParameters.put(parameterName, parameterValue);
-		Collection<DeploymentAssignedParameterResource> assignedParameterResources = new ArrayList<>();
-		DeploymentAssignedParameterResource parameterResource = mock(DeploymentAssignedParameterResource.class);
-		when(parameterResource.getParameterName()).thenReturn(parameterName);
-		when(parameterResource.getParameterValue()).thenReturn(parameterValue);
-		assignedParameterResources.add(parameterResource);
-		when(input.getAssignedParameters()).thenReturn(assignedParameterResources);
-
-		// assigned configuration
-		String configurationName = "configName";
-		String configurationUsername = "configUsername";
-		when(input.getConfigurationName()).thenReturn(configurationName);
-		when(input.getConfigurationAccountUsername()).thenReturn(configurationUsername);
-
-		String cloudProviderParametersName = "cppName";
-		CloudProviderParametersResource cloudProviderParametersResource = mock(CloudProviderParametersResource.class);
-		when(cloudProviderParametersResource.getName()).thenReturn(cloudProviderParametersName);
-		when(cloudProviderParametersResource.getAccountUsername()).thenReturn(principalName);
-		//when(input.getCloudProviderParameters()).thenReturn(cloudProviderParametersResource);
-
-		//input.cloudProviderParameters = cloudProviderParametersResource;
-		CloudProviderParameters selectedCloudProviderParameters = mock(CloudProviderParameters.class);
-		when(cloudProviderParametersService.findByNameAndAccountUsername(Mockito.anyString(),
-			Mockito.anyString())).thenReturn(selectedCloudProviderParameters);
-		String cloudProvider = "ostack";
-		selectedCloudProviderParameters.cloudProvider = cloudProvider;
-		when(selectedCloudProviderParameters.getCloudProvider()).thenReturn(cloudProvider);
-
-		Account account = mock(Account.class);
-		selectedCloudProviderParameters.account = account;
-		when(selectedCloudProviderParameters.getAccount()).thenReturn(account);
-		when(accountService.findByUsername(principalName)).thenReturn(account);
-		when(account.getGivenName()).thenReturn(principalName);
-		when(account.getUsername()).thenReturn(principalName);
-		when(input.getApplicationAccountUsername()).thenReturn(principalName);
-		
-		account.username = principalName;
-		when(account.getUsername()).thenReturn(principalName);
-		when(accountService.findByUsername(principalName)).thenReturn(account);
-		when(accountService.findByEmail(input.getApplicationAccountUsername())).thenReturn(account);
-
-		String applicationName = "appName";
-		DeploymentApplication deploymentApplication = 
-				mock(DeploymentApplication.class);
-		when(deploymentApplication.getName()).thenReturn(applicationName);
-		when(deploymentApplication.getAccount()).thenReturn(account);
-		when(input.getApplicationName()).thenReturn(applicationName);
-
-		Configuration config = mock(Configuration.class);
-		String configName = "configName";
-		given(configurationService.findByNameAndAccountEmail(input.getConfigurationName(),
-				input.getConfigurationAccountUsername())).willReturn(config);
-		ConfigurationDeploymentParameters configurationParameters = mock(ConfigurationDeploymentParameters.class);
-		String configurationParameterName = "configurationParameterName";
-		when(configurationParameters.getName()).thenReturn(configurationParameterName);
-		when(deploymentParametersService.findByName(configurationParameterName)).thenReturn(configurationParameters);
-		ConfigurationDeploymentParameter configurationParameter = mock(ConfigurationDeploymentParameter.class);
-		when(configurationParameter.getKey()).thenReturn(parameterName);
-		when(configurationParameter.getValue()).thenReturn(parameterValue);
-		Set<ConfigurationDeploymentParameter> allParameters = new HashSet<>();
-		allParameters.add(configurationParameter);
-		when(configurationParameters.getConfigurationDeploymentParameter()).thenReturn(allParameters);
-		when(config.getName()).thenReturn(configName);
-		when(config.getAccount()).thenReturn(account);
-		when(account.getEmail()).thenReturn(configurationUsername);
-
-		
-		Application application = mock(Application.class);
-		when(application.getName()).thenReturn(applicationName);
-		when(applicationService.findByAccountUsernameAndName(principalName, applicationName)).thenReturn(application);
-		when(application.getAccount()).thenReturn(account);
-		when(input.getApplicationName()).thenReturn(applicationName);
-		when(applicationService.findByAccountUsernameAndName(principalName, applicationName)).thenReturn(application);
-		
-		Collection<ApplicationCloudProvider> acp = new ArrayList<>();
-		when(application.getCloudProviders()).thenReturn(acp);
-		application.cloudProviders = acp;
-		
-		String cppReference = "someReference";
-		CloudProviderParametersCopyResource cppCopyResource = mock(CloudProviderParametersCopyResource.class);
-		when(input.getCloudProviderParametersCopy()).thenReturn(cppCopyResource);
-		when(cppCopyResource.getCloudProviderParametersReference()).thenReturn(cppReference);
-		when(selectedCloudProviderParameters.getReference()).thenReturn(cppReference);
-		when(cloudProviderParametersService.findByReference(Mockito.anyString())).thenReturn(selectedCloudProviderParameters);
-		CloudProviderParamsCopy cppCopy = mock(CloudProviderParamsCopy.class);
-
-		Collection<CloudProviderParamsCopyField> fields = new ArrayList();
-		cppCopy.fields = fields;
-		when(cppCopy.getFields()).thenReturn(fields);
-		when(cloudProviderParametersCopyRepository.findByCloudProviderParametersReference(Mockito.anyString())).thenReturn(Optional.of(cppCopy));
-		when(cloudProviderParametersCopyService.findByCloudProviderParametersReference(Mockito.anyString())).thenCallRealMethod();
-		when(cppCopy.getAccount()).thenReturn(account);
-		
-		when(input.getConfigurationName()).thenReturn(configurationName);
-		when(input.getConfigurationAccountUsername()).thenReturn(configurationUsername);
-		Long configId = 1L;
-		String reference = "reference";
 		Deployment deployment = mock(Deployment.class);
-		when(configurationService.findByNameAndAccountUsername(configName, principalName)).thenReturn(config);
+		given(deployment.getId()).willReturn(1l);
 		given(deploymentService.save(isA(Deployment.class))).willCallRealMethod();
 		given(deploymentRepository.save(isA(Deployment.class))).willReturn(deployment);
-		when(deployment.getDeploymentApplication()).thenReturn(deploymentApplication);
-		DeploymentConfiguration depConfiguration = mock(DeploymentConfiguration.class);
-		when(depConfiguration.getName()).thenReturn("some name");
-		when(deployment.getDeploymentConfiguration()).thenReturn(depConfiguration);
-		when(deployment.getReference()).thenReturn(reference);
-		when(deployment.getAccount()).thenReturn(account);
-		
+		given(deployment.getAccount()).willReturn(account);
+		given(deployment.getDeploymentApplication()).willReturn(deploymentApplication);
+
 		ResponseEntity<?> addedDeployment = subject.addDeployment(principal, input);
 		assertNotNull(addedDeployment.getBody());
 		assertTrue(addedDeployment.getStatusCode().equals(HttpStatus.CREATED));
-	}
-	
-	@Test
-	public void test_deployment_application_created()
-			throws InvalidKeyException, NoSuchPaddingException, NoSuchAlgorithmException, IllegalBlockSizeException,
-			BadPaddingException, InvalidAlgorithmParameterException, InvalidKeySpecException, NoSuchProviderException,
-			IOException, ApplicationDeployerException {
-
-		ReflectionTestUtils.setField(deploymentService, "deploymentRepository", deploymentRepository);
-		ReflectionTestUtils.setField(subject, "deploymentService", deploymentService);
-		AccountService accountService = mock(AccountService.class);
-		ReflectionTestUtils.setField(subject, "accountService", accountService);
-		ApplicationService applicationService = mock(ApplicationService.class);
-		ReflectionTestUtils.setField(subject, "applicationService", applicationService);
-		VolumeInstanceService volumeInstanceService = mock(VolumeInstanceService.class);
-		ReflectionTestUtils.setField(subject, "volumeInstanceService", volumeInstanceService);
-		CloudProviderParametersService cloudProviderParametersService = mock(CloudProviderParametersService.class);
-		ReflectionTestUtils.setField(subject, "cloudProviderParametersService", cloudProviderParametersService);
-		ReflectionTestUtils.setField(subject, "configurationService", configurationService);
-		ApplicationDeployerBash applicationDeployerBash = mock(ApplicationDeployerBash.class);
-		ReflectionTestUtils.setField(subject, "applicationDeployerBash", applicationDeployerBash);
-		ReflectionTestUtils.setField(deploymentParametersService, "configurationDeploymentParametersRepository",
-				deploymentParametersRepository);
-		ReflectionTestUtils.setField(subject, "deploymentParametersService", deploymentParametersService);
-		ReflectionTestUtils.setField(subject, "cloudProviderParametersCopyService", cloudProviderParametersCopyService);
-		ReflectionTestUtils.setField(cloudProviderParametersCopyService, "cloudProviderParametersCopyRepository", cloudProviderParametersCopyRepository);
-		ReflectionTestUtils.setField(cloudProviderParametersCopyService, "encryptionService", encryptionService);
-		Principal principal = mock(Principal.class);
-		String principalName = "username";
-		when(principal.getName()).thenReturn(principalName);
-
-		Deployment mockDeployment = mock(Deployment.class);
-		DeploymentResource input = mock(DeploymentResource.class);
-		String keyName = "keyName";
-		String keyValue = "keyValue";
-
-		// inputs
-		Collection<DeploymentAssignedInputResource> inputResources = new ArrayList<>();
-		DeploymentAssignedInputResource inputResource = mock(DeploymentAssignedInputResource.class);
-		when(inputResource.getInputName()).thenReturn(keyName);
-		when(inputResource.getAssignedValue()).thenReturn(keyValue);
-		inputResources.add(inputResource);
-		when(input.getAssignedInputs()).thenReturn(inputResources);
-
-		// volumes
-		Collection<DeploymentAttachedVolumeResource> volumeResources = new ArrayList<>();
-		when(input.getAttachedVolumes()).thenReturn(null);
-
-		// assigned parameters
-		String parameterName = "floating_ip_pool";
-		String parameterValue = "to_change";
-		Map<String, String> assignedParameters = new HashMap<>();
-		assignedParameters.put(parameterName, parameterValue);
-		Collection<DeploymentAssignedParameterResource> assignedParameterResources = new ArrayList<>();
-		DeploymentAssignedParameterResource parameterResource = mock(DeploymentAssignedParameterResource.class);
-		when(parameterResource.getParameterName()).thenReturn(parameterName);
-		when(parameterResource.getParameterValue()).thenReturn(parameterValue);
-		assignedParameterResources.add(parameterResource);
-		when(input.getAssignedParameters()).thenReturn(assignedParameterResources);
-
-		// assigned configuration
-		String configurationName = "configName";
-		String configurationUsername = "configUsername";
-		when(input.getConfigurationName()).thenReturn(configurationName);
-		when(input.getConfigurationAccountUsername()).thenReturn(configurationUsername);
-
-		String cloudProviderParametersName = "cppName";
-		CloudProviderParametersResource cloudProviderParametersResource = mock(CloudProviderParametersResource.class);
-		when(cloudProviderParametersResource.getName()).thenReturn(cloudProviderParametersName);
-		when(cloudProviderParametersResource.getAccountUsername()).thenReturn(principalName);
-
-		//input.cloudProviderParameters = cloudProviderParametersResource;
-		CloudProviderParameters selectedCloudProviderParameters = mock(CloudProviderParameters.class);
-		when(cloudProviderParametersService.findByNameAndAccountUsername(Mockito.anyString(),
-				Mockito.anyString())).thenReturn(selectedCloudProviderParameters);
-		String cppReference = "someReference";
-		selectedCloudProviderParameters.reference = cppReference;
-		when(selectedCloudProviderParameters.getReference()).thenReturn(cppReference);
-		when(cloudProviderParametersService.findByReference(cppReference)).thenReturn(selectedCloudProviderParameters);
-		
-		String cloudProvider = "ostack";
-		selectedCloudProviderParameters.cloudProvider = cloudProvider;
-		when(selectedCloudProviderParameters.getCloudProvider()).thenReturn(cloudProvider);
-		
-		Account account = mock(Account.class);
-		selectedCloudProviderParameters.account = account;
-		when(selectedCloudProviderParameters.getAccount()).thenReturn(account);
-		when(accountService.findByUsername(principalName)).thenReturn(account);
-		when(account.getGivenName()).thenReturn(principalName);
-		when(account.getUsername()).thenReturn(principalName);
-		when(input.getApplicationAccountUsername()).thenReturn(principalName);
-		
-		//input set cloudproviderparams copy
-		
-		CloudProviderParametersCopyResource cppCopyResource = mock(CloudProviderParametersCopyResource.class);
-		when(input.getCloudProviderParametersCopy()).thenReturn(cppCopyResource);
-		when(cppCopyResource.getCloudProviderParametersReference()).thenReturn(cppReference);
-		
-		
-		CloudProviderParamsCopy cppCopy = mock(CloudProviderParamsCopy.class);
-		cppCopy.cloudProviderParametersReference = cppReference;
-		Collection<CloudProviderParamsCopyField> fields = new ArrayList();
-		cppCopy.fields = fields;
-		when(cppCopy.getFields()).thenReturn(fields);
-		when(cloudProviderParametersCopyService.findByCloudProviderParametersReference(cppReference)).thenCallRealMethod();
-		when(cloudProviderParametersCopyRepository.findByCloudProviderParametersReference(cppReference)).thenReturn(Optional.of(cppCopy));
-		when(cppCopy.getAccount()).thenReturn(account);
-		account.username = principalName;
-		when(account.getUsername()).thenReturn(principalName);
-		when(accountService.findByUsername(principalName)).thenReturn(account);
-		when(accountService.findByEmail(input.getApplicationAccountUsername())).thenReturn(account);
-
-		String applicationName = "appName";
-		DeploymentApplication deploymentApplication = 
-				mock(DeploymentApplication.class);
-		when(deploymentApplication.getName()).thenReturn(applicationName);
-		when(deploymentApplication.getAccount()).thenReturn(account);
-		when(input.getApplicationName()).thenReturn(applicationName);
-
-		Configuration config = mock(Configuration.class);
-		String configName = "configName";
-		given(configurationService.findByNameAndAccountEmail(input.getConfigurationName(),
-				input.getConfigurationAccountUsername())).willReturn(config);
-		ConfigurationDeploymentParameters configurationParameters = mock(ConfigurationDeploymentParameters.class);
-		String configurationParameterName = "configurationParameterName";
-		when(configurationParameters.getName()).thenReturn(configurationParameterName);
-		when(deploymentParametersService.findByName(configurationParameterName)).thenReturn(configurationParameters);
-		ConfigurationDeploymentParameter configurationParameter = mock(ConfigurationDeploymentParameter.class);
-		when(configurationParameter.getKey()).thenReturn(parameterName);
-		when(configurationParameter.getValue()).thenReturn(parameterValue);
-		Set<ConfigurationDeploymentParameter> allParameters = new HashSet<>();
-		allParameters.add(configurationParameter);
-		when(configurationParameters.getConfigurationDeploymentParameter()).thenReturn(allParameters);
-		when(config.getName()).thenReturn(configName);
-		when(config.getAccount()).thenReturn(account);
-		when(account.getEmail()).thenReturn(configurationUsername);
-
-		
-		Application application = mock(Application.class);
-		when(application.getName()).thenReturn(applicationName);
-		when(applicationService.findByAccountUsernameAndName(principalName, applicationName)).thenReturn(application);
-		when(application.getAccount()).thenReturn(account);
-		when(input.getApplicationName()).thenReturn(applicationName);
-		when(applicationService.findByAccountUsernameAndName(principalName, applicationName)).thenReturn(application);
-		
-		Collection<ApplicationCloudProvider> acp = new ArrayList<>();
-		when(application.getCloudProviders()).thenReturn(acp);
-		application.cloudProviders = acp;
-		
-		when(input.getConfigurationName()).thenReturn(configurationName);
-		when(input.getConfigurationAccountUsername()).thenReturn(configurationUsername);
-		Long configId = 1L;
-		String reference = "reference";
-		Deployment deployment = mock(Deployment.class);
-		when(configurationService.findByNameAndAccountUsername(configName, principalName)).thenReturn(config);
-		given(deploymentService.save(isA(Deployment.class))).willCallRealMethod();
-		given(deploymentRepository.save(isA(Deployment.class))).willReturn(deployment);
-		when(deployment.getDeploymentApplication()).thenReturn(deploymentApplication);
-		DeploymentConfiguration depConfiguration = mock(DeploymentConfiguration.class);
-		when(depConfiguration.getName()).thenReturn("some name");
-		when(deployment.getDeploymentConfiguration()).thenReturn(depConfiguration);
-		when(deployment.getReference()).thenReturn(reference);
-		when(deployment.getAccount()).thenReturn(account);
-		ResponseEntity<?> addedDeployment = subject.addDeployment(principal, input);
-		assertNotNull(addedDeployment.getBody());
-		assertTrue(addedDeployment.getStatusCode().equals(HttpStatus.CREATED));
-		assertTrue(application.cloudProviders.containsAll(deploymentApplication.getCloudProviders()));
+		assertTrue(application.getCloudProviders().containsAll(deploymentApplication.getCloudProviders()));
 		assertTrue(deployment.getDeploymentApplication().equals(deploymentApplication));
 	}
-	
+
+	@Test(expected = InvalidConfigurationInputException.class)
+	public void configuration_name_not_specified() throws InvalidKeyException, NoSuchPaddingException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, InvalidKeySpecException, NoSuchProviderException, IOException, ApplicationDeployerException{
+
+		String username = "username";
+		Principal principal = mock(Principal.class);
+		given(principal.getName()).willReturn(username);
+
+		DeploymentResource input = mock(DeploymentResource.class);
+		given(input.getConfigurationName()).willReturn(null);
+		given(input.getApplicationAccountUsername()).willReturn(username);
+
+		//get account
+		Account account = mock(Account.class);
+		given(accountRepository.findByUsername(username)).willReturn(Optional.of(account));
+		given(accountService.findByUsername(username)).willReturn(account);
+		given(account.getGivenName()).willReturn(username);
+		given(account.getUsername()).willReturn(username);
+
+		//application
+		String applicationName = "applicationName";
+		given(input.getApplicationName()).willReturn(applicationName);
+		Application application = mock(Application.class);
+		given(application.getName()).willReturn(applicationName);
+		given(application.getAccount()).willReturn(account);
+		given(applicationRepository.findByAccountUsernameAndName(username,applicationName)).willReturn(Optional.of(application));
+		given(applicationService.findByAccountUsernameAndName(username,applicationName)).willCallRealMethod();
+
+		ResponseEntity<?> addedDeployment = subject.addDeployment(principal, input);
+	}
+
+
+	@Test(expected = InvalidConfigurationInputException.class)
+	public void configuration_owner_name_not_specified() throws InvalidKeyException, NoSuchPaddingException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, InvalidKeySpecException, NoSuchProviderException, IOException, ApplicationDeployerException{
+
+		String username = "username";
+		Principal principal = mock(Principal.class);
+		given(principal.getName()).willReturn(username);
+
+		DeploymentResource input = mock(DeploymentResource.class);
+		given(input.getConfigurationName()).willReturn("somename");
+		given(input.getApplicationAccountUsername()).willReturn(username);
+		given(input.getConfigurationAccountUsername()).willReturn(null);
+
+		//get account
+		Account account = mock(Account.class);
+		given(accountRepository.findByUsername(username)).willReturn(Optional.of(account));
+		given(accountService.findByUsername(username)).willReturn(account);
+		given(account.getGivenName()).willReturn(username);
+		given(account.getUsername()).willReturn(username);
+
+		//application
+		String applicationName = "applicationName";
+		given(input.getApplicationName()).willReturn(applicationName);
+		Application application = mock(Application.class);
+		given(application.getName()).willReturn(applicationName);
+		given(application.getAccount()).willReturn(account);
+		given(applicationRepository.findByAccountUsernameAndName(username,applicationName)).willReturn(Optional.of(application));
+		given(applicationService.findByAccountUsernameAndName(username,applicationName)).willCallRealMethod();
+
+		ResponseEntity<?> addedDeployment = subject.addDeployment(principal, input);
+	}
+
+	@Test(expected = InvalidApplicationInputException.class)
+	public void invalid_application_input_no_app_name() throws InvalidKeyException, NoSuchPaddingException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, InvalidKeySpecException, NoSuchProviderException, IOException, ApplicationDeployerException{
+
+		String username = "username";
+		Principal principal = mock(Principal.class);
+		given(principal.getName()).willReturn(username);
+
+		DeploymentResource input = mock(DeploymentResource.class);
+		given(input.getApplicationName()).willReturn(null);
+
+		ResponseEntity<?> addedDeployment = subject.addDeployment(principal, input);
+	}
+
+	@Test(expected = InvalidApplicationInputException.class)
+	public void invalid_application_input_no_app_owner_acc_username() throws InvalidKeyException, NoSuchPaddingException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, InvalidKeySpecException, NoSuchProviderException, IOException, ApplicationDeployerException{
+
+		String username = "username";
+		Principal principal = mock(Principal.class);
+		given(principal.getName()).willReturn(username);
+
+		DeploymentResource input = mock(DeploymentResource.class);
+		given(input.getApplicationAccountUsername()).willReturn(null);
+
+		ResponseEntity<?> addedDeployment = subject.addDeployment(principal, input);
+	}
+
+	@Test(expected=ApplicationNotFoundException.class)
+	public void app_not_found_exception() throws InvalidKeyException, NoSuchPaddingException, NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException, InvalidKeySpecException, NoSuchProviderException, IOException, ApplicationDeployerException{
+
+		String username = "username";
+		Principal principal = mock(Principal.class);
+		given(principal.getName()).willReturn(username);
+
+		DeploymentResource input = mock(DeploymentResource.class);
+		given(input.getConfigurationName()).willReturn("somename");
+		given(input.getConfigurationAccountUsername()).willReturn(username);
+		given(input.getApplicationAccountUsername()).willReturn(username);
+
+		//get account
+		Account account = mock(Account.class);
+		given(accountRepository.findByUsername(username)).willReturn(Optional.of(account));
+		given(accountService.findByUsername(username)).willReturn(account);
+		given(account.getGivenName()).willReturn(username);
+		given(account.getUsername()).willReturn(username);
+
+		//application
+		String applicationName = "applicationName";
+		given(input.getApplicationName()).willReturn(applicationName);
+		Application application = mock(Application.class);
+		given(application.getName()).willReturn(applicationName);
+		given(application.getAccount()).willReturn(account);
+		given(applicationRepository.findByAccountUsernameAndName(username,applicationName)).willThrow(ApplicationNotFoundException.class);
+		given(applicationService.findByAccountUsernameAndName(username,applicationName)).willCallRealMethod();
+
+		ResponseEntity<?> addedDeployment = subject.addDeployment(principal, input);
+
+	}
+
 	private Deployment deployment(String reference) {
 		Deployment mockDeployment = mock(Deployment.class);
 		when(mockDeployment.getReference()).thenReturn(reference);
@@ -646,21 +675,21 @@ public class DeploymentRestControllerTest {
 		Account mockAccount = mock(Account.class);
 		when(mockAccount.getUsername()).thenReturn(A_USER_NAME);
 		when(mockDeployment.getAccount()).thenReturn(mockAccount);
-		when(mockDeploymentRepo.findByReference(reference)).thenReturn(Optional.of(mockDeployment));
+		when(deploymentRepository.findByReference(reference)).thenReturn(Optional.of(mockDeployment));
 		when(mockDeployment.getCloudProviderParametersReference()).thenReturn(cppReference);
 		DeploymentConfiguration deploymentConfiguration = mock(DeploymentConfiguration.class);
 		when(mockDeployment.getDeploymentConfiguration()).thenReturn(deploymentConfiguration);
 		when(deploymentConfiguration.getName()).thenReturn("some string");
 		when(deploymentConfiguration.getConfigDeploymentParametersReference()).thenReturn(reference);
-		when(mockCloudCredentialsRepo.findByReference(Mockito.anyString())).thenReturn(Optional.of(cppMock));
-		when(cppMock.getAccount()).thenReturn(mockAccount);
+		when(cloudProviderParametersRepository.findByReference(Mockito.anyString())).thenReturn(Optional.of(mockCloudProviderParameters));
+		when(mockCloudProviderParameters.getAccount()).thenReturn(mockAccount);
 		java.sql.Date date = mock(java.sql.Date.class);
 		when(mockAccount.getFirstJoinedDate()).thenReturn(date);
 		when(mockAccount.getReference()).thenReturn("some ref");
 		when(mockAccount.getGivenName()).thenReturn("given name");
 		ConfigurationDeploymentParameters cdps = mock(ConfigurationDeploymentParameters.class);
-		when(deploymentParametersService.findByReference(reference)).thenReturn(cdps);
-		when(deploymentParametersRepository.findByReference(reference)).thenReturn(Optional.of(cdps));
+		when(configurationDeploymentParametersService.findByReference(reference)).thenReturn(cdps);
+		when(configurationDeploymentParametersRepository.findByReference(reference)).thenReturn(Optional.of(cdps));
 		when(cdps.getReference()).thenReturn(reference);
 		return mockDeployment;
 	}

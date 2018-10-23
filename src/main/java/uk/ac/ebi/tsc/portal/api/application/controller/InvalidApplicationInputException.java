@@ -8,12 +8,15 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * @since v0.0.1
  * @author Navis Raj <navis@ebi.ac.uk>
  */
-@ResponseStatus(HttpStatus.NOT_FOUND)
+@ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
 public class InvalidApplicationInputException extends RuntimeException {
 	
 	public InvalidApplicationInputException(String username, String name) {
-        super("Could not create applkication '" + name + "' for user '" + username + "'. Invalid input.");
+        super("Could not create application '" + name + "' for user '" + username + "'. Invalid input.");
     }
 	
+	public InvalidApplicationInputException(){
+		super("Either application name/application owner's account username or both are missing");
+	}
 
 }
