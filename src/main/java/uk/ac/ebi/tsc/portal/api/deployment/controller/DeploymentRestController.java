@@ -622,7 +622,7 @@ public class DeploymentRestController {
 		String payLoadOutputValues = payLoadGeneratedOutputList.stream().map(o -> o.getGeneratedValue()).reduce("", String::concat);
 		Deployment theDeployment = this.deploymentService.findByReference(deploymentReference);
 		String existingOutputValues = theDeployment.getGeneratedOutputs().stream().map(o -> o.getValue()).reduce("", String::concat);
-		if (payLoadOutputValues.length() + existingOutputValues.length() > 1024000)
+		if (payLoadOutputValues.length() + existingOutputValues.length() > 1000000)
 			return new ResponseEntity<>("Key/Value pair exceeds more than 1MB for this deployment", null, HttpStatus.BAD_REQUEST);
 
 		Map<String, String> outputMap;
