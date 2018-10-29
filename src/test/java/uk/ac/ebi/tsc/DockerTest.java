@@ -7,10 +7,20 @@ import java.util.List;
 import org.junit.Test;
 
 import com.github.dockerjava.api.DockerClient;
+import com.github.dockerjava.api.command.CreateContainerResponse;
 import com.github.dockerjava.api.model.Container;
 import com.github.dockerjava.core.DockerClientBuilder;
 
 public class DockerTest {
+
+    @Test
+    public void hello_world() throws Exception {
+        
+        DockerClient dockerClient = newDockerClient();
+        
+        CreateContainerResponse container = dockerClient.createContainerCmd("hello-world")
+                                            .exec();
+    }
 
     @Test
     public void ps() {
