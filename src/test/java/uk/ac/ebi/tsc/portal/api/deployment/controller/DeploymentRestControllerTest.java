@@ -717,7 +717,7 @@ public class DeploymentRestControllerTest {
 	}
 
 	@Test
-	public void deployment_output_missing_secret() throws DeploymentNotFoundException{
+	public void deployment_output_missing_secret() throws DeploymentNotFoundException {
 
 		String deploymentReference = "TSI000001";
 		List<DeploymentGeneratedOutputResource> payLoadGeneratedOutputList = new ArrayList<>();
@@ -725,75 +725,75 @@ public class DeploymentRestControllerTest {
 		outputResource.setOutputName("externalIP");
 		outputResource.setGeneratedValue("193.167.5.4");
 		payLoadGeneratedOutputList.add(outputResource);
-		ResponseEntity<?> deploymentGenOutput = subject.addDeploymentOutputs(deploymentReference,null,payLoadGeneratedOutputList);
-		checkResponse("Missing header : secret",HttpStatus.BAD_REQUEST,deploymentGenOutput);
+		ResponseEntity<?> deploymentGenOutput = subject.addDeploymentOutputs(deploymentReference, null, payLoadGeneratedOutputList);
+		checkResponse("Missing header : secret", HttpStatus.BAD_REQUEST, deploymentGenOutput);
 	}
 
 	@Test(expected = DeploymentNotFoundException.class)
-	public void invalid_deployment_reference_secret() throws DeploymentNotFoundException{
+	public void invalid_deployment_reference_secret() throws DeploymentNotFoundException {
 
-        String deploymentReference = "TSI000001";
-        String secret = "INVALID_SECRET";
-        List<DeploymentGeneratedOutputResource> payLoadGeneratedOutputList = new ArrayList<>();
-        DeploymentGeneratedOutputResource outputResource = new DeploymentGeneratedOutputResource();
-        outputResource.setOutputName("externalIP");
-        outputResource.setGeneratedValue("193.167.5.4");
-        payLoadGeneratedOutputList.add(outputResource);
-        given(deploymentSecretService.exists(deploymentReference,secret)).willThrow(DeploymentNotFoundException.class);
-        subject.addDeploymentOutputs(deploymentReference,secret,payLoadGeneratedOutputList);
+		String deploymentReference = "TSI000001";
+		String secret = "INVALID_SECRET";
+		List<DeploymentGeneratedOutputResource> payLoadGeneratedOutputList = new ArrayList<>();
+		DeploymentGeneratedOutputResource outputResource = new DeploymentGeneratedOutputResource();
+		outputResource.setOutputName("externalIP");
+		outputResource.setGeneratedValue("193.167.5.4");
+		payLoadGeneratedOutputList.add(outputResource);
+		given(deploymentSecretService.exists(deploymentReference, secret)).willThrow(DeploymentNotFoundException.class);
+		subject.addDeploymentOutputs(deploymentReference, secret, payLoadGeneratedOutputList);
 	}
 
-    @Test
-    public void add_deployment_output_exceed_limit() throws DeploymentNotFoundException{
+	@Test
+	public void add_deployment_output_exceed_limit() throws DeploymentNotFoundException {
 
-        String deploymentReference = "TSI000001";
-        String secret = "SECRET";
-        List<DeploymentGeneratedOutputResource> payLoadGeneratedOutputList = new ArrayList<>();
-        DeploymentGeneratedOutputResource outputResource = new DeploymentGeneratedOutputResource();
-        outputResource.setOutputName("sequence");
-        outputResource.setGeneratedValue(generateString(1025000));
-        payLoadGeneratedOutputList.add(outputResource);
-        Deployment theDeployment = mock(Deployment.class);
-        List<DeploymentGeneratedOutput> depGenlist = new ArrayList<>();
+		String deploymentReference = "TSI000001";
+		String secret = "SECRET";
+		List<DeploymentGeneratedOutputResource> payLoadGeneratedOutputList = new ArrayList<>();
+		DeploymentGeneratedOutputResource outputResource = new DeploymentGeneratedOutputResource();
+		outputResource.setOutputName("sequence");
+		outputResource.setGeneratedValue(generateString(1000001));
+		payLoadGeneratedOutputList.add(outputResource);
+		Deployment theDeployment = mock(Deployment.class);
+		List<DeploymentGeneratedOutput> depGenlist = new ArrayList<>();
 
-        given(deploymentSecretService.exists(deploymentReference,secret)).willReturn(true);
-        given(deploymentRepository.findByReference(deploymentReference)).willReturn(Optional.of(theDeployment));
-        given(deploymentService.findByReference(deploymentReference)).willCallRealMethod();
-        given(theDeployment.getGeneratedOutputs()).willReturn(depGenlist);
+		given(deploymentSecretService.exists(deploymentReference, secret)).willReturn(true);
+		given(deploymentRepository.findByReference(deploymentReference)).willReturn(Optional.of(theDeployment));
+		given(deploymentService.findByReference(deploymentReference)).willCallRealMethod();
+		given(theDeployment.getGeneratedOutputs()).willReturn(depGenlist);
 
-        ResponseEntity<?> deploymentGenOutput = subject.addDeploymentOutputs(deploymentReference,secret,payLoadGeneratedOutputList);
-        checkResponse("Key/Value pair exceeds more than 1MB for this deployment",HttpStatus.BAD_REQUEST,deploymentGenOutput);
-    }
+		ResponseEntity<?> deploymentGenOutput = subject.addDeploymentOutputs(deploymentReference, secret, payLoadGeneratedOutputList);
+		checkResponse("Key/Value pair should not exceed 1MB for a deployment", HttpStatus.BAD_REQUEST, deploymentGenOutput);
+	}
 
-
-    @Test
-    public void add_deployment_output_duplicate_output_name() throws DeploymentNotFoundException{
-
-        String deploymentReference = "TSI000001";
-        String secret = "SECRET";
-        List<DeploymentGeneratedOutputResource> payLoadGeneratedOutputList = new ArrayList<>();
-        DeploymentGeneratedOutputResource outputResource = new DeploymentGeneratedOutputResource();
-        outputResource.setOutputName("sequence");
-        outputResource.setGeneratedValue(generateString(1000));
-        payLoadGeneratedOutputList.add(outputResource);
-        outputResource = new DeploymentGeneratedOutputResource();
-        outputResource.setOutputName("sequence");
-        outputResource.setGeneratedValue(generateString(500));
-        payLoadGeneratedOutputList.add(outputResource);
-        Deployment theDeployment = mock(Deployment.class);
-        List<DeploymentGeneratedOutput> depGenlist = new ArrayList<>();
-
-        given(deploymentSecretService.exists(deploymentReference,secret)).willReturn(true);
-        given(deploymentRepository.findByReference(deploymentReference)).willReturn(Optional.of(theDeployment));
-        given(deploymentService.findByReference(deploymentReference)).willCallRealMethod();
-        given(theDeployment.getGeneratedOutputs()).willReturn(depGenlist);
-
-        ResponseEntity<?> deploymentGenOutput = subject.addDeploymentOutputs(deploymentReference,secret,payLoadGeneratedOutputList);
-        checkResponse("outputName should be unique for given List",HttpStatus.CONFLICT,deploymentGenOutput);
-    }
 
 	@Test
-	public void add_deployment_output() throws DeploymentNotFoundException{
+	public void add_deployment_output_duplicate_output_name() throws DeploymentNotFoundException {
+
+		String deploymentReference = "TSI000001";
+		String secret = "SECRET";
+		List<DeploymentGeneratedOutputResource> payLoadGeneratedOutputList = new ArrayList<>();
+		DeploymentGeneratedOutputResource outputResource = new DeploymentGeneratedOutputResource();
+		outputResource.setOutputName("sequence");
+		outputResource.setGeneratedValue(generateString(1000));
+		payLoadGeneratedOutputList.add(outputResource);
+		outputResource = new DeploymentGeneratedOutputResource();
+		outputResource.setOutputName("sequence");
+		outputResource.setGeneratedValue(generateString(500));
+		payLoadGeneratedOutputList.add(outputResource);
+		Deployment theDeployment = mock(Deployment.class);
+		List<DeploymentGeneratedOutput> depGenlist = new ArrayList<>();
+
+		given(deploymentSecretService.exists(deploymentReference, secret)).willReturn(true);
+		given(deploymentRepository.findByReference(deploymentReference)).willReturn(Optional.of(theDeployment));
+		given(deploymentService.findByReference(deploymentReference)).willCallRealMethod();
+		given(theDeployment.getGeneratedOutputs()).willReturn(depGenlist);
+
+		ResponseEntity<?> deploymentGenOutput = subject.addDeploymentOutputs(deploymentReference, secret, payLoadGeneratedOutputList);
+		checkResponse("outputName should be unique for given List", HttpStatus.CONFLICT, deploymentGenOutput);
+	}
+
+	@Test
+	public void add_deployment_output() throws DeploymentNotFoundException {
 
 		String deploymentReference = "TSI000001";
 		String secret = "SECRET";
@@ -809,19 +809,19 @@ public class DeploymentRestControllerTest {
 		Deployment theDeployment = mock(Deployment.class);
 		List<DeploymentGeneratedOutput> depGenlist = new ArrayList<>();
 
-		given(deploymentSecretService.exists(deploymentReference,secret)).willReturn(true);
+		given(deploymentSecretService.exists(deploymentReference, secret)).willReturn(true);
 		given(deploymentRepository.findByReference(deploymentReference)).willReturn(Optional.of(theDeployment));
 		given(deploymentService.findByReference(deploymentReference)).willCallRealMethod();
 		given(theDeployment.getGeneratedOutputs()).willReturn(depGenlist);
-		given(deploymentGeneratedOutputService.getDeploymentGeneratedOutput(deploymentReference,"sequence")).willReturn(Optional.empty());
-		given(deploymentGeneratedOutputService.getDeploymentGeneratedOutput(deploymentReference,"externalIP")).willReturn(Optional.empty());
+		given(deploymentGeneratedOutputService.getDeploymentGeneratedOutput(deploymentReference, "sequence")).willReturn(Optional.empty());
+		given(deploymentGeneratedOutputService.getDeploymentGeneratedOutput(deploymentReference, "externalIP")).willReturn(Optional.empty());
 
-		ResponseEntity<?> deploymentGenOutput = subject.addDeploymentOutputs(deploymentReference,secret,payLoadGeneratedOutputList);
-		checkResponse(null,HttpStatus.NO_CONTENT,deploymentGenOutput);
+		ResponseEntity<?> deploymentGenOutput = subject.addDeploymentOutputs(deploymentReference, secret, payLoadGeneratedOutputList);
+		checkResponse(null, HttpStatus.NO_CONTENT, deploymentGenOutput);
 	}
 
 	@Test
-	public void update_deployment_output() throws DeploymentNotFoundException{
+	public void update_deployment_output() throws DeploymentNotFoundException {
 
 		String deploymentReference = "TSI000001";
 		String secret = "SECRET";
@@ -836,33 +836,33 @@ public class DeploymentRestControllerTest {
 		payLoadGeneratedOutputList.add(outputResource);
 		Deployment theDeployment = mock(Deployment.class);
 		List<DeploymentGeneratedOutput> depGenlist = new ArrayList<>();
-		DeploymentGeneratedOutput output1 = new DeploymentGeneratedOutput("sequence","FGGGG",theDeployment);
-		DeploymentGeneratedOutput output2 = new DeploymentGeneratedOutput("externalIP","10.90.10.4",theDeployment);
+		DeploymentGeneratedOutput output1 = new DeploymentGeneratedOutput("sequence", "FGGGG", theDeployment);
+		DeploymentGeneratedOutput output2 = new DeploymentGeneratedOutput("externalIP", "10.90.10.4", theDeployment);
 
-		given(deploymentSecretService.exists(deploymentReference,secret)).willReturn(true);
+		given(deploymentSecretService.exists(deploymentReference, secret)).willReturn(true);
 		given(deploymentRepository.findByReference(deploymentReference)).willReturn(Optional.of(theDeployment));
 		given(deploymentService.findByReference(deploymentReference)).willCallRealMethod();
 		given(theDeployment.getGeneratedOutputs()).willReturn(depGenlist);
-		given(deploymentGeneratedOutputService.getDeploymentGeneratedOutput(deploymentReference,"sequence")).willReturn(Optional.of(output1));
-		given(deploymentGeneratedOutputService.getDeploymentGeneratedOutput(deploymentReference,"externalIP")).willReturn(Optional.of(output2));
-		ResponseEntity<?> deploymentGenOutput = subject.addDeploymentOutputs(deploymentReference,secret,payLoadGeneratedOutputList);
-		checkResponse(null,HttpStatus.NO_CONTENT,deploymentGenOutput);
+		given(deploymentGeneratedOutputService.getDeploymentGeneratedOutput(deploymentReference, "sequence")).willReturn(Optional.of(output1));
+		given(deploymentGeneratedOutputService.getDeploymentGeneratedOutput(deploymentReference, "externalIP")).willReturn(Optional.of(output2));
+		ResponseEntity<?> deploymentGenOutput = subject.addDeploymentOutputs(deploymentReference, secret, payLoadGeneratedOutputList);
+		checkResponse(null, HttpStatus.NO_CONTENT, deploymentGenOutput);
 	}
 
 
-	private String generateString(int size){
-	    StringBuilder build = new StringBuilder();
-	    for (int i=0; i < size ;i++){
-            build.append("f");
-        }
-        return build.toString();
-    }
+	private String generateString(int size) {
+		StringBuilder build = new StringBuilder();
+		for (int i = 0; i < size; i++) {
+			build.append("f");
+		}
+		return build.toString();
+	}
 
-    private void checkResponse(String responseBody,HttpStatus statusCode,ResponseEntity<?> deploymentGenOutput){
-        assertEquals(deploymentGenOutput.getStatusCode(),statusCode);
-        if(responseBody != null)
-        assertEquals(deploymentGenOutput.getBody().toString(),responseBody);
-    }
+	private void checkResponse(String responseBody, HttpStatus statusCode, ResponseEntity<?> deploymentGenOutput) {
+		assertEquals(statusCode, deploymentGenOutput.getStatusCode());
+		if (responseBody != null)
+			assertEquals(deploymentGenOutput.getBody().toString(), responseBody);
+	}
 
 	@Test
 	public void baseUrl() throws Exception {

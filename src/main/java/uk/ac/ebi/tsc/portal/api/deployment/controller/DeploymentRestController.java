@@ -619,31 +619,23 @@ public class DeploymentRestController {
 		if (!deploymentSecretService.exists(deploymentReference, secret)) {
 			throw new DeploymentNotFoundException(deploymentReference + " and secret : " + secret);
 		}
-		String payLoadOutputValues = payLoadGeneratedOutputList.stream().map(o -> o.getGeneratedValue()).reduce("", String::concat);
 		Deployment theDeployment = this.deploymentService.findByReference(deploymentReference);
-		String existingOutputValues = theDeployment.getGeneratedOutputs().stream().map(o -> o.getValue()).reduce("", String::concat);
-		if (payLoadOutputValues.length() + existingOutputValues.length() > 1000000)
-			return new ResponseEntity<>("Key/Value pair exceeds more than 1MB for this deployment", null, HttpStatus.BAD_REQUEST);
+		List<String> payLoadKeyList = payLoadGeneratedOutputList.stream().map(o -> o.getOutputName()).collect(Collectors.toList());
 
-		Map<String, String> outputMap;
-		try {
-			outputMap = payLoadGeneratedOutputList.stream().collect(
-					Collectors.toMap(DeploymentGeneratedOutputResource::getOutputName, DeploymentGeneratedOutputResource::getGeneratedValue));
-		} catch (Exception e) {
+		if (payLoadKeyList.size() > new HashSet<>(payLoadKeyList).size())
 			return new ResponseEntity<>("outputName should be unique for given List", null, HttpStatus.CONFLICT);
-		}
 
-		for (Map.Entry<String, String> entry : outputMap.entrySet()) {
-			Optional<DeploymentGeneratedOutput> deploymentGeneratedOutputOpt = deploymentGeneratedOutputService.getDeploymentGeneratedOutput(deploymentReference, entry.getKey());
-			if (deploymentGeneratedOutputOpt.isPresent()) {
-				DeploymentGeneratedOutput deploymentGeneratedOutput = deploymentGeneratedOutputOpt.get();
-				deploymentGeneratedOutput.setValue(entry.getValue());
-				deploymentGeneratedOutputService.saveDeploymentGeneratedOutput(deploymentGeneratedOutput);
-			} else {
-				DeploymentGeneratedOutput deploymentGeneratedOutput = new DeploymentGeneratedOutput(entry.getKey(), entry.getValue(), theDeployment);
-				deploymentGeneratedOutputService.saveDeploymentGeneratedOutput(deploymentGeneratedOutput);
-			}
-		}
+		String existingOutputValues = theDeployment.getGeneratedOutputs().stream().map(o -> o.getValue()).reduce("", String::concat);
+		String replacingOutputValues = theDeployment.getGeneratedOutputs().stream().filter(o -> payLoadKeyList.contains(o.getOutputName())).map(o -> o.getValue()).reduce("", String::concat);
+		String payLoadOutputValues = payLoadGeneratedOutputList.stream().map(o -> o.getGeneratedValue()).reduce("", String::concat);
+
+		if (existingOutputValues.length() - replacingOutputValues.length() + payLoadOutputValues.length() > 1000000)
+			return new ResponseEntity<>("Key/Value pair should not exceed 1MB for a deployment", null, HttpStatus.BAD_REQUEST);
+
+		Map<String, String> outputMap = payLoadGeneratedOutputList.stream().collect(
+				Collectors.toMap(DeploymentGeneratedOutputResource::getOutputName, DeploymentGeneratedOutputResource::getGeneratedValue, (e1, e2) -> e1, LinkedHashMap::new));
+
+		deploymentGeneratedOutputService.saveOrUpdateDeploymentOutputs(outputMap, theDeployment, deploymentReference);
 		return new ResponseEntity<>(null, null, HttpStatus.NO_CONTENT);
 	}
 
