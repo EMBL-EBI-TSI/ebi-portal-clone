@@ -1,20 +1,28 @@
 package uk.ac.ebi.tsc;
 
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.*;
 
 import java.util.List;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
 
+import org.hamcrest.Matchers;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 import com.spotify.docker.client.DefaultDockerClient;
 import com.spotify.docker.client.DockerClient;
 import com.spotify.docker.client.DockerClient.ListContainersParam;
+import com.spotify.docker.client.DockerClient.LogsParam;
+import com.spotify.docker.client.LogStream;
 import com.spotify.docker.client.exceptions.DockerException;
 import com.spotify.docker.client.messages.Container;
 import com.spotify.docker.client.messages.ContainerConfig;
 import com.spotify.docker.client.messages.ContainerCreation;
 import com.spotify.docker.client.messages.ContainerExit;
+import com.spotify.docker.client.messages.ExecState;
 
 public class DockerClientTest {
 
@@ -70,22 +78,16 @@ public class DockerClientTest {
     @Test
     public void hello_world() throws Exception {
         
+        runDebug(newContainer("hello-world"));
+    }
+    
+    public void runDebug(ContainerConfig containerConfig) throws Exception {
+        
         int containersBefore = numContainers();
         
         // ------------------------------------------------------------------------------------------------------------
         
-        ContainerCreation container = docker.createContainer(ContainerConfig.builder()
-                                                                            .image("hello-world")
-                                                                            .build()
-                                                            );
-        
-        String id = container.id();
-        
-        docker.startContainer(id);
-        
-        ContainerExit exit = docker.waitContainer(id);
-        
-        docker.removeContainer(id);
+        ContainerExit exit = runAndRemove(containerConfig);
         
         // ------------------------------------------------------------------------------------------------------------
         
@@ -96,6 +98,76 @@ public class DockerClientTest {
         System.out.printf("containersAfter  = %d\n", containersAfter);
         
         assertEquals(containersAfter, containersBefore);
+    }
+    
+    ContainerConfig newContainer(String image, String... envs) {
+        
+        return ContainerConfig.builder()
+                .image(image)
+                .env(envs)
+                .build()
+                ;
+    }
+    
+    ContainerCreation startContainer(ContainerConfig containerConfig) {
+        
+        ContainerCreation container;
+        try 
+        {
+            container = docker.createContainer(containerConfig);
+        } 
+        catch (DockerException | InterruptedException e) 
+        {
+            throw new RuntimeException(e);
+        }
+        
+        return container;
+    }
+
+    ContainerExit runAndRemove(ContainerConfig containerConfig) throws DockerException, InterruptedException {
+        
+        ContainerCreation container = startContainer(containerConfig);
+        
+        String id = container.id();
+        
+//        String logs;
+//        try (LogStream stream = docker.logs(id, LogsParam.stdout(), LogsParam.stderr())) {
+//            
+//            logs = stream.readFully(); // NPE
+//            
+//            System.out.println("************************************************************");
+//            System.out.println(logs);
+//            System.out.println("************************************************************");
+//        }
+        
+        docker.startContainer(id);
+        
+        ContainerExit exit = docker.waitContainer(id);
+        
+        docker.removeContainer(id);
+        
+        return exit;
+    }
+    
+    @Test
+    public void run_eriks_image() throws Exception {
+        
+        /*
+         * Image's entry point:
+         * 
+         *      git clone "$PORTAL_APP_REPO_URL" "$PORTAL_APP_REPO_FOLDER"
+         *      /bin/sh -c "$@"
+         */
+        
+//        docker run -e "PORTAL_APP_REPO_URL=https://github.com/EMBL-EBI-TSI/cpa-instance.git" -e "PORTAL_APP_REPO_FOLDER=cpa-instance"   erikvdbergh/ecp-agent 'ls -la cpa-instance'
+
+        runDebug(ContainerConfig.builder()
+                        .image("erikvdbergh/ecp-agent")
+                        .env( "PORTAL_APP_REPO_URL=https://github.com/EMBL-EBI-TSI/cpa-instance.git"
+                            , "PORTAL_APP_REPO_FOLDER=cpa-instance")
+                        .cmd("ls -la cpa-instance")
+                        .build()
+        );
     }
     
     DefaultDockerClient newDockerClient() {
