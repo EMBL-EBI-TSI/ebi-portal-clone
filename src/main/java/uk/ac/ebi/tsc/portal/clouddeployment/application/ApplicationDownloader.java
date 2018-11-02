@@ -13,6 +13,8 @@ import uk.ac.ebi.tsc.portal.clouddeployment.model.ApplicationManifest;
 import uk.ac.ebi.tsc.portal.clouddeployment.utils.InputStreamLogger;
 import uk.ac.ebi.tsc.portal.clouddeployment.utils.ManifestParser;
 
+import static java.lang.String.format;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.stream.Collectors;
@@ -33,13 +35,13 @@ public class ApplicationDownloader {
 	private final AccountService accountService;
 
 	@Autowired
-	public ApplicationDownloader(AccountRepository accountRepository) {
-		this.accountService = new AccountService(accountRepository);
+	public ApplicationDownloader(AccountService accountService) {
+		this.accountService = accountService;
 	}
 
 	public Application downloadApplication(String applicationsRoot, String repoUri, String username) throws IOException, ApplicationDownloaderException {
 
-		logger.info("Downloading application from: " + repoUri + " for user " + username);
+	    logger.info(format("Downloading application from '%s' for user '%s'", repoUri, username));
 
 		Account theAccount = this.accountService.findByUsername(username);
 
@@ -101,7 +103,7 @@ public class ApplicationDownloader {
 				throw new ApplicationDownloaderException(errorOutput);
 			}
 		} else {
-			throw new ApplicationDownloaderException("Cannot find account for user " + username);
+			throw new ApplicationDownloaderException(format("Cannot find account for user '%s'", username));
 		}
 
 	}

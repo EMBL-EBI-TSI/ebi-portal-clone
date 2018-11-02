@@ -260,7 +260,7 @@ public class ApplicationRestControllerTest {
 		deploymentParameterCollection.add(deploymentParameterMock);
 		applicationManifestMock.deploymentParameters = deploymentParameterCollection;
 		applicationManifestMock.applicationName = applicationName;
-		Application mockApplication = new ApplicationDownloader(mockAccountRepo).fromManifestToApplication("repoUri", "path", accountMock, applicationManifestMock);
+		Application mockApplication = new ApplicationDownloader(accountServiceMock).fromManifestToApplication("repoUri", "path", accountMock, applicationManifestMock);
 		assertNotNull(mockApplication);
 		assertThat(mockApplication.getName(), is(applicationName));
 
