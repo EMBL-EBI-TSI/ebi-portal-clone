@@ -36,6 +36,7 @@ import uk.ac.ebi.tsc.portal.api.configuration.service.*;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.*;
 import uk.ac.ebi.tsc.portal.api.deployment.service.*;
 import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
+import uk.ac.ebi.tsc.portal.api.error.ErrorMessage;
 import uk.ac.ebi.tsc.portal.api.error.MissingParameterException;
 import uk.ac.ebi.tsc.portal.api.team.repo.Team;
 import uk.ac.ebi.tsc.portal.api.team.repo.TeamRepository;
@@ -612,30 +613,12 @@ public class DeploymentRestController {
 	}
 
 	@RequestMapping(value = "/{deploymentReference}/outputs", method = RequestMethod.PUT)
-	public ResponseEntity<?> addDeploymentOutputs(@PathVariable("deploymentReference") String deploymentReference, @RequestHeader("secret") String secret, @RequestBody List<DeploymentGeneratedOutputResource> payLoadGeneratedOutputList) {
-		if (secret == null || secret.isEmpty()) {
-			return new ResponseEntity<>("Missing header : secret", null, HttpStatus.BAD_REQUEST);
-		}
-		if (!deploymentSecretService.exists(deploymentReference, secret)) {
-			throw new DeploymentNotFoundException(deploymentReference + " and secret : " + secret);
-		}
-		Deployment theDeployment = this.deploymentService.findByReference(deploymentReference);
-		List<String> payLoadKeyList = payLoadGeneratedOutputList.stream().map(o -> o.getOutputName()).collect(Collectors.toList());
+	public ResponseEntity<?> addDeploymentOutputs(@PathVariable("deploymentReference") String reference, @RequestHeader("Deployment-Secret") String secret,
+												  @RequestBody List<DeploymentGeneratedOutputResource> payLoadGeneratedOutputList) {
 
-		if (payLoadKeyList.size() > new HashSet<>(payLoadKeyList).size())
-			return new ResponseEntity<>("outputName should be unique for given List", null, HttpStatus.CONFLICT);
-
-		String existingOutputValues = theDeployment.getGeneratedOutputs().stream().map(o -> o.getValue()).reduce("", String::concat);
-		String replacingOutputValues = theDeployment.getGeneratedOutputs().stream().filter(o -> payLoadKeyList.contains(o.getOutputName())).map(o -> o.getValue()).reduce("", String::concat);
-		String payLoadOutputValues = payLoadGeneratedOutputList.stream().map(o -> o.getGeneratedValue()).reduce("", String::concat);
-
-		if (existingOutputValues.length() - replacingOutputValues.length() + payLoadOutputValues.length() > 1000000)
-			return new ResponseEntity<>("Key/Value pair should not exceed 1MB for a deployment", null, HttpStatus.BAD_REQUEST);
-
-		Map<String, String> outputMap = payLoadGeneratedOutputList.stream().collect(
-				Collectors.toMap(DeploymentGeneratedOutputResource::getOutputName, DeploymentGeneratedOutputResource::getGeneratedValue, (e1, e2) -> e1, LinkedHashMap::new));
-
-		deploymentGeneratedOutputService.saveOrUpdateDeploymentOutputs(outputMap, theDeployment, deploymentReference);
+		Optional<ErrorMessage> errorMessage = deploymentGeneratedOutputService.saveOrUpdateDeploymentOutputs(reference, secret, payLoadGeneratedOutputList);
+		if (errorMessage.isPresent())
+			return new ResponseEntity<>(errorMessage.get().getError(), null, errorMessage.get().getStatus());
 		return new ResponseEntity<>(null, null, HttpStatus.NO_CONTENT);
 	}
 
