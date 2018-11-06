@@ -3,6 +3,7 @@ package uk.ac.ebi.tsc.portal.clouddeployment.application;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
+import java.io.File;
 import java.io.IOException;
 
 import org.junit.Before;
@@ -23,6 +24,7 @@ public class ApplicationDownloaderTest {
     
     ApplicationDownloader applicationDownloader;
     AccountService accountServiceMock;
+    ProcessRunner processRunnerMock;
     
     @Rule
     public TemporaryFolder applicationsFolder = new TemporaryFolder();
@@ -32,7 +34,7 @@ public class ApplicationDownloaderTest {
         
         accountServiceMock = mock(AccountService.class);
         
-        ProcessRunner processRunnerMock = new ProcessRunner() {
+        processRunnerMock = new ProcessRunner() {
 
             @Override
             Either<Tuple2<Integer, String>, Integer> run(String... cmd) {
@@ -42,6 +44,8 @@ public class ApplicationDownloaderTest {
                 return super.run(cmd);
             }
         };
+        
+        processRunnerMock = spy(processRunnerMock);
         
         applicationDownloader = new ApplicationDownloader(accountServiceMock, processRunnerMock);
     }
@@ -56,5 +60,17 @@ public class ApplicationDownloaderTest {
         String repoUri = "https://github.com/EMBL-EBI-TSI/cpa-instance.git";
         
         applicationDownloader.downloadApplication(applicationsFolder.getRoot().toString(), repoUri, "username");
+        
+        verify(processRunnerMock).run(  "git",
+                                        "clone",
+                                        "--recursive",
+                                        "https://github.com/EMBL-EBI-TSI/cpa-instance.git",
+                                        concatenate(applicationsFolder, "username/cpa-instance.git")
+        );
+    }
+
+    String concatenate(TemporaryFolder folder, String relativePath) {
+        
+        return new File(folder.getRoot().toString(), relativePath).toString();
     }
 }
