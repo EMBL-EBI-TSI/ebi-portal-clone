@@ -4,6 +4,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import io.vavr.Tuple;
+import io.vavr.Tuple2;
+import io.vavr.control.Either;
 import uk.ac.ebi.tsc.portal.api.account.repo.Account;
 import uk.ac.ebi.tsc.portal.api.account.repo.AccountRepository;
 import uk.ac.ebi.tsc.portal.api.account.service.AccountService;
@@ -17,6 +21,7 @@ import static java.lang.String.format;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 import java.util.stream.Collectors;
 
 /**
@@ -32,11 +37,14 @@ public class ApplicationDownloader {
 	private static final String GIT_COMMAND = "git";
 	private static final String RM_COMMAND = "rm";
 
-	private final AccountService accountService;
+	private AccountService accountService;
+    private ProcessRunner processRunner;
 
+    
 	@Autowired
-	public ApplicationDownloader(AccountService accountService) {
-		this.accountService = accountService;
+	public ApplicationDownloader(AccountService accountService, ProcessRunner processRunner) {
+	    this.accountService = accountService;
+		this.processRunner  = processRunner;
 	}
 
 	public Application downloadApplication(String applicationsRoot, String repoUri, String username) throws IOException, ApplicationDownloaderException {
@@ -44,7 +52,7 @@ public class ApplicationDownloader {
 	    logger.info(format("Downloading application from '%s' for user '%s'", repoUri, username));
 
 		Account theAccount = this.accountService.findByUsername(username);
-
+		
 		if (theAccount != null) {
 			String[] uriParts = repoUri.split("/");
 			String repoName = uriParts[uriParts.length - 1];
@@ -59,8 +67,6 @@ public class ApplicationDownloader {
 
 			logger.debug("Downloading application to " + path);
 
-			ProcessBuilder processBuilder = new ProcessBuilder(GIT_COMMAND, "clone", "--recursive", repoUri, path);
-			Process p = processBuilder.start();
 			
 			//ApplicationManifest applicationManifest = ManifestParser.parseApplicationManifest(path + File.separator + "manifest.json");
 
@@ -68,40 +74,33 @@ public class ApplicationDownloader {
 
 			//Application application = fromManifestToApplication(repoUri, path, theAccount, applicationManifest);
 
-			try {
-				p.waitFor();
-			} catch (InterruptedException e) {
-				logger.error("There is an error downloading from " + repoUri);
-				String errorOutput = InputStreamLogger.logInputStream(p.getErrorStream());
-				logger.error(errorOutput);
+			Either<Tuple2<Integer, String>, Integer> result = processRunner.run(GIT_COMMAND, "clone", "--recursive", repoUri, path);
+			
+			return result.map(exitStatus -> {
+			    
+                logger.info("Successfully downloaded application to " + path);
 
-				throw new ApplicationDownloaderException(errorOutput);
-			}
+                String manifestPath = path + File.separator + "manifest.json";
+                ApplicationManifest applicationManifest = ManifestParser.parseApplicationManifest(manifestPath);
 
-			if (p.exitValue() == 0) { // OK
-				logger.info("Successfully downloaded application to " + path);
-				logger.info(InputStreamLogger.logInputStream(p.getInputStream()));
+                logger.debug("Parsed manifest for application " + applicationManifest.applicationName);
 
-				String manifestPath = path + File.separator + "manifest.json";
-				ApplicationManifest applicationManifest = ManifestParser.parseApplicationManifest(manifestPath);
+                Application application = fromManifestToApplication(repoUri, path, theAccount, applicationManifest);
 
-				logger.debug("Parsed manifest for application " + applicationManifest.applicationName);
-
-				Application application = fromManifestToApplication(repoUri, path, theAccount, applicationManifest);
-
-				return application;
-			} else if (p.exitValue() == 128) {
-				logger.error("There is an error [" + p.exitValue() + "] downloading from " + repoUri);
-				String errorOutput = InputStreamLogger.logInputStream(p.getErrorStream());
-				logger.error(errorOutput);
-				throw new ApplicationDownloaderException(errorOutput);
-			} else {
-				logger.error("There is an error [" + p.exitValue() + "] downloading from " + repoUri);
-				String errorOutput = InputStreamLogger.logInputStream(p.getErrorStream());
-				logger.error(errorOutput);
-
-				throw new ApplicationDownloaderException(errorOutput);
-			}
+                return application;
+            })
+	        .getOrElseThrow(left -> {
+	            
+			    Integer exitStatus  = left._1;
+			    String  errorOutput = left._2;
+			    
+			    logger.error("There is an error [" + exitStatus + "] downloading from " + repoUri);
+                logger.error(errorOutput);
+                
+                return new ApplicationDownloaderException(errorOutput);
+	         })
+             ;
+			
 		} else {
 			throw new ApplicationDownloaderException(format("Cannot find account for user '%s'", username));
 		}

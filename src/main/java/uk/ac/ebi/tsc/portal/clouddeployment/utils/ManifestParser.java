@@ -1,5 +1,7 @@
 package uk.ac.ebi.tsc.portal.clouddeployment.utils;
 
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import uk.ac.ebi.tsc.portal.clouddeployment.model.ApplicationManifest;
 
@@ -13,12 +15,17 @@ import java.io.IOException;
  */
 public class ManifestParser {
 
-    public static ApplicationManifest parseApplicationManifest(String manifestFilePath) throws IOException {
-        ApplicationManifest applicationManifest;
-
-        ObjectMapper objectMapper = new ObjectMapper();
-        applicationManifest = objectMapper.readValue(new File(manifestFilePath), ApplicationManifest.class);
-
-        return applicationManifest;
+    public static ApplicationManifest parseApplicationManifest(String manifestFilePath) {
+        
+        try 
+        {
+            ObjectMapper objectMapper = new ObjectMapper();
+        
+            return objectMapper.readValue(new File(manifestFilePath), ApplicationManifest.class);
+        } 
+        catch (Exception e)
+        {
+            throw new RuntimeException(e);
+        }
     }
 }
