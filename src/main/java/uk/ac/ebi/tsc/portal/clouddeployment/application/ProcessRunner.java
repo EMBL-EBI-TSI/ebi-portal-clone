@@ -1,10 +1,14 @@
 package uk.ac.ebi.tsc.portal.clouddeployment.application;
 
+import org.springframework.stereotype.Component;
+
 import io.vavr.Tuple;
 import io.vavr.Tuple2;
 import io.vavr.control.Either;
 import uk.ac.ebi.tsc.portal.clouddeployment.utils.InputStreamLogger;
 
+
+@Component
 public class ProcessRunner {
     
     Either<Tuple2<Integer,String>, Integer> run(String ... cmd) {
