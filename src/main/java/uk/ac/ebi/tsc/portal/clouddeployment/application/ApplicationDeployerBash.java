@@ -48,6 +48,10 @@ import java.util.*;
 @Component
 public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 
+	static final String CONTAINER_APP_FOLDER = "/app";
+
+    static final String CONTAINER_DEPLOYMENTS_FOLDER = "/deployments";
+
 	private static final Logger logger = LoggerFactory.getLogger(ApplicationDeployerBash.class);
 
 	private static final String BASH_COMMAND = "bash";
@@ -332,6 +336,15 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 		});
 		newThread.start();
 	}
+
+    String scriptPath(String cloudProviderPath) {
+        
+        return new File(
+                     new File(CONTAINER_APP_FOLDER, cloudProviderPath)
+                    ,"deploy.sh")
+               .toString()
+               ;
+    }
 
     Process startProcess(ProcessBuilder processBuilder) throws IOException {
         
