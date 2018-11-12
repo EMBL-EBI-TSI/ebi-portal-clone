@@ -124,12 +124,7 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 		String appFolder = theApplication.repoPath;
 		String deploymentsFolder = this.deploymentsRoot;
 
-  		ProcessBuilder processBuilder = new ProcessBuilder("docker", "run", "-v", volume(appFolder         , CONTAINER_APP_FOLDER)           // appFolder
-                                                                          , "-v", volume(deploymentsFolder , CONTAINER_DEPLOYMENTS_FOLDER)   // deploymentFolder
-                                                                          , "--entrypoint", ""                                               // disable erik's image entry-point
-                                                                          , "erikvdbergh/ecp-agent"                                          // erik's image
-                                                                          , scriptPath(cloudProviderPath)                                    // "deploy.sh" path
-                                                                          );
+  		ProcessBuilder processBuilder = new ProcessBuilder(dockerCmd(appFolder, deploymentsFolder, cloudProviderPath));
                                                                           
         Map<String, String> env = processBuilder.environment();
   		setEnv(env, reference);
@@ -344,6 +339,18 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 		});
 		newThread.start();
 	}
+
+    String[] dockerCmd(String appFolder, String deploymentsFolder, String cloudProviderPath) {
+        
+        return new String[] {
+            
+              "docker", "run", "-v", volume(appFolder         , CONTAINER_APP_FOLDER)           // appFolder
+                             , "-v", volume(deploymentsFolder , CONTAINER_DEPLOYMENTS_FOLDER)   // deploymentFolder
+                             , "--entrypoint", ""                                               // disable erik's image entry-point
+                             , "erikvdbergh/ecp-agent"                                          // erik's image
+                             , scriptPath(cloudProviderPath)                                    // "deploy.sh" path
+        };
+    }
 
     String scriptPath(String cloudProviderPath) {
         
