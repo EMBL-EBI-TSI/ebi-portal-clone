@@ -153,17 +153,11 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 
 
 		//generate keys
-		String fileDestination = deploymentsRoot + File.separator + reference + File.separator + reference ;
-		logger.info(fileDestination);
-		SSHKeyGenerator.generateKeys(userEmail, fileDestination);
-		env.put("PRIVATE_KEY", fileDestination);
-		env.put("PUBLIC_KEY", fileDestination + ".pub");
-		env.put("TF_VAR_private_key_path", fileDestination);
-		env.put("TF_VAR_public_key_path", fileDestination + ".pub");
-		env.put("portal_private_key_path", fileDestination);
-		env.put("portal_public_key_path", fileDestination + ".pub");
-		env.put("TF_VAR_portal_private_key_path", fileDestination);
-		env.put("TF_VAR_portal_public_key_path", fileDestination + ".pub");
+		String keysFilePath = deploymentsRoot + File.separator + reference + File.separator + reference ;
+		logger.info(keysFilePath);
+		SSHKeyGenerator.generateKeys(userEmail, keysFilePath);
+		
+		addKeyEnvVars(env, reference);
 
 		// pass parameter assignments
 		Collection<ParameterDocument> deploymentParamDocs = new LinkedList<>();
@@ -367,6 +361,23 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
         env.put("PORTAL_APP_REPO_FOLDER"        , CONTAINER_APP_FOLDER);
         env.put("PORTAL_DEPLOYMENT_REFERENCE"   , reference);
     }
+    
+    void addKeyEnvVars(Map<String, String> env, String reference) {
+        
+        String fileDestination = CONTAINER_DEPLOYMENTS_FOLDER + File.separator + reference + File.separator + reference;
+        
+        String privateKeyPath = fileDestination;
+        String publicKeyPath = privateKeyPath + ".pub";
+        
+        env.put("PRIVATE_KEY", privateKeyPath);
+        env.put("PUBLIC_KEY", publicKeyPath);
+        env.put("TF_VAR_private_key_path", privateKeyPath);
+        env.put("TF_VAR_public_key_path", publicKeyPath);
+        env.put("portal_private_key_path", privateKeyPath);
+        env.put("portal_public_key_path", publicKeyPath);
+        env.put("TF_VAR_portal_private_key_path", privateKeyPath);
+        env.put("TF_VAR_portal_public_key_path", publicKeyPath);
+    }
 
     Process startProcess(ProcessBuilder processBuilder) throws IOException {
         
@@ -417,17 +428,7 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 		}
 
 		//generate keys
-		String fileDestination = deploymentsRoot + File.separator + reference + File.separator + reference ;
-		logger.info(fileDestination);
-		//list of environment variables, come up with a standardized approach
-		env.put("PRIVATE_KEY", fileDestination);
-		env.put("PUBLIC_KEY", fileDestination + ".pub");
-		env.put("TF_VAR_private_key_path", fileDestination);
-		env.put("TF_VAR_public_key_path", fileDestination + ".pub");
-		env.put("portal_private_key_path", fileDestination);
-		env.put("portal_public_key_path", fileDestination + ".pub");
-		env.put("TF_VAR_portal_private_key_path", fileDestination);
-		env.put("TF_VAR_portal_public_key_path", fileDestination + ".pub");
+		addKeyEnvVars(env, reference);
 
 
 		processBuilder.directory(new File(repoPath));
@@ -495,16 +496,7 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 		setEnv(env, reference);
 
 		//generate keys
-		String fileDestination = deploymentsRoot + File.separator + reference + File.separator + reference ;
-		logger.info(fileDestination);
-		env.put("PRIVATE_KEY", fileDestination);
-		env.put("PUBLIC_KEY", fileDestination + ".pub");
-		env.put("TF_VAR_private_key_path", fileDestination);
-		env.put("TF_VAR_public_key_path", fileDestination + ".pub");
-		env.put("portal_private_key_path", fileDestination);
-		env.put("portal_public_key_path", fileDestination + ".pub");
-		env.put("TF_VAR_portal_private_key_path", fileDestination);
-		env.put("TF_VAR_portal_public_key_path", fileDestination + ".pub");
+		addKeyEnvVars(env, reference);
 
 		// pass input assignments
 		if (inputAssignments!=null) {
