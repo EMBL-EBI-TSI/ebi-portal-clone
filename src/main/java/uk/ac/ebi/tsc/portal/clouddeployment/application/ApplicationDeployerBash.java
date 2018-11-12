@@ -120,8 +120,20 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 		if (volumeAttachments!= null) logger.info("  With " + volumeAttachments.keySet().size() + " attached volumes");
 		if (configurationParameters!= null) logger.info("  With " + configurationParameters.keySet().size() + " configuration parameters added ");
 
-		ProcessBuilder processBuilder = new ProcessBuilder(BASH_COMMAND, cloudProviderPath + File.separator + "deploy.sh");
+        
+		String appFolder = theApplication.repoPath;
+		String deploymentsFolder = this.deploymentsRoot;
 
+  		ProcessBuilder processBuilder = new ProcessBuilder("docker", "run", "-v", volume(appFolder         , CONTAINER_APP_FOLDER)           // appFolder
+                                                                          , "-v", volume(deploymentsFolder , CONTAINER_DEPLOYMENTS_FOLDER)   // deploymentFolder
+                                                                          , "--entrypoint", ""                                               // disable erik's image entry-point
+                                                                          , "erikvdbergh/ecp-agent"                                          // erik's image
+                                                                          , scriptPath(cloudProviderPath)                                    // "deploy.sh" path
+                                                                          );
+                                                                          
+        Map<String, String> env = processBuilder.environment();
+  		setEnv(env, reference);
+		
 		logger.info("Creating log file at {}", this.deploymentsRoot+File.separator+reference+File.separator+"output.log");
 		File logs = new File(this.deploymentsRoot+File.separator+reference+File.separator+"output.log");
 		logs.getParentFile().mkdirs();
@@ -133,16 +145,12 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 		Deployment theDeployment = deploymentService.findByReference(reference);
         logger.info("Can't find deployment " + reference);
 
-		Map<String, String> env = processBuilder.environment();
 		ApplicationDeployerHelper.addGenericProviderCreds(env, cloudProviderParametersCopy, logger);
 
 		logger.info("  With DEPLOYMENTS_ROOT=" + deploymentsRoot);
 		logger.info("  With PORTAL_DEPLOYMENT_REFERENCE=" + reference);
 		logger.info("  With PORTAL_APP_REPO_FOLDER=" + theApplication.repoPath);
 
-		env.put("PORTAL_DEPLOYMENTS_ROOT", deploymentsRoot);
-		env.put("PORTAL_DEPLOYMENT_REFERENCE", reference);
-		env.put("PORTAL_APP_REPO_FOLDER", theApplication.repoPath);
 		env.put("PORTAL_CALLBACK_SECRET", secretService.create(theDeployment));
 		env.put("PORTAL_BASE_URL", baseUrl);
 		
@@ -346,9 +354,21 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
                ;
     }
 
+    void setEnv(Map<String, String> env, String reference) {
+        
+        env.put("PORTAL_DEPLOYMENTS_ROOT"       , CONTAINER_DEPLOYMENTS_FOLDER);
+        env.put("PORTAL_APP_REPO_FOLDER"        , CONTAINER_APP_FOLDER);
+        env.put("PORTAL_DEPLOYMENT_REFERENCE"   , reference);
+    }
+
     Process startProcess(ProcessBuilder processBuilder) throws IOException {
         
         return processBuilder.start();
+    }
+
+    String volume(String appFolder, String mountPoint) {
+        
+        return format("%s:%s", appFolder, mountPoint);
     }
 
 	public StateFromTerraformOutput state(String repoPath, 
@@ -363,8 +383,7 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 		ProcessBuilder processBuilder = new ProcessBuilder(BASH_COMMAND, cloudProviderPath + File.separator + "state.sh");
 
 		Map<String, String> env = processBuilder.environment();
-		env.put("PORTAL_DEPLOYMENTS_ROOT", deploymentsRoot);
-		env.put("PORTAL_DEPLOYMENT_REFERENCE", reference);
+		setEnv(env, reference);
 
 		//pass configurations
 		if (configuration!=null) {
@@ -466,9 +485,7 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 
 
 		ApplicationDeployerHelper.addGenericProviderCreds(env, cloudProviderParametersCopy, logger);
-		env.put("PORTAL_DEPLOYMENTS_ROOT", deploymentsRoot);
-		env.put("PORTAL_DEPLOYMENT_REFERENCE", reference);
-		env.put("PORTAL_APP_REPO_FOLDER", repoPath);
+		setEnv(env, reference);
 
 		//generate keys
 		String fileDestination = deploymentsRoot + File.separator + reference + File.separator + reference ;
