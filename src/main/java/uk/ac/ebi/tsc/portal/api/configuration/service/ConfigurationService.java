@@ -697,24 +697,15 @@ public class ConfigurationService {
 		}).sum();
 	}
 
-	public boolean isConfigurationSharedWithAccount(Team team, Account account, Configuration configuration){
+	public boolean isConfigurationSharedWithAccount(Account account, Configuration configuration){
 
 		logger.info("Looking for shared configuration " + configuration.getName()
-		+ " belonging to " + account.getGivenName()
-		+ " from team " + team.getName());
-		if(	team.getDomainReference() != null
-				&&
-				account.getMemberOfTeams().stream()
-				.anyMatch(t -> t.getDomainReference().equals(team.getDomainReference())
-						) 
-				&& 
-				configuration.getSharedWithTeams().stream()
-				.anyMatch(t ->  t.getDomainReference().equals(team.getDomainReference())
-						)){
+		+ " belonging to " + account.getGivenName());
+		if(account.getMemberOfTeams().stream().anyMatch(team ->
+		configuration.getSharedWithTeams().stream().anyMatch(t -> t.getDomainReference().equals(team.getDomainReference())))){
 			return true;
 		}else{
 			return false;
 		}
-
 	}
 }

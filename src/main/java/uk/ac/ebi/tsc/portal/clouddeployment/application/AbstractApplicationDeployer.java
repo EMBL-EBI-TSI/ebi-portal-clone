@@ -109,7 +109,7 @@ public abstract class AbstractApplicationDeployer {
 
         // Index deployment
         if (deploymentIndexService != null) {
-            DeploymentDocument theDeploymentDocument = deploymentIndexService.findById(theDeployment.getDomainReference());
+            DeploymentDocument theDeploymentDocument = deploymentIndexService.findById(theDeployment.getReference());
             if (theDeploymentDocument == null) {
                 theDeploymentDocument = new DeploymentDocument(
                         theDeployment.getAccount().getEmail(),

@@ -1,0 +1,1 @@
+alter table deployment drop column domain_reference;

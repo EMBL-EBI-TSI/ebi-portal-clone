@@ -61,6 +61,7 @@ import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationDeploymentParame
 import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationRepository;
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigDeploymentParamsCopyService;
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationDeploymentParametersService;
+import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationNotFoundException;
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationService;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.*;
 import uk.ac.ebi.tsc.portal.api.deployment.service.*;
@@ -431,9 +432,9 @@ public class DeploymentRestControllerTest {
 		String domainReference = "some ref";
 		given(team.getName()).willReturn(teamName);
 		given(team.getDomainReference()).willReturn(domainReference);
-		given(input.getDomainReference()).willReturn(domainReference);
-		given(teamRepository.findByDomainReference(domainReference)).willReturn(Optional.of(team));
-		given(teamService.findByDomainReference(domainReference)).willCallRealMethod();
+//		given(input.getDomainReference()).willReturn(domainReference);
+//		given(teamRepository.findByDomainReference(domainReference)).willReturn(Optional.of(team));
+//		given(teamService.findByDomainReference(domainReference)).willCallRealMethod();
 		
 		//application
 		given(input.getApplicationAccountUsername()).willReturn(username);
@@ -473,6 +474,8 @@ public class DeploymentRestControllerTest {
 		when(input.getConfigurationAccountUsername()).thenReturn(username);
 		when(input.getConfigurationName()).thenReturn(configurationName);
 		when(config.getName()).thenReturn(configurationName);
+		when(configurationRepository.findByNameAndAccountUsername(input.getConfigurationName(), account.getUsername())).thenThrow(ConfigurationNotFoundException.class);
+		when(configurationService.findByNameAndAccountUsername(input.getConfigurationName(), account.getUsername())).thenCallRealMethod();
 		when(configurationService.findByNameAndAccountUsername(input.getConfigurationName(), input.getConfigurationAccountUsername()))
 		.thenReturn(config);
 		when(configurationRepository.findByNameAndAccountUsername(input.getConfigurationName(), input.getConfigurationAccountUsername()))
@@ -494,7 +497,7 @@ public class DeploymentRestControllerTest {
 		cdpCopyList.add(configDeploymentParamsCopy);
 		given(configurationDeploymentParamsCopyRepository.findByName(cdpName)).willReturn(cdpCopyList);
 		given(configurationDeploymentParamsCopyService.findByName(cdpName)).willReturn(configDeploymentParamsCopy);
-		given(configurationService.isConfigurationSharedWithAccount(team, account, config)).willCallRealMethod();
+		given(configurationService.isConfigurationSharedWithAccount(account, config)).willCallRealMethod();
 		
 		//assigned cloud provider parameters
 		String cloudProviderParametersName = "cppName";
@@ -677,9 +680,9 @@ public class DeploymentRestControllerTest {
 		
 		//team
 		String domainReference = "some ref";
-		given(input.getDomainReference()).willReturn(domainReference);
-		given(teamRepository.findByDomainReference(domainReference)).willReturn(Optional.of(mock(Team.class)));
-		given(teamService.findByDomainReference(domainReference)).willCallRealMethod();
+//		given(input.getDomainReference()).willReturn(domainReference);
+//		given(teamRepository.findByDomainReference(domainReference)).willReturn(Optional.of(mock(Team.class)));
+//		given(teamService.findByDomainReference(domainReference)).willCallRealMethod();
 		given(applicationRepository.findByAccountUsernameAndName(username,applicationName)).willThrow(ApplicationNotFoundException.class);
 		given(applicationService.findByAccountUsernameAndName(username,applicationName)).willCallRealMethod();
 
