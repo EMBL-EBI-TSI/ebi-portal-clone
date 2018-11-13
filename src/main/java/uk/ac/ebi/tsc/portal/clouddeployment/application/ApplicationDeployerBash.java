@@ -1,6 +1,23 @@
 package uk.ac.ebi.tsc.portal.clouddeployment.application;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import static com.github.underscore.U.chain;
+import static java.lang.String.format;
+import static java.util.Arrays.asList;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Date;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -8,6 +25,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import uk.ac.ebi.tsc.aap.client.repo.DomainService;
 import uk.ac.ebi.tsc.portal.api.application.repo.Application;
 import uk.ac.ebi.tsc.portal.api.application.repo.ApplicationRepository;
@@ -16,7 +36,12 @@ import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParams
 import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigDeploymentParamCopy;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigDeploymentParamsCopyRepository;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.Configuration;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.*;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.Deployment;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentAssignedInput;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentAssignedParameter;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentAttachedVolume;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentConfiguration;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentStatusEnum;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentSecretService;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
 import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
@@ -28,16 +53,6 @@ import uk.ac.ebi.tsc.portal.clouddeployment.utils.SSHKeyGenerator;
 import uk.ac.ebi.tsc.portal.usage.deployment.model.DeploymentDocument;
 import uk.ac.ebi.tsc.portal.usage.deployment.model.ParameterDocument;
 import uk.ac.ebi.tsc.portal.usage.deployment.service.DeploymentIndexService;
-
-import static java.lang.String.format;
-
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.util.*;
 
 /**
  * @author Jose A. Dianes <jdianes@ebi.ac.uk>
@@ -344,6 +359,16 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
                              , "erikvdbergh/ecp-agent"                                          // erik's image
                              , scriptPath(cloudProviderPath)                                    // "deploy.sh" path
         };
+    }
+    
+    @SuppressWarnings("unchecked")
+    List<String> envToOpts(Map<String, String> env) {
+        
+      return chain(new ArrayList<>(env.entrySet()))
+             .map(e -> asList("-e", e.toString()))
+             .flatten()
+             .value()
+             ;
     }
 
     String scriptPath(String cloudProviderPath) {
