@@ -1,6 +1,7 @@
 package uk.ac.ebi.tsc.portal.clouddeployment.application;
 
 import static com.github.underscore.U.chain;
+import static com.github.underscore.U.concat;
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
 
@@ -135,13 +136,10 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 		if (volumeAttachments!= null) logger.info("  With " + volumeAttachments.keySet().size() + " attached volumes");
 		if (configurationParameters!= null) logger.info("  With " + configurationParameters.keySet().size() + " configuration parameters added ");
 
-        
-		String appFolder = theApplication.repoPath;
-		String deploymentsFolder = this.deploymentsRoot;
-
-  		ProcessBuilder processBuilder = new ProcessBuilder(dockerCmd(appFolder, deploymentsFolder, cloudProviderPath));
+  		ProcessBuilder processBuilder = new ProcessBuilder();
                                                                           
         Map<String, String> env = processBuilder.environment();
+        
   		setEnv(env, reference);
 		
 		logger.info("Creating log file at {}", this.deploymentsRoot+File.separator+reference+File.separator+"output.log");
@@ -232,6 +230,11 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 
 		processBuilder.directory(new File(theApplication.repoPath));
 
+		String appFolder = theApplication.repoPath;
+        String deploymentsFolder = this.deploymentsRoot;
+        
+        processBuilder.command(dockerCmd(appFolder, deploymentsFolder, cloudProviderPath, env));
+        
 		Process p = startProcess(processBuilder);
 
 		logger.info("Starting deployment index service"); // Index deployment as started
@@ -349,16 +352,22 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 		newThread.start();
 	}
 
-    String[] dockerCmd(String appFolder, String deploymentsFolder, String cloudProviderPath) {
+    @SuppressWarnings("unchecked")
+    List<String> dockerCmd(String appFolder, String deploymentsFolder, String cloudProviderPath, Map<String, String> env) {
         
-        return new String[] {
+        return concat(
             
-              "docker", "run", "-v", volume(appFolder         , CONTAINER_APP_FOLDER)           // appFolder
-                             , "-v", volume(deploymentsFolder , CONTAINER_DEPLOYMENTS_FOLDER)   // deploymentFolder
-                             , "--entrypoint", ""                                               // disable erik's image entry-point
-                             , "erikvdbergh/ecp-agent"                                          // erik's image
-                             , scriptPath(cloudProviderPath)                                    // "deploy.sh" path
-        };
+              asList("docker", "run", "-v", volume(appFolder         , CONTAINER_APP_FOLDER)           // appFolder
+                                    , "-v", volume(deploymentsFolder , CONTAINER_DEPLOYMENTS_FOLDER)   // deploymentFolder
+                    )
+              
+            , envToOpts(env)
+            
+            , asList( "--entrypoint", ""                                               // disable erik's image entry-point
+                    , "erikvdbergh/ecp-agent"                                          // erik's image
+                    , scriptPath(cloudProviderPath)                                    // "deploy.sh" path
+                    )
+        );
     }
     
     @SuppressWarnings("unchecked")

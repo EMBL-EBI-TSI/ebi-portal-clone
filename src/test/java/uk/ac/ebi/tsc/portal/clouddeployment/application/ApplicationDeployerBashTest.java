@@ -3,12 +3,14 @@ package uk.ac.ebi.tsc.portal.clouddeployment.application;
 import static java.util.Arrays.asList;
 import static org.junit.Assert.*;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.junit.Test;
 
+import com.github.underscore.U;
 
 public class ApplicationDeployerBashTest {
     
@@ -25,16 +27,23 @@ public class ApplicationDeployerBashTest {
         
         ApplicationDeployerBash deployer = newDeployer();
         
-        String[] cmd = deployer.dockerCmd("/var/ecp/myapp", "/var/ecp/deployments", "ostack");
+        Map<String, String> env = new HashMap<String, String>();
         
-        assertArrayEquals(new String[] {
+        env.put("a", "1");
+        env.put("b", "2");
+        
+        List<String> cmd = deployer.dockerCmd("/var/ecp/myapp", "/var/ecp/deployments", "ostack", env);
+        
+        assertEquals(asList(
                 
             "docker", "run", "-v", "/var/ecp/myapp:/app"
                            , "-v", "/var/ecp/deployments:/deployments"
+                           , "-e", "a=1"
+                           , "-e", "b=2"
                            , "--entrypoint", ""
                            , "erikvdbergh/ecp-agent"                                     
                            , "/app/ostack/deploy.sh"
-        }
+        )
         , cmd);
     }
     
