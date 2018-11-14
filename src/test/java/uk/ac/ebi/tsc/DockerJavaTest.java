@@ -1,17 +1,21 @@
 package uk.ac.ebi.tsc;
 
-import static org.junit.Assert.*;
 
 import java.util.List;
 
+import org.junit.Assert;
 import org.junit.Test;
 
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.command.CreateContainerResponse;
+import com.github.dockerjava.api.command.InspectContainerResponse.ContainerState;
 import com.github.dockerjava.api.model.Container;
 import com.github.dockerjava.core.DockerClientBuilder;
+import com.github.dockerjava.core.command.LogContainerResultCallback;
+import com.github.dockerjava.core.command.WaitContainerResultCallback;
 
-public class DockerTest {
+
+public class DockerJavaTest {
 
     @Test
     public void hello_world() throws Exception {
@@ -19,7 +23,50 @@ public class DockerTest {
         DockerClient dockerClient = newDockerClient();
         
         CreateContainerResponse container = dockerClient.createContainerCmd("hello-world")
-                                            .exec();
+                .withAttachStdout(true)
+                .exec()
+                ;
+        
+        String containerId = container.getId();
+        
+        dockerClient.startContainerCmd(containerId).exec();
+        
+        ContainerState state = getState(dockerClient, containerId);
+        Assert.assertEquals("running" , state.getStatus());
+        
+        dockerClient.waitContainerCmd(containerId).exec(new WaitContainerResultCallback() {
+
+            @Override
+            public void onComplete() {
+
+                System.out.println("Completed!!!");
+                
+                ContainerState state = getState(dockerClient, containerId);
+                
+                System.out.printf("status    = '%s'\n", state.getStatus());
+                System.out.printf("exit code = '%d'\n", state.getExitCode());
+                
+                super.onComplete();
+            }
+        });
+        
+//        state.getStatus();
+//        state.getExitCode();
+//        
+//        Assert.assertEquals(0  , state.getExitCode().intValue());
+//        Assert.assertEquals("" , state.getStatus());
+        
+        
+//        dockerClient.stopContainerCmd(containerId).exec();
+        
+        dockerClient.removeContainerCmd(containerId).exec();
+        
+//        dockerClient.close();
+    }
+
+    ContainerState getState(DockerClient dockerClient, String containerId) {
+        return dockerClient.inspectContainerCmd(containerId).exec()
+                               .getState();
     }
 
     @Test
