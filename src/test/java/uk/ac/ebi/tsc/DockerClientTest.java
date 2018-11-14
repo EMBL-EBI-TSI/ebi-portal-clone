@@ -14,6 +14,7 @@ import org.junit.Test;
 
 import com.spotify.docker.client.DefaultDockerClient;
 import com.spotify.docker.client.DockerClient;
+import com.spotify.docker.client.DockerClient.ExecCreateParam;
 import com.spotify.docker.client.DockerClient.ListContainersParam;
 import com.spotify.docker.client.DockerClient.LogsParam;
 import com.spotify.docker.client.LogStream;
@@ -22,6 +23,7 @@ import com.spotify.docker.client.messages.Container;
 import com.spotify.docker.client.messages.ContainerConfig;
 import com.spotify.docker.client.messages.ContainerCreation;
 import com.spotify.docker.client.messages.ContainerExit;
+import com.spotify.docker.client.messages.ExecCreation;
 import com.spotify.docker.client.messages.ExecState;
 
 public class DockerClientTest {
@@ -76,6 +78,43 @@ public class DockerClientTest {
     }
     
     @Test
+    public void get_stdout() throws Exception {
+        
+        ContainerCreation container = createContainer(newContainer("busybox"));
+        
+        String id = container.id();
+        
+//        String logs;
+//        try (LogStream stream = docker.logs(id, LogsParam.stdout(), LogsParam.stderr())) {
+//            
+//            logs = stream.readFully(); // NPE
+//            
+//            System.out.println("************************************************************");
+//            System.out.println(logs);
+//            System.out.println("************************************************************");
+//        }
+        
+        docker.startContainer(id);
+        
+        ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        
+        ExecCreation exec = docker.execCreate(id, new String[] {"/bin/bash"}, 
+                ExecCreateParam.attachStdin(), ExecCreateParam.attachStdout(),
+                ExecCreateParam.attachStderr(), ExecCreateParam.tty() );
+            
+        LogStream ls = docker.execStart(exec.id());
+        
+        // ls.attach(stdout, stderr) to r
+        ls.attach(System.out, System.err);
+        
+        ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        
+        ContainerExit exit = docker.waitContainer(id);
+        
+        docker.removeContainer(id);
+    }
+    
+    @Test
     public void hello_world() throws Exception {
         
         runDebug(newContainer("hello-world"));
@@ -109,7 +148,7 @@ public class DockerClientTest {
                 ;
     }
     
-    ContainerCreation startContainer(ContainerConfig containerConfig) {
+    ContainerCreation createContainer(ContainerConfig containerConfig) {
         
         ContainerCreation container;
         try 
@@ -126,7 +165,7 @@ public class DockerClientTest {
 
     ContainerExit runAndRemove(ContainerConfig containerConfig) throws DockerException, InterruptedException {
         
-        ContainerCreation container = startContainer(containerConfig);
+        ContainerCreation container = createContainer(containerConfig);
         
         String id = container.id();
         
@@ -150,6 +189,29 @@ public class DockerClientTest {
     }
     
     @Test
+    public void run_with_cmd() throws Exception {
+        
+        /*
+         * Image's entry point:
+         * 
+         *      git clone "$PORTAL_APP_REPO_URL" "$PORTAL_APP_REPO_FOLDER"
+         *      /bin/sh -c "$@"
+         */
+        
+//        docker run -e "PORTAL_APP_REPO_URL=https://github.com/EMBL-EBI-TSI/cpa-instance.git" -e "PORTAL_APP_REPO_FOLDER=cpa-instance" erikvdbergh/ecp-agent 'ls -la cpa-instance'
+        
+        runDebug(ContainerConfig.builder()
+                .image("busybox")
+//                        .env( "PORTAL_APP_REPO_URL=https://github.com/EMBL-EBI-TSI/cpa-instance.git"
+//                            , "PORTAL_APP_REPO_FOLDER=cpa-instance")
+//                        .cmd("ls")
+//                        .attachStdout(true)
+//                .entrypoint()
+                .build()
+                );
+    }
+    
+    @Test
     public void run_eriks_image() throws Exception {
         
         /*
@@ -168,6 +230,53 @@ public class DockerClientTest {
                         .cmd("ls -la cpa-instance")
                         .build()
         );
+    }
+    
+    @Test
+    public void run_eriks_image_dettached() throws Exception {
+        
+        /*
+         * Image's entry point:
+         * 
+         *      git clone "$PORTAL_APP_REPO_URL" "$PORTAL_APP_REPO_FOLDER"
+         *      /bin/sh -c "$@"
+         */
+        
+//      docker run --entrypoint '' -d -it erikvdbergh/ecp-agent sh
+
+        ContainerConfig containerConfig = ContainerConfig.builder()
+                        .image("erikvdbergh/ecp-agent")
+//                        .env( "PORTAL_APP_REPO_URL=https://github.com/EMBL-EBI-TSI/cpa-instance.git"
+//                            , "PORTAL_APP_REPO_FOLDER=cpa-instance")
+                        .cmd("sh")
+//                        .tty(true)
+//                        .attachStdin(true)
+//                        .attachStdout(true)
+//                        .attachStderr(true)
+                        .entrypoint() // overriding the images's entrypoint
+                        .build()
+                        ;
+                        
+        ContainerCreation container = createContainer(containerConfig);
+        
+        String id = container.id();
+        
+//        String logs;
+//        try (LogStream stream = docker.logs(id, LogsParam.stdout(), LogsParam.stderr())) {
+//            
+//            logs = stream.readFully(); // NPE
+//            
+//            System.out.println("************************************************************");
+//            System.out.println(logs);
+//            System.out.println("************************************************************");
+//        }
+        
+        docker.startContainer(id);
+        
+        
+        
+//        ContainerExit exit = docker.waitContainer(id);
+
     }
     
     DefaultDockerClient newDockerClient() {
