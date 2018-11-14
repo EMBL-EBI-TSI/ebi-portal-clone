@@ -336,14 +336,14 @@ public class DeploymentRestController {
 		if (configuration.getHardUsageLimit()!= null && this.configurationService.getTotalConsumption(configuration, deploymentIndexService)>=configuration.getHardUsageLimit()) {
 			throw new UsageLimitsException(configuration.getName(), configuration.getAccount().getEmail(), configuration.getHardUsageLimit());
 		}
-		String configurationDeploymentParametersName = this.configDeploymentParamsCopyService.findByConfigurationDeploymentParametersReference(configuration.getConfigDeployParamsReference()).getName();
+		String configurationDeploymentParametersReference = this.configDeploymentParamsCopyService.findByConfigurationDeploymentParametersReference(configuration.getConfigDeployParamsReference()).getConfigurationDeploymentParametersReference();
 		try{
-			ConfigDeploymentParamsCopy configDeploymentParamsCopy = this.configDeploymentParamsCopyService.findByName(configurationDeploymentParametersName);
+			ConfigDeploymentParamsCopy configDeploymentParamsCopy = this.configDeploymentParamsCopyService.findByConfigurationDeploymentParametersReference(configurationDeploymentParametersReference);
 			configDeploymentParamsCopy.getConfigDeploymentParamCopy().forEach( parameter ->{
 				deploymentParameterKV.put(parameter.getKey(), parameter.getValue());
 			});
 		}catch(ConfigDeploymentParamsCopyNotFoundException e){
-			throw new ConfigDeploymentParamsCopyNotFoundException(configurationDeploymentParametersName, account.getGivenName());
+			throw new ConfigDeploymentParamsCopyNotFoundException(configuration.getConfigDeploymentParamsName(), account.getGivenName());
 		}
 	}
 

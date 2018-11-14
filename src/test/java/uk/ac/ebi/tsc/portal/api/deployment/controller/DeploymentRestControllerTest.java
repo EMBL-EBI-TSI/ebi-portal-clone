@@ -432,9 +432,6 @@ public class DeploymentRestControllerTest {
 		String domainReference = "some ref";
 		given(team.getName()).willReturn(teamName);
 		given(team.getDomainReference()).willReturn(domainReference);
-//		given(input.getDomainReference()).willReturn(domainReference);
-//		given(teamRepository.findByDomainReference(domainReference)).willReturn(Optional.of(team));
-//		given(teamService.findByDomainReference(domainReference)).willCallRealMethod();
 		
 		//application
 		given(input.getApplicationAccountUsername()).willReturn(username);
@@ -489,6 +486,7 @@ public class DeploymentRestControllerTest {
 		given(config.getConfigDeployParamsReference()).willReturn(cdpReference);
 		ConfigDeploymentParamsCopy configDeploymentParamsCopy = mock(ConfigDeploymentParamsCopy.class);
 		given(configDeploymentParamsCopy.getName()).willReturn(cdpName);
+		given(configDeploymentParamsCopy.getConfigurationDeploymentParametersReference()).willReturn(cdpReference);
 		given(configurationDeploymentParamsCopyRepository.findByConfigurationDeploymentParametersReference(cdpReference))
 		.willReturn(Optional.of(configDeploymentParamsCopy));
 		given(configurationDeploymentParamsCopyService.findByConfigurationDeploymentParametersReference(cdpReference))
@@ -498,6 +496,10 @@ public class DeploymentRestControllerTest {
 		given(configurationDeploymentParamsCopyRepository.findByName(cdpName)).willReturn(cdpCopyList);
 		given(configurationDeploymentParamsCopyService.findByName(cdpName)).willReturn(configDeploymentParamsCopy);
 		given(configurationService.isConfigurationSharedWithAccount(account, config)).willCallRealMethod();
+		given(configurationDeploymentParamsCopyRepository.findByConfigurationDeploymentParametersReference(cdpReference))
+		.willReturn(Optional.of(configDeploymentParamsCopy));
+		given(configurationDeploymentParamsCopyService.findByConfigurationDeploymentParametersReference(cdpReference))
+		.willReturn(configDeploymentParamsCopy);
 		
 		//assigned cloud provider parameters
 		String cloudProviderParametersName = "cppName";
