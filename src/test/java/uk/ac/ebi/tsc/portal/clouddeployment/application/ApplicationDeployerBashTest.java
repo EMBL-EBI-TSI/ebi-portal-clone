@@ -19,7 +19,7 @@ public class ApplicationDeployerBashTest {
         
         ApplicationDeployerBash deployer = newDeployer();
         
-        assertEquals("/app/ostack/deploy.sh", deployer.scriptPath("ostack"));
+        assertEquals("/app/ostack/deploy.sh", deployer.scriptPath("ostack", "deploy.sh"));
     }
 
     @Test

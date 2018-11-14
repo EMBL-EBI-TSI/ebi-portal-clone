@@ -365,7 +365,7 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
             
             , asList( "--entrypoint", ""                                               // disable erik's image entry-point
                     , "erikvdbergh/ecp-agent"                                          // erik's image
-                    , scriptPath(cloudProviderPath)                                    // "deploy.sh" path
+                    , scriptPath(cloudProviderPath, "deploy.sh")                       // script path
                     )
         );
     }
@@ -380,11 +380,11 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
              ;
     }
 
-    String scriptPath(String cloudProviderPath) {
+    String scriptPath(String cloudProviderPath, String script) {
         
         return new File(
                      new File(CONTAINER_APP_FOLDER, cloudProviderPath)
-                    ,"deploy.sh")
+                    ,script)
                .toString()
                ;
     }
