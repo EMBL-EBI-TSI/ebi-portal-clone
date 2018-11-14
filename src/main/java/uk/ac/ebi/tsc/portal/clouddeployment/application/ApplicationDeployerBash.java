@@ -233,7 +233,7 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 		String appFolder = theApplication.repoPath;
         String deploymentsFolder = this.deploymentsRoot;
         
-        processBuilder.command(dockerCmd(appFolder, deploymentsFolder, cloudProviderPath, env));
+        processBuilder.command(dockerCmd(appFolder, deploymentsFolder, cloudProviderPath, "deploy.sh", env));
         
 		Process p = startProcess(processBuilder);
 
@@ -353,7 +353,7 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 	}
 
     @SuppressWarnings("unchecked")
-    List<String> dockerCmd(String appFolder, String deploymentsFolder, String cloudProviderPath, Map<String, String> env) {
+    List<String> dockerCmd(String appFolder, String deploymentsFolder, String cloudProviderPath, String script, Map<String, String> env) {
         
         return concat(
             
@@ -365,7 +365,7 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
             
             , asList( "--entrypoint", ""                                               // disable erik's image entry-point
                     , "erikvdbergh/ecp-agent"                                          // erik's image
-                    , scriptPath(cloudProviderPath, "deploy.sh")                       // script path
+                    , scriptPath(cloudProviderPath, script)                            // script path
                     )
         );
     }

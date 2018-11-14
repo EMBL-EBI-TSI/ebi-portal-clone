@@ -32,7 +32,7 @@ public class ApplicationDeployerBashTest {
         env.put("a", "1");
         env.put("b", "2");
         
-        List<String> cmd = deployer.dockerCmd("/var/ecp/myapp", "/var/ecp/deployments", "ostack", env);
+        List<String> cmd = deployer.dockerCmd("/var/ecp/myapp", "/var/ecp/deployments", "ostack", "deploy.sh", env);
         
         assertEquals(asList(
                 
