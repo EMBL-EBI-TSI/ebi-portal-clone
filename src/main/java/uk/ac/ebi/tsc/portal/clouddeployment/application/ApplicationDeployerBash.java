@@ -352,17 +352,20 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 		newThread.start();
 	}
 
+	List<String> dockerCmd(String deploymentsFolder, String cloudProviderPath, String script, Map<String, String> env) {
+	    
+	    return dockerCmd(null, deploymentsFolder, cloudProviderPath, script, env);
+	}
+	    
     @SuppressWarnings("unchecked")
     List<String> dockerCmd(String appFolder, String deploymentsFolder, String cloudProviderPath, String script, Map<String, String> env) {
         
         return concat(
             
-              asList("docker", "run", "-v", volume(appFolder         , CONTAINER_APP_FOLDER)           // appFolder
-                                    , "-v", volume(deploymentsFolder , CONTAINER_DEPLOYMENTS_FOLDER)   // deploymentFolder
-                    )
-              
+              asList("docker", "run")
+            , volume(appFolder         , CONTAINER_APP_FOLDER)           // appFolder
+            , volume(deploymentsFolder , CONTAINER_DEPLOYMENTS_FOLDER)   // deploymentFolder
             , envToOpts(env)
-            
             , asList( "--entrypoint", ""                                               // disable erik's image entry-point
                     , "erikvdbergh/ecp-agent"                                          // erik's image
                     , scriptPath(cloudProviderPath, script)                            // script path
@@ -418,9 +421,11 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
         return processBuilder.start();
     }
 
-    String volume(String appFolder, String mountPoint) {
+    List<String> volume(String folder, String mountPoint) {
         
-        return format("%s:%s", appFolder, mountPoint);
+        return folder == null ? asList()
+                              : asList("-v", format("%s:%s", folder, mountPoint))
+                              ;
     }
 
 	public StateFromTerraformOutput state(String repoPath, 
