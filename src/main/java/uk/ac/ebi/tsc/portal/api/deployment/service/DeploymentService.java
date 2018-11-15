@@ -2,6 +2,8 @@ package uk.ac.ebi.tsc.portal.api.deployment.service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+
 import uk.ac.ebi.tsc.portal.api.deployment.repo.*;
 
 import java.util.Collection;
@@ -12,6 +14,7 @@ import java.util.List;
  * @since v0.0.1
  * @author Navis Raj <navis@ebi.ac.uk>
  */
+@Component
 public class DeploymentService {
 
     private static final Logger logger = LoggerFactory.getLogger(DeploymentService.class);

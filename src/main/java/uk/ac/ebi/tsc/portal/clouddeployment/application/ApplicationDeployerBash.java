@@ -18,6 +18,7 @@ import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigDeploymentParamsCopyRep
 import uk.ac.ebi.tsc.portal.api.configuration.repo.Configuration;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.*;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentSecretService;
+import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
 import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
 import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDeployerException;
 import uk.ac.ebi.tsc.portal.clouddeployment.model.StateFromTerraformOutput;
@@ -27,6 +28,8 @@ import uk.ac.ebi.tsc.portal.clouddeployment.utils.SSHKeyGenerator;
 import uk.ac.ebi.tsc.portal.usage.deployment.model.DeploymentDocument;
 import uk.ac.ebi.tsc.portal.usage.deployment.model.ParameterDocument;
 import uk.ac.ebi.tsc.portal.usage.deployment.service.DeploymentIndexService;
+
+import static java.lang.String.format;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -50,7 +53,7 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 	private static final String BASH_COMMAND = "bash";
 
 	@Value("${be.deployments.root}")
-	private String deploymentsRoot;
+	String deploymentsRoot;
 
 	@Value("${elasticsearch.url}")
 	private String elasticSearchUrl;
@@ -66,17 +69,15 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 
 
 	@Autowired
-	public ApplicationDeployerBash(DeploymentRepository deploymentRepository,
-								   DeploymentStatusRepository deploymentStatusRepository,
-								   ApplicationRepository applicationRepository,
+	public ApplicationDeployerBash(DeploymentService deploymentService,
+	                               ApplicationRepository applicationRepository,
 								   DomainService domainService,
 								   CloudProviderParamsCopyRepository cloudProviderParametersRepository,
 								   ConfigDeploymentParamsCopyRepository configDeploymentParamsCopyRepository,
 								   EncryptionService encryptionService,
 								   DeploymentSecretService secretService) {
-	    super(deploymentRepository,
-                deploymentStatusRepository,
-                applicationRepository,
+	    super(  deploymentService,
+	            applicationRepository,
                 domainService,
                 cloudProviderParametersRepository,
                 configDeploymentParamsCopyRepository,
@@ -215,7 +216,7 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 
 		processBuilder.directory(new File(theApplication.repoPath));
 
-		Process p = processBuilder.start();
+		Process p = startProcess(processBuilder);
 
 		logger.info("Starting deployment index service"); // Index deployment as started
 		DeploymentDocument theDeploymentDocument = new DeploymentDocument(
@@ -332,6 +333,11 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 		newThread.start();
 	}
 
+    Process startProcess(ProcessBuilder processBuilder) throws IOException {
+        
+        return processBuilder.start();
+    }
+
 	public StateFromTerraformOutput state(String repoPath, 
 			String reference,
 			String cloudProviderPath, 
@@ -387,7 +393,7 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 
 		processBuilder.directory(new File(repoPath));
 
-		Process p = processBuilder.start();
+		Process p = startProcess(processBuilder);
 
 		try {
 			p.waitFor();
@@ -509,7 +515,7 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 		logger.info("- Provider path at " + cloudProviderPath);
 		logger.info("- With Cloud Provider Parameters Copy '" + cloudProviderParametersCopy.getName() + "'");
 
-		Process p = processBuilder.start();
+		Process p = startProcess(processBuilder);
 
 		Thread newThread = new Thread(new Runnable() {
 			@Override

@@ -30,6 +30,7 @@ import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentApplicationService;
 import uk.ac.ebi.tsc.portal.api.team.repo.Team;
 import uk.ac.ebi.tsc.portal.api.team.repo.TeamRepository;
 import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDownloader;
+import uk.ac.ebi.tsc.portal.clouddeployment.application.ProcessRunner;
 import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDownloaderException;
 import uk.ac.ebi.tsc.portal.clouddeployment.model.ApplicationManifest;
 
@@ -260,7 +261,7 @@ public class ApplicationRestControllerTest {
 		deploymentParameterCollection.add(deploymentParameterMock);
 		applicationManifestMock.deploymentParameters = deploymentParameterCollection;
 		applicationManifestMock.applicationName = applicationName;
-		Application mockApplication = new ApplicationDownloader(mockAccountRepo).fromManifestToApplication("repoUri", "path", accountMock, applicationManifestMock);
+		Application mockApplication = new ApplicationDownloader(accountServiceMock, new ProcessRunner()).fromManifestToApplication("repoUri", "path", accountMock, applicationManifestMock);
 		assertNotNull(mockApplication);
 		assertThat(mockApplication.getName(), is(applicationName));
 

@@ -13,6 +13,7 @@ import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigDeploymentParamsCopyRep
 import uk.ac.ebi.tsc.portal.api.configuration.repo.Configuration;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.*;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentSecretService;
+import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
 import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
 import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDeployerException;
 import uk.ac.ebi.tsc.portal.clouddeployment.model.StateFromTerraformOutput;
@@ -46,16 +47,14 @@ public class ApplicationDeployerDocker extends AbstractApplicationDeployer {
     private String elasticSearchPassword;
 
     @Autowired
-    public ApplicationDeployerDocker(DeploymentRepository deploymentRepository,
-                                     DeploymentStatusRepository deploymentStatusRepository,
+    public ApplicationDeployerDocker(DeploymentService deploymentService,
                                      ApplicationRepository applicationRepository,
                                      DomainService domainService,
                                      CloudProviderParamsCopyRepository cloudProviderParametersRepository,
                                      ConfigDeploymentParamsCopyRepository configDeploymentParamsCopyRepository,
                                      EncryptionService encryptionService,
                                      DeploymentSecretService secretService) {
-        super(deploymentRepository,
-                deploymentStatusRepository,
+        super(  deploymentService,
                 applicationRepository,
                 domainService,
                 cloudProviderParametersRepository,
