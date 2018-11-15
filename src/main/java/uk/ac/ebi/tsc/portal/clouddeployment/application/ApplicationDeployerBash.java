@@ -519,7 +519,7 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 
 		String path =  deploymentsRoot + File.separator + reference;
 
-		ProcessBuilder processBuilder = new ProcessBuilder(BASH_COMMAND, cloudProviderPath + File.separator + "destroy.sh");
+		ProcessBuilder processBuilder = new ProcessBuilder();
 
 		logger.info("Creating log file at {}", this.deploymentsRoot+File.separator+reference+File.separator+"destroy.log");
 		File logs = new File(this.deploymentsRoot+File.separator+reference+File.separator+"destroy.log");
@@ -584,6 +584,8 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 		logger.info("- Provider path at " + cloudProviderPath);
 		logger.info("- With Cloud Provider Parameters Copy '" + cloudProviderParametersCopy.getName() + "'");
 
+        processBuilder.command(dockerCmd(repoPath, this.deploymentsRoot, cloudProviderPath, "destroy.sh", env));
+		
 		Process p = startProcess(processBuilder);
 
 		Thread newThread = new Thread(new Runnable() {
