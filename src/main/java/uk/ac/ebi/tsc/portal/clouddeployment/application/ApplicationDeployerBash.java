@@ -437,7 +437,7 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 
 		logger.info("Showing state of reference: " + reference);
 
-		ProcessBuilder processBuilder = new ProcessBuilder(BASH_COMMAND, cloudProviderPath + File.separator + "state.sh");
+		ProcessBuilder processBuilder = new ProcessBuilder();
 
 		Map<String, String> env = processBuilder.environment();
 		setEnv(env, reference);
@@ -469,8 +469,9 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 		//generate keys
 		addKeyEnvVars(env, reference);
 
-
 		processBuilder.directory(new File(repoPath));
+		
+        processBuilder.command(dockerCmd(repoPath, this.deploymentsRoot, cloudProviderPath, "state.sh", env));
 
 		Process p = startProcess(processBuilder);
 
