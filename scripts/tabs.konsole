@@ -1,7 +1,7 @@
 
 
-title: ECP: Postgres       ;; command: /bin/bash ;; workdir: ~/workspace/CloudPortal
-title: ECP: ElasticSearch  ;; command: /bin/bash ;; workdir: ~/workspace/CloudPortal
-title: ECP: run            ;; command: /bin/bash ;; workdir: ~/workspace/CloudPortal
-title: ECP: FrontEnd       ;; command: /bin/bash ;; workdir: ~/workspace/CloudPortalFrontEnd
+title: ECP: Postgres       ;; workdir: ~/workspace/CloudPortal          ;; command: ~/workspace/CloudPortal/runPostgres 
+title: ECP: ElasticSearch  ;; workdir: ~/workspace/CloudPortal          ;; command: ~/workspace/CloudPortal/runElasticSearch
+# title: ECP: run            ;; workdir: ~/workspace/CloudPortal          ;; command: ~/workspace/CloudPortal/run
+title: ECP: FrontEnd       ;; workdir: ~/workspace/CloudPortalFrontEnd  ;; command: ~/workspace/CloudPortalFrontEnd/run
 
