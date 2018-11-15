@@ -27,17 +27,17 @@ This will create:
     * An Application
 
 
-4. Add a identifying suffix to image_name:
+4. Add a identifying infix to 'name':
 
     In
 
-        $APP_FOLDER?/ostack/terraform/instance.tf
+        $APP_FOLDER/ostack/terraform/instance.tf
 
     change
 
-        image_name  = "${var.disk_image_name}"
+        name = "${var.name}-${count.index + 1}"
 
     to
 
-        image_name  = "${var.disk_image_name}-localecp-tfga"
+        name = "${var.name}-localecp-YOUR_USERNAME-${count.index + 1}"
 
