@@ -352,11 +352,6 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 		newThread.start();
 	}
 
-	List<String> dockerCmd(String deploymentsFolder, String cloudProviderPath, String script, Map<String, String> env) {
-	    
-	    return dockerCmd(null, deploymentsFolder, cloudProviderPath, script, env);
-	}
-	    
     @SuppressWarnings("unchecked")
     List<String> dockerCmd(String appFolder, String deploymentsFolder, String cloudProviderPath, String script, Map<String, String> env) {
         
