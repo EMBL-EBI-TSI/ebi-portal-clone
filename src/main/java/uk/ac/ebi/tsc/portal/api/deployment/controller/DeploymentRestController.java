@@ -65,6 +65,7 @@ import uk.ac.ebi.tsc.portal.api.application.repo.Application;
 import uk.ac.ebi.tsc.portal.api.application.repo.ApplicationCloudProvider;
 import uk.ac.ebi.tsc.portal.api.application.repo.ApplicationRepository;
 import uk.ac.ebi.tsc.portal.api.application.service.ApplicationNotFoundException;
+import uk.ac.ebi.tsc.portal.api.application.service.ApplicationNotSharedException;
 import uk.ac.ebi.tsc.portal.api.application.service.ApplicationService;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParameters;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParametersRepository;
@@ -285,21 +286,18 @@ public class DeploymentRestController {
 					applicationOwnerAccount.getUsername(), input.getApplicationName());
 			logger.info("Found application {}", theApplication.getName());
 			if(theApplication.getAccount()!= account){
-				Set<Team> teams = theApplication.getSharedWithTeams();
-				if(!teams.isEmpty() && !account.getMemberOfTeams().isEmpty()){
-					teams.forEach(team -> {
-						if(!account.getMemberOfTeams().contains(team)){
-							try {
-								throw new ApplicationDeployerException(
-										"User " + account.getGivenName()+ " has not been shared application " + theApplication.getName());
-							} catch (ApplicationDeployerException e) {
-								logger.error("User has no access to application");
-							}
-						}
-					});
+				//find if the application is shared with user
+				logger.info("Account user is not application owner, checking if it has been shared with him" );
+				theApplication = this.applicationService.findByAccountUsernameAndName(
+						applicationOwnerAccount.getUsername(), input.getApplicationName());
+				if(!applicationService.isApplicationSharedWithAccount(account, theApplication)){
+					logger.error("Application " + theApplication.getName() + " has not been shared with " + account.getGivenName());
+					throw new ApplicationNotSharedException(account.getGivenName(), theApplication.getName());
 				}
+				logger.debug("Application " + theApplication.getName() + " has been shared with " + account.getGivenName());
 			}
 		}catch(ApplicationNotFoundException e){
+			logger.error("Could not find application " + input.applicationName + "for user " + applicationOwnerAccount.getGivenName());
 			throw new ApplicationNotFoundException(applicationOwnerAccount.getGivenName(), input.getApplicationName());
 		}
 
