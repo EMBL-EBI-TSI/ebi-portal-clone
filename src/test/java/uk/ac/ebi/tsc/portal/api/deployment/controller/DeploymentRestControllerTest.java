@@ -135,9 +135,6 @@ public class DeploymentRestControllerTest {
 	@MockBean
 	DeploymentApplicationService deploymentApplicationService;
 
-	@MockBean
-	DeploymentGeneratedOutputService deploymentGeneratedOutputService;
-
 	DeploymentRestController subject;
 
 	@MockBean
@@ -228,7 +225,6 @@ public class DeploymentRestControllerTest {
 				configurationDeploymentParamsCopyRepository,
 				encryptionService,
 				deploymentSecretService,
-				deploymentGeneratedOutputService,
 				salt,
 				password);
 

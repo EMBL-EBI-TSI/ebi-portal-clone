@@ -14,7 +14,6 @@ import java.util.stream.Collectors;
 /**
  * @author Felix Xavier <famaladoss@ebi.ac.uk>
  */
-@Service
 public class DeploymentGeneratedOutputService {
 
 
@@ -25,7 +24,6 @@ public class DeploymentGeneratedOutputService {
     StringBuilder replacingOutputValues;
     StringBuilder payLoadOutputValues;
 
-    @Autowired
     public DeploymentGeneratedOutputService(DeploymentRepository deploymentRepository) {
         this.deploymentRepository = deploymentRepository;
     }

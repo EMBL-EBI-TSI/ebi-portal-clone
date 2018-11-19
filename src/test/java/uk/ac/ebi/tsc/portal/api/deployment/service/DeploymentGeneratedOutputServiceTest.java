@@ -8,10 +8,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 import uk.ac.ebi.tsc.portal.api.deployment.controller.DeploymentGeneratedOutputResource;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.Deployment;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentGeneratedOutput;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentRepository;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentSecret;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.*;
 import uk.ac.ebi.tsc.portal.api.error.ErrorMessage;
 
 import java.util.ArrayList;
@@ -40,13 +37,17 @@ public class DeploymentGeneratedOutputServiceTest {
     List<DeploymentGeneratedOutputResource> payLoadGeneratedOutputList = new ArrayList<>();
     List<DeploymentGeneratedOutput> depGenlist = new ArrayList<>();
     String deploymentReference = "TSI000001";
+    String invalid_reference = "TOI00002";
     String secret = "SECRET";
+    String invalid_secret = "INVALID_SECRET";
 
     @Before
     public void setUp() {
         deploymentRepositoryMock = mock(DeploymentRepository.class);
-        theDeployment = mock(Deployment.class);
-        deploymentSecret = mock(DeploymentSecret.class);
+        theDeployment = new Deployment(deploymentReference, null, null, "", "");
+        deploymentSecret = new DeploymentSecret(null, secret);
+        theDeployment.setDeploymentSecret(deploymentSecret);
+        theDeployment.setGeneratedOutputs(depGenlist);
         testCandidate = new DeploymentGeneratedOutputService(deploymentRepositoryMock);
         deploymentGeneratedOutput1 = new DeploymentGeneratedOutput("externalIP", "193.167.5.4", theDeployment);
         DeploymentGeneratedOutputResource outputResource1 = new DeploymentGeneratedOutputResource(deploymentGeneratedOutput1);
@@ -54,6 +55,8 @@ public class DeploymentGeneratedOutputServiceTest {
         deploymentGeneratedOutput2 = new DeploymentGeneratedOutput("sequence", generateString(1000), theDeployment);
         DeploymentGeneratedOutputResource outputResource2 = new DeploymentGeneratedOutputResource(deploymentGeneratedOutput2);
         payLoadGeneratedOutputList.add(outputResource2);
+        given(deploymentRepositoryMock.findByReference(deploymentReference)).willReturn(Optional.of(theDeployment));
+        given(deploymentRepositoryMock.findByReference(invalid_reference)).willReturn(Optional.empty());
     }
 
     @Test
@@ -67,19 +70,11 @@ public class DeploymentGeneratedOutputServiceTest {
 
     @Test(expected = DeploymentNotFoundException.class)
     public void testInvalidSecret() throws DeploymentNotFoundException {
-
-        String invalid_secret = "INVALID_SECRET";
-        given(deploymentSecret.getSecret()).willReturn(secret);
-        given(theDeployment.getDeploymentSecret()).willReturn(deploymentSecret);
-        given(deploymentRepositoryMock.findByReference(deploymentReference)).willReturn(Optional.of(theDeployment));
         testCandidate.saveOrUpdateDeploymentOutputs(deploymentReference, invalid_secret, payLoadGeneratedOutputList);
     }
 
     @Test(expected = DeploymentNotFoundException.class)
     public void testInvalidReference() throws DeploymentNotFoundException {
-
-        String invalid_reference = "TOI00002";
-        given(deploymentRepositoryMock.findByReference(invalid_reference)).willReturn(Optional.empty());
         testCandidate.saveOrUpdateDeploymentOutputs(invalid_reference, secret, payLoadGeneratedOutputList);
     }
 
@@ -89,10 +84,6 @@ public class DeploymentGeneratedOutputServiceTest {
         outputResource.setOutputName("sequence");
         outputResource.setGeneratedValue(generateString(500));
         payLoadGeneratedOutputList.add(outputResource);
-
-        given(deploymentSecret.getSecret()).willReturn(secret);
-        given(theDeployment.getDeploymentSecret()).willReturn(deploymentSecret);
-        given(deploymentRepositoryMock.findByReference(deploymentReference)).willReturn(Optional.of(theDeployment));
 
         Optional<ErrorMessage> errorMessageOpt = testCandidate.saveOrUpdateDeploymentOutputs(deploymentReference, secret, payLoadGeneratedOutputList);
         ErrorMessage errorMessage = errorMessageOpt.get();
@@ -108,25 +99,14 @@ public class DeploymentGeneratedOutputServiceTest {
         outputResource.setGeneratedValue(generateString(1000001));
         payLoadGeneratedOutputList.add(outputResource);
 
-        given(deploymentSecret.getSecret()).willReturn(secret);
-        given(theDeployment.getDeploymentSecret()).willReturn(deploymentSecret);
-        given(theDeployment.getGeneratedOutputs()).willReturn(depGenlist);
-        given(deploymentRepositoryMock.findByReference(deploymentReference)).willReturn(Optional.of(theDeployment));
-
         Optional<ErrorMessage> errorMessageOpt = testCandidate.saveOrUpdateDeploymentOutputs(deploymentReference, secret, payLoadGeneratedOutputList);
         ErrorMessage errorMessage = errorMessageOpt.get();
         assertEquals(HttpStatus.BAD_REQUEST, errorMessage.getStatus());
         assertEquals("Key/Value pair should not exceed 1MB for a deployment", errorMessage.getError());
     }
 
-
     @Test
     public void testAddDeploymentOutputs1() throws DeploymentNotFoundException {
-
-        given(deploymentSecret.getSecret()).willReturn(secret);
-        given(theDeployment.getDeploymentSecret()).willReturn(deploymentSecret);
-        given(theDeployment.getGeneratedOutputs()).willReturn(depGenlist);
-        given(deploymentRepositoryMock.findByReference(deploymentReference)).willReturn(Optional.of(theDeployment));
 
         Optional<ErrorMessage> errorMessageOpt = testCandidate.saveOrUpdateDeploymentOutputs(deploymentReference, secret, payLoadGeneratedOutputList);
         assertFalse(errorMessageOpt.isPresent());
@@ -140,11 +120,7 @@ public class DeploymentGeneratedOutputServiceTest {
 
         DeploymentGeneratedOutput output1 = new DeploymentGeneratedOutput("internalIP", "10.90.10.4", theDeployment);
         depGenlist.add(output1);
-
-        given(deploymentSecret.getSecret()).willReturn(secret);
-        given(theDeployment.getDeploymentSecret()).willReturn(deploymentSecret);
-        given(theDeployment.getGeneratedOutputs()).willReturn(depGenlist);
-        given(deploymentRepositoryMock.findByReference(deploymentReference)).willReturn(Optional.of(theDeployment));
+        theDeployment.setGeneratedOutputs(depGenlist);
 
         Optional<ErrorMessage> errorMessageOpt = testCandidate.saveOrUpdateDeploymentOutputs(deploymentReference, secret, payLoadGeneratedOutputList);
         assertFalse(errorMessageOpt.isPresent());
@@ -160,11 +136,7 @@ public class DeploymentGeneratedOutputServiceTest {
         DeploymentGeneratedOutput output2 = new DeploymentGeneratedOutput("internalIP", "10.90.10.4", theDeployment);
         depGenlist.add(output1);
         depGenlist.add(output2);
-
-        given(deploymentSecret.getSecret()).willReturn(secret);
-        given(theDeployment.getDeploymentSecret()).willReturn(deploymentSecret);
-        given(deploymentRepositoryMock.findByReference(deploymentReference)).willReturn(Optional.of(theDeployment));
-        given(theDeployment.getGeneratedOutputs()).willReturn(depGenlist);
+        theDeployment.setGeneratedOutputs(depGenlist);
 
         Optional<ErrorMessage> errorMessageOpt = testCandidate.saveOrUpdateDeploymentOutputs(deploymentReference, secret, payLoadGeneratedOutputList);
         assertFalse(errorMessageOpt.isPresent());
