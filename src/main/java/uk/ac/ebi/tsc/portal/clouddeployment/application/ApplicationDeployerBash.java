@@ -228,8 +228,6 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 			}
 		}
 
-		processBuilder.directory(new File(theApplication.repoPath));
-
 		String appFolder = theApplication.repoPath;
         String deploymentsFolder = this.deploymentsRoot;
         
@@ -465,8 +463,6 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 		//generate keys
 		addKeyEnvVars(env, reference);
 
-		processBuilder.directory(new File(repoPath));
-		
         processBuilder.command(dockerCmd(repoPath, this.deploymentsRoot, cloudProviderPath, "state.sh", env));
 
 		Process p = startProcess(processBuilder);
@@ -573,8 +569,6 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 			env.put("profile_public_key" , deploymentConfiguration.getSshKey());
 			env.put("TF_VAR_profile_public_key" , deploymentConfiguration.getSshKey());
 		}
-
-		processBuilder.directory(new File(repoPath));
 
 		logger.info("Destroying deployment of application at: " + path);
 		logger.info("- Provider path at " + cloudProviderPath);
