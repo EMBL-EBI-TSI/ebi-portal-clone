@@ -361,9 +361,10 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
             , volume(appFolder         , CONTAINER_APP_FOLDER)           // appFolder
             , volume(deploymentsFolder , CONTAINER_DEPLOYMENTS_FOLDER)   // deploymentFolder
             , envToOpts(env)
-            , asList( "--entrypoint", ""                                               // disable erik's image entry-point
-                    , "erikvdbergh/ecp-agent"                                          // erik's image
-                    , scriptPath(cloudProviderPath, script)                            // script path
+            , asList("-w", CONTAINER_APP_FOLDER)                         // working dir
+            , asList( "--entrypoint", ""                                 // disable erik's image entry-point
+                    , "erikvdbergh/ecp-agent"                            // erik's image
+                    , scriptPath(cloudProviderPath, script)              // script path
                     )
         );
     }

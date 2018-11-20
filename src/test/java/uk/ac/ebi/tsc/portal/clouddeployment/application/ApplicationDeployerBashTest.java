@@ -40,6 +40,7 @@ public class ApplicationDeployerBashTest {
                            , "-v", "/var/ecp/deployments:/deployments"
                            , "-e", "a=1"
                            , "-e", "b=2"
+                           , "-w", "/app"
                            , "--entrypoint", ""
                            , "erikvdbergh/ecp-agent"                                     
                            , "/app/ostack/deploy.sh"
