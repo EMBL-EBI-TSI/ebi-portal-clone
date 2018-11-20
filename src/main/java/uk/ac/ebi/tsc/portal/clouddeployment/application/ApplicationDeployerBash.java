@@ -14,6 +14,7 @@ import java.security.NoSuchProviderException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -138,7 +139,7 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 
   		ProcessBuilder processBuilder = new ProcessBuilder();
                                                                           
-        Map<String, String> env = processBuilder.environment();
+        Map<String, String> env = new HashMap<>();
         
   		setEnv(env, reference);
 		
@@ -433,7 +434,7 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 
 		ProcessBuilder processBuilder = new ProcessBuilder();
 
-		Map<String, String> env = processBuilder.environment();
+		Map<String, String> env = new HashMap<>();
 		setEnv(env, reference);
 
 		//pass configurations
@@ -520,9 +521,7 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 		processBuilder.redirectOutput(logs);
 		processBuilder.redirectErrorStream(true);
 
-		Map<String, String> env = processBuilder.environment();
-
-
+		Map<String, String> env = new HashMap<>();
 
 		ApplicationDeployerHelper.addGenericProviderCreds(env, cloudProviderParametersCopy, logger);
 		setEnv(env, reference);
