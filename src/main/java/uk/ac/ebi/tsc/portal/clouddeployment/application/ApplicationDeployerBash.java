@@ -230,7 +230,7 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 		String appFolder = theApplication.repoPath;
         String deploymentsFolder = this.deploymentsRoot;
         
-        configureProcessBuilder(processBuilder, cloudProviderPath, env, appFolder, deploymentsFolder, reference);
+        configureProcessBuilder(processBuilder, cloudProviderPath, env, appFolder, deploymentsFolder, reference, "deploy.sh");
         
 		Process p = startProcess(processBuilder);
 
@@ -355,10 +355,11 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
                                 , String appFolder
                                 , String deploymentsFolder
                                 , String reference
+                                , String script
                                 )
     {
-        if (this.docker) configureDocker(processBuilder, cloudProviderPath, env, appFolder, deploymentsFolder, reference);
-                    else configureBash  (processBuilder, cloudProviderPath, env, appFolder, deploymentsFolder, reference);
+        if (this.docker) configureDocker(processBuilder, cloudProviderPath, env, appFolder, deploymentsFolder, reference, script);
+                    else configureBash  (processBuilder, cloudProviderPath, env, appFolder, deploymentsFolder, reference, script);
         
     }
 	
@@ -368,6 +369,7 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
                         , String appFolder
                         , String deploymentsFolder
                         , String reference
+                        , String script
                         )
 	{
 	    // Env
@@ -375,7 +377,7 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 	    addKeyEnvVars(env, reference);
 	    
 	    // Command
-	    processBuilder.command(dockerCmd(appFolder, deploymentsFolder, cloudProviderPath, "deploy.sh", env));
+	    processBuilder.command(dockerCmd(appFolder, deploymentsFolder, cloudProviderPath, script, env));
 	}
 	
     void configureBash( ProcessBuilder processBuilder
@@ -384,6 +386,7 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
                       , String appFolder
                       , String deploymentsFolder
                       , String reference
+                      , String script
                       )
     {
         // Env
@@ -394,7 +397,7 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
         hostEnv.putAll(env);
         
         // Command
-        processBuilder.command(BASH_COMMAND, cloudProviderPath + File.separator + "deploy.sh");
+        processBuilder.command(BASH_COMMAND, cloudProviderPath + File.separator + script);
         
         // Working dir
         processBuilder.directory(new File(appFolder));
@@ -495,7 +498,6 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 		ProcessBuilder processBuilder = new ProcessBuilder();
 
 		Map<String, String> env = new HashMap<>();
-		setEnvDocker(env, reference);
 
 		//pass configurations
 		if (configuration!=null) {
@@ -521,10 +523,7 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 			}	
 		}
 
-		//generate keys
-		addKeyEnvVars(env, reference);
-
-        processBuilder.command(dockerCmd(repoPath, this.deploymentsRoot, cloudProviderPath, "state.sh", env));
+        configureProcessBuilder(processBuilder, cloudProviderPath, env, repoPath, this.deploymentsRoot, reference, "state.sh");
 
 		Process p = startProcess(processBuilder);
 
