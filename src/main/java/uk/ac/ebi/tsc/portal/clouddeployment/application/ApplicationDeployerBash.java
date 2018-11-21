@@ -88,6 +88,8 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 	@Value("${elasticsearch.password}")
 	private String elasticSearchPassword;
 
+    boolean docker = true;
+
 
 	@Autowired
 	public ApplicationDeployerBash(DeploymentService deploymentService,
@@ -141,8 +143,6 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
                                                                           
         Map<String, String> env = new HashMap<>();
         
-  		setEnv(env, reference);
-		
 		logger.info("Creating log file at {}", this.deploymentsRoot+File.separator+reference+File.separator+"output.log");
 		File logs = new File(this.deploymentsRoot+File.separator+reference+File.separator+"output.log");
 		logs.getParentFile().mkdirs();
@@ -171,8 +171,6 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 		logger.info(keysFilePath);
 		SSHKeyGenerator.generateKeys(userEmail, keysFilePath);
 		
-		addKeyEnvVars(env, reference);
-
 		// pass parameter assignments
 		Collection<ParameterDocument> deploymentParamDocs = new LinkedList<>();
 		if (parameterAssignments!=null) {
@@ -232,7 +230,7 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 		String appFolder = theApplication.repoPath;
         String deploymentsFolder = this.deploymentsRoot;
         
-        processBuilder.command(dockerCmd(appFolder, deploymentsFolder, cloudProviderPath, "deploy.sh", env));
+        configureProcessBuilder(processBuilder, cloudProviderPath, env, appFolder, deploymentsFolder, reference);
         
 		Process p = startProcess(processBuilder);
 
@@ -351,6 +349,57 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 		newThread.start();
 	}
 
+    void configureProcessBuilder( ProcessBuilder processBuilder
+                                , String cloudProviderPath
+                                , Map<String, String> env
+                                , String appFolder
+                                , String deploymentsFolder
+                                , String reference
+                                )
+    {
+        if (this.docker) configureDocker(processBuilder, cloudProviderPath, env, appFolder, deploymentsFolder, reference);
+                    else configureBash  (processBuilder, cloudProviderPath, env, appFolder, deploymentsFolder, reference);
+        
+    }
+	
+	void configureDocker( ProcessBuilder processBuilder
+                        , String cloudProviderPath
+                        , Map<String, String> env
+                        , String appFolder
+                        , String deploymentsFolder
+                        , String reference
+                        )
+	{
+	    // Env
+	    setEnvDocker(env, reference);
+	    addKeyEnvVars(env, reference);
+	    
+	    // Command
+	    processBuilder.command(dockerCmd(appFolder, deploymentsFolder, cloudProviderPath, "deploy.sh", env));
+	}
+	
+    void configureBash( ProcessBuilder processBuilder
+                      , String cloudProviderPath
+                      , Map<String, String> env
+                      , String appFolder
+                      , String deploymentsFolder
+                      , String reference
+                      )
+    {
+        // Env
+        setEnvBash(env, reference, deploymentsRoot, appFolder);
+        addKeyEnvVars(env, reference);
+        
+        Map<String, String> hostEnv = processBuilder.environment();
+        hostEnv.putAll(env);
+        
+        // Command
+        processBuilder.command(BASH_COMMAND, cloudProviderPath + File.separator + "deploy.sh");
+        
+        // Working dir
+        processBuilder.directory(new File(appFolder));
+    }
+
     @SuppressWarnings("unchecked")
     List<String> dockerCmd(String appFolder, String deploymentsFolder, String cloudProviderPath, String script, Map<String, String> env) {
         
@@ -387,16 +436,27 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
                ;
     }
 
-    void setEnv(Map<String, String> env, String reference) {
+    void setEnvDocker(Map<String, String> env, String reference) {
         
         env.put("PORTAL_DEPLOYMENTS_ROOT"       , CONTAINER_DEPLOYMENTS_FOLDER);
         env.put("PORTAL_APP_REPO_FOLDER"        , CONTAINER_APP_FOLDER);
         env.put("PORTAL_DEPLOYMENT_REFERENCE"   , reference);
     }
     
+    void setEnvBash(Map<String, String> env, String reference, String deploymentsRoot, String repoPath) {
+        
+        env.put("PORTAL_DEPLOYMENTS_ROOT"       , deploymentsRoot);
+        env.put("PORTAL_APP_REPO_FOLDER"        , repoPath);
+        env.put("PORTAL_DEPLOYMENT_REFERENCE"   , reference);
+    }
+    
     void addKeyEnvVars(Map<String, String> env, String reference) {
         
-        String fileDestination = CONTAINER_DEPLOYMENTS_FOLDER + File.separator + reference + File.separator + reference;
+        deploymentsRoot = this.docker ? CONTAINER_DEPLOYMENTS_FOLDER
+                                      : this.deploymentsRoot
+                                      ;
+        
+        String fileDestination = deploymentsRoot + File.separator + reference + File.separator + reference;
         
         String privateKeyPath = fileDestination;
         String publicKeyPath = privateKeyPath + ".pub";
@@ -435,7 +495,7 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 		ProcessBuilder processBuilder = new ProcessBuilder();
 
 		Map<String, String> env = new HashMap<>();
-		setEnv(env, reference);
+		setEnvDocker(env, reference);
 
 		//pass configurations
 		if (configuration!=null) {
@@ -524,7 +584,7 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 		Map<String, String> env = new HashMap<>();
 
 		ApplicationDeployerHelper.addGenericProviderCreds(env, cloudProviderParametersCopy, logger);
-		setEnv(env, reference);
+		setEnvDocker(env, reference);
 
 		//generate keys
 		addKeyEnvVars(env, reference);
