@@ -12,12 +12,12 @@ import org.junit.Test;
 
 import com.github.underscore.U;
 
-public class ApplicationDeployerBashTest {
+public class DeploymentStrategyTest {
     
     @Test
     public void scriptPath() throws Exception {
         
-        ApplicationDeployerBash deployer = newDeployer();
+        DeploymentStrategy deployer = new DeploymentStrategy();
         
         assertEquals("/app/ostack/deploy.sh", deployer.scriptPath("ostack", "deploy.sh"));
     }
@@ -25,7 +25,7 @@ public class ApplicationDeployerBashTest {
     @Test
     public void dockerCmd() throws Exception {
         
-        ApplicationDeployerBash deployer = newDeployer();
+        DeploymentStrategy deployer = new DeploymentStrategy();
         
         Map<String, String> env = new HashMap<String, String>();
         
@@ -51,14 +51,14 @@ public class ApplicationDeployerBashTest {
     @Test
     public void envToOpts() throws Exception {
         
-        ApplicationDeployerBash deployer = newDeployer();
+        DeploymentStrategy strategy = new DeploymentStrategy();
         
         Map<String, String> env = new HashMap<String, String>();
         
         env.put("a", "1");
         env.put("b", "2");
         
-        List<String> r = deployer.envToOpts(env);
+        List<String> r = strategy.envToOpts(env);
         
         assertEquals( asList("-e", "a=1", "-e", "b=2")
                     , r
@@ -68,14 +68,9 @@ public class ApplicationDeployerBashTest {
     @Test
     public void volume() throws Exception {
         
-        ApplicationDeployerBash deployer = newDeployer();
+        DeploymentStrategy deployer = new DeploymentStrategy();
         
         assertEquals(asList("-v", "/var/ecp/myapp:/app")    , deployer.volume("/var/ecp/myapp" , "/app"));
         assertEquals(asList()                               , deployer.volume(null             , "/app"));
-    }
-    
-    ApplicationDeployerBash newDeployer() {
-        
-        return new ApplicationDeployerBash(null, null, null, null, null, null, null);
     }
 }
