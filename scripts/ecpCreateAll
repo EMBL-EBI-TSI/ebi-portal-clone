@@ -35,6 +35,13 @@ createParams()
     ecp $(dev create params) -f "$1"
 }
 
+createApp()
+{
+    local appUrl="$1"
+
+    echo "{ \"repoUri\": \"$appUrl\" }" | ecp $(dev create app) -f -
+}
+
 main()
 {
     login
@@ -45,7 +52,7 @@ main()
 
     createConfig config.json
 
-    ecp $(dev create app) -f app.json
+    createApp 'https://github.com/EMBL-EBI-TSI/cpa-instance'
 }
 
 
