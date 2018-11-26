@@ -95,6 +95,7 @@ public class DeploymentStrategy {
             , asList("-w", CONTAINER_APP_FOLDER)                         // working dir
             , asList( "--entrypoint", ""                                 // disable erik's image entry-point
                     , "erikvdbergh/ecp-agent"                            // erik's image
+                    , BASH_COMMAND
                     , scriptPath(cloudProviderPath, script)              // script path
                     )
         );

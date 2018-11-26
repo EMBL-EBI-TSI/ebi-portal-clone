@@ -43,6 +43,7 @@ public class DeploymentStrategyTest {
                            , "-w", "/app"
                            , "--entrypoint", ""
                            , "erikvdbergh/ecp-agent"                                     
+                           , "bash"
                            , "/app/ostack/deploy.sh"
         )
         , cmd);
