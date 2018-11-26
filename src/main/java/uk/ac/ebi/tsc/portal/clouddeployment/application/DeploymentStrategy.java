@@ -26,7 +26,8 @@ public class DeploymentStrategy {
     @Value("${be.deployments.root}")
     String deploymentsRoot;
 
-    boolean docker = true;
+    @Value("${be.docker}")
+    boolean docker;
     
     
     void configure( ProcessBuilder processBuilder
