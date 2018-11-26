@@ -16,13 +16,7 @@ import java.security.NoSuchProviderException;
 import java.security.Principal;
 import java.security.spec.InvalidKeySpecException;
 import java.sql.Date;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Properties;
-import java.util.Set;
+import java.util.*;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
@@ -36,6 +30,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -66,19 +61,10 @@ import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationDeploymentParame
 import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationRepository;
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigDeploymentParamsCopyService;
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationDeploymentParametersService;
+import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationNotFoundException;
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationService;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.Deployment;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentApplication;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentApplicationCloudProvider;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentApplicationRepository;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentConfiguration;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentConfigurationRepository;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentRepository;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentStatusRepository;
-import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentApplicationService;
-import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentConfigurationService;
-import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentNotFoundException;
-import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.*;
+import uk.ac.ebi.tsc.portal.api.deployment.service.*;
 import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
 import uk.ac.ebi.tsc.portal.api.team.repo.Team;
 import uk.ac.ebi.tsc.portal.api.team.repo.TeamRepository;
@@ -86,6 +72,7 @@ import uk.ac.ebi.tsc.portal.api.team.service.TeamService;
 import uk.ac.ebi.tsc.portal.api.volumeinstance.repo.VolumeInstanceRepository;
 import uk.ac.ebi.tsc.portal.api.volumeinstance.repo.VolumeInstanceStatusRepository;
 import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployerBash;
+import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentSecretService;
 import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDeployerException;
 import uk.ac.ebi.tsc.portal.usage.deployment.service.DeploymentIndexService;
 import uk.ac.ebi.tsc.portal.usage.tracker.DeploymentStatusTracker;
@@ -147,6 +134,9 @@ public class DeploymentRestControllerTest {
 
 	@MockBean
 	DeploymentApplicationService deploymentApplicationService;
+
+	@MockBean
+	DeploymentGeneratedOutputService deploymentGeneratedOutputService;
 
 	DeploymentRestController subject;
 
@@ -211,6 +201,9 @@ public class DeploymentRestControllerTest {
 
 	@MockBean
 	EncryptionService encryptionService;
+	
+	@MockBean
+	DeploymentSecretService deploymentSecretService;
 
 	String cppReference = "cppReference";
 	@Before 
@@ -234,6 +227,8 @@ public class DeploymentRestControllerTest {
 				cloudProviderParametersCopyRepository,
 				configurationDeploymentParamsCopyRepository,
 				encryptionService,
+				deploymentSecretService,
+				deploymentGeneratedOutputService,
 				salt,
 				password);
 
@@ -247,7 +242,7 @@ public class DeploymentRestControllerTest {
 		ReflectionTestUtils.setField(accountService, "accountRepository", accountRepository);
 		ReflectionTestUtils.setField(applicationService, "applicationRepository", applicationRepository);
 		ReflectionTestUtils.setField(deploymentApplicationService, "deploymentApplicationRepository", deploymentApplicationRepository);
-
+		ReflectionTestUtils.setField(teamService, "teamRepository", teamRepository);
 		Properties props = new Properties();
 		props.put("be.applications.root", "blah");    
 		props.put("be.deployments.root", "bleh");
@@ -387,7 +382,7 @@ public class DeploymentRestControllerTest {
 		when(applicationRepository.findByAccountUsernameAndName(accountUserName, appName))
 		.thenReturn(Optional.of(applicationMock));
 
-		subject.addDeployment(principal, deploymentResourceMock);
+		subject.addDeployment(new MockHttpServletRequest(), principal, deploymentResourceMock);
 
 	}
 
@@ -407,7 +402,7 @@ public class DeploymentRestControllerTest {
 		Account account = mock(Account.class);
 		String accountReference = "accountReference";
 		given(accountRepository.findByUsername(sharedWithUsername)).willReturn(Optional.of(account));
-		given(accountService.findByUsername(sharedWithUsername)).willReturn(account);
+		given(accountService.findByUsername(sharedWithUsername)).willCallRealMethod();
 		given(account.getGivenName()).willReturn(sharedWithUsername);
 		given(account.getUsername()).willReturn(sharedWithUsername);
 		given(account.getFirstJoinedDate()).willReturn(new Date(0, 0, 0));
@@ -431,47 +426,67 @@ public class DeploymentRestControllerTest {
 		String sshkey = "sshkey";
 		given(input.getUserSshKey()).willReturn(sshkey);
 
-		//set up teams, sharedwith user is a member of only one of these teams
-		Team teamOne = mock(Team.class);
-		Set<Account> teamOneAccounts = new HashSet<>();
-		teamOneAccounts.add(account);
-		given(teamOne.getAccountsBelongingToTeam()).willReturn(teamOneAccounts);
-		Team teamTwo = mock(Team.class);
-		given(teamTwo.getAccountsBelongingToTeam()).willReturn(new HashSet<>());
-		Set<Team> sharedWithTeams = new HashSet<>();
-		sharedWithTeams.add(teamOne);
-		sharedWithTeams.add(teamTwo);
+		//team
+		Team team = mock(Team.class);
+		String teamName = "someTeamName";
+		String domainReference = "some ref";
+		given(team.getName()).willReturn(teamName);
+		given(team.getDomainReference()).willReturn(domainReference);
 		
 		//application
 		given(input.getApplicationAccountUsername()).willReturn(username);
 		String applicationName = "applicationName";
 		given(input.getApplicationName()).willReturn(applicationName);
 		Application application = mock(Application.class);
-		when(application.getSharedWithTeams()).thenReturn(sharedWithTeams);
 		given(application.getName()).willReturn(applicationName);
 		given(applicationRepository.findByAccountUsernameAndName(username,applicationName)).willReturn(Optional.of(application));
 		given(applicationService.findByAccountUsernameAndName(username,applicationName)).willReturn(application);
 
+		//set up teams, sharedwith user is a member of only one of these teams
+		Set<Account> teamAccounts = new HashSet<>();
+		teamAccounts.add(account);
+		teamAccounts.add(owner);
+		given(team.getAccountsBelongingToTeam()).willReturn(teamAccounts);
+		Set<Team> sharedWithTeams = new HashSet<>();
+		sharedWithTeams.add(team);
+		
+		//application is shared not owned
+		given(applicationRepository.findByAccountUsernameAndName(sharedWithUsername,applicationName))
+		.willThrow(ApplicationNotFoundException.class);
+		given(applicationService.findByAccountUsernameAndName(sharedWithUsername,applicationName))
+		.willThrow(ApplicationNotFoundException.class);
+		
+		Set<Application> applications = new HashSet<>();
+		applications.add(application);
+		given(team.getApplicationsBelongingToTeam()).willReturn(applications);
+		when(application.getSharedWithTeams()).thenReturn(sharedWithTeams);
+		
+		given(account.getMemberOfTeams()).willReturn(sharedWithTeams);
+		given(applicationService.isApplicationSharedWithAccount(account, application)).willCallRealMethod();
+		
 		//configuration
 		String configurationName = "config";
 		Configuration config = mock(Configuration.class);
 		when(config.getSharedWithTeams()).thenReturn(sharedWithTeams);
 		when(input.getConfigurationAccountUsername()).thenReturn(username);
 		when(input.getConfigurationName()).thenReturn(configurationName);
+		when(config.getName()).thenReturn(configurationName);
+		when(configurationRepository.findByNameAndAccountUsername(input.getConfigurationName(), account.getUsername())).thenThrow(ConfigurationNotFoundException.class);
+		when(configurationService.findByNameAndAccountUsername(input.getConfigurationName(), account.getUsername())).thenCallRealMethod();
 		when(configurationService.findByNameAndAccountUsername(input.getConfigurationName(), input.getConfigurationAccountUsername()))
 		.thenReturn(config);
 		when(configurationRepository.findByNameAndAccountUsername(input.getConfigurationName(), input.getConfigurationAccountUsername()))
 		.thenReturn(Optional.of(config));
 		when(config.getHardUsageLimit()).thenReturn(1.0);
 		when(configurationService.getTotalConsumption(config, deploymentIndexService)).thenReturn(0.5);
-
-
+		
 		//cdp
 		String cdpReference = "cdpReference";
 		String cdpName = "cdpName";
 		given(config.getConfigDeployParamsReference()).willReturn(cdpReference);
 		ConfigDeploymentParamsCopy configDeploymentParamsCopy = mock(ConfigDeploymentParamsCopy.class);
 		given(configDeploymentParamsCopy.getName()).willReturn(cdpName);
+		given(configDeploymentParamsCopy.getConfigurationDeploymentParametersReference()).willReturn(cdpReference);
 		given(configurationDeploymentParamsCopyRepository.findByConfigurationDeploymentParametersReference(cdpReference))
 		.willReturn(Optional.of(configDeploymentParamsCopy));
 		given(configurationDeploymentParamsCopyService.findByConfigurationDeploymentParametersReference(cdpReference))
@@ -480,7 +495,12 @@ public class DeploymentRestControllerTest {
 		cdpCopyList.add(configDeploymentParamsCopy);
 		given(configurationDeploymentParamsCopyRepository.findByName(cdpName)).willReturn(cdpCopyList);
 		given(configurationDeploymentParamsCopyService.findByName(cdpName)).willReturn(configDeploymentParamsCopy);
-
+		given(configurationService.isConfigurationSharedWithAccount(account, config)).willCallRealMethod();
+		given(configurationDeploymentParamsCopyRepository.findByConfigurationDeploymentParametersReference(cdpReference))
+		.willReturn(Optional.of(configDeploymentParamsCopy));
+		given(configurationDeploymentParamsCopyService.findByConfigurationDeploymentParametersReference(cdpReference))
+		.willReturn(configDeploymentParamsCopy);
+		
 		//assigned cloud provider parameters
 		String cloudProviderParametersName = "cppName";
 		config.cloudProviderParametersName = cloudProviderParametersName;
@@ -497,7 +517,8 @@ public class DeploymentRestControllerTest {
 		given(selectedCloudProviderParameters.getReference()).willReturn(cloudProviderParametersReference);
 		String cloudProvider = "ostack";
 		given(selectedCloudProviderParameters.getCloudProvider()).willReturn(cloudProvider);
-
+		given(cloudProviderParametersService.isCloudProviderParametersSharedWithAccount(account, selectedCloudProviderParameters)).willCallRealMethod();
+		
 		//application cloud providers
 		Collection<ApplicationCloudProvider> acpList = new ArrayList<>();
 		ApplicationCloudProvider acp = mock(ApplicationCloudProvider.class);
@@ -538,7 +559,7 @@ public class DeploymentRestControllerTest {
 		given(deployment.getAccount()).willReturn(account);
 		given(deployment.getDeploymentApplication()).willReturn(deploymentApplication);
 
-		ResponseEntity<?> addedDeployment = subject.addDeployment(principal, input);
+		ResponseEntity<?> addedDeployment = subject.addDeployment(new MockHttpServletRequest(), principal, input);
 		assertNotNull(addedDeployment.getBody());
 		assertTrue(addedDeployment.getStatusCode().equals(HttpStatus.CREATED));
 		assertTrue(application.getCloudProviders().containsAll(deploymentApplication.getCloudProviders()));
@@ -572,7 +593,7 @@ public class DeploymentRestControllerTest {
 		given(applicationRepository.findByAccountUsernameAndName(username,applicationName)).willReturn(Optional.of(application));
 		given(applicationService.findByAccountUsernameAndName(username,applicationName)).willCallRealMethod();
 
-		ResponseEntity<?> addedDeployment = subject.addDeployment(principal, input);
+		ResponseEntity<?> addedDeployment = subject.addDeployment(new MockHttpServletRequest(), principal, input);
 	}
 
 
@@ -604,7 +625,7 @@ public class DeploymentRestControllerTest {
 		given(applicationRepository.findByAccountUsernameAndName(username,applicationName)).willReturn(Optional.of(application));
 		given(applicationService.findByAccountUsernameAndName(username,applicationName)).willCallRealMethod();
 
-		ResponseEntity<?> addedDeployment = subject.addDeployment(principal, input);
+		ResponseEntity<?> addedDeployment = subject.addDeployment(new MockHttpServletRequest(), principal, input);
 	}
 
 	@Test(expected = InvalidApplicationInputException.class)
@@ -617,7 +638,7 @@ public class DeploymentRestControllerTest {
 		DeploymentResource input = mock(DeploymentResource.class);
 		given(input.getApplicationName()).willReturn(null);
 
-		ResponseEntity<?> addedDeployment = subject.addDeployment(principal, input);
+		ResponseEntity<?> addedDeployment = subject.addDeployment(new MockHttpServletRequest(), principal, input);
 	}
 
 	@Test(expected = InvalidApplicationInputException.class)
@@ -630,7 +651,7 @@ public class DeploymentRestControllerTest {
 		DeploymentResource input = mock(DeploymentResource.class);
 		given(input.getApplicationAccountUsername()).willReturn(null);
 
-		ResponseEntity<?> addedDeployment = subject.addDeployment(principal, input);
+		ResponseEntity<?> addedDeployment = subject.addDeployment(new MockHttpServletRequest(), principal, input);
 	}
 
 	@Test(expected=ApplicationNotFoundException.class)
@@ -658,10 +679,16 @@ public class DeploymentRestControllerTest {
 		Application application = mock(Application.class);
 		given(application.getName()).willReturn(applicationName);
 		given(application.getAccount()).willReturn(account);
+		
+		//team
+		String domainReference = "some ref";
+//		given(input.getDomainReference()).willReturn(domainReference);
+//		given(teamRepository.findByDomainReference(domainReference)).willReturn(Optional.of(mock(Team.class)));
+//		given(teamService.findByDomainReference(domainReference)).willCallRealMethod();
 		given(applicationRepository.findByAccountUsernameAndName(username,applicationName)).willThrow(ApplicationNotFoundException.class);
 		given(applicationService.findByAccountUsernameAndName(username,applicationName)).willCallRealMethod();
 
-		ResponseEntity<?> addedDeployment = subject.addDeployment(principal, input);
+		ResponseEntity<?> addedDeployment = subject.addDeployment(new MockHttpServletRequest(), principal, input);
 
 	}
 
@@ -694,4 +721,45 @@ public class DeploymentRestControllerTest {
 		return mockDeployment;
 	}
 
+	@Test
+	public void baseUrl() throws Exception {
+
+        /*
+            Portal Dev          https://dev.api.portal.tsi.ebi.ac.uk
+            Portal Master       https://api.portal.tsi.ebi.ac.uk
+            Local Deployment    http://localhost:8080
+
+            With server path    https://api.portal.tsi.ebi.ac.uk/deployments/TSI000000000000001/stopme
+
+         */
+
+		assertEquals( "http://localhost:8080"               , subject.baseURL(mockRequest("localhost", 8080)) );
+		assertEquals( "http://dev.api.portal.tsi.ebi.ac.uk" , subject.baseURL(mockRequest("dev.api.portal.tsi.ebi.ac.uk")) );
+		assertEquals( "http://api.portal.tsi.ebi.ac.uk"     , subject.baseURL(mockRequest("api.portal.tsi.ebi.ac.uk", -1, "/deployments/TSI000000000000001/stopme")) );
+	}
+
+	MockHttpServletRequest mockRequest(String host)            {  return mockRequest(host, -1);	          }
+	MockHttpServletRequest mockRequest(String host, int port)  {  return mockRequest(host, port, null);   }
+
+	MockHttpServletRequest mockRequest(String host, int port, String path) {
+
+		MockHttpServletRequest request = new MockHttpServletRequest();
+
+		if (path != null)
+			request.setRequestURI(path);
+
+//	    request.setLocalPort(8080);
+//	    request.setRemotePort(8080);
+
+		if (port != -1)
+			request.setServerPort(port);
+
+//	    request.setProtocol("https");
+
+//	    request.setRemoteHost("remoteHost");
+//	    request.setLocalName("remoteHost");
+		request.setServerName(host);
+
+		return request;
+	}
 }

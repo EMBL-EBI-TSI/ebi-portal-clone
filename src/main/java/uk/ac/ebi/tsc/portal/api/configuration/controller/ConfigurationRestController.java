@@ -93,15 +93,12 @@ public class ConfigurationRestController {
 			CloudProviderParamsCopyRepository cloudProviderParametersCopyRepository,
 			ConfigDeploymentParamsCopyRepository configDeploymentParamsCopyRepository,
 			ConfigDeploymentParamCopyRepository configDeploymentParamCopyRepository,
-			EncryptionService encryptionService,
-			@Value("${ecp.security.salt}") final String salt, 
-			@Value("${ecp.security.password}") final String password
+			EncryptionService encryptionService
 			) {
 		this.accountService = new AccountService(accountRepository);
-		this.cloudProviderParametersCopyService = new CloudProviderParamsCopyService(cloudProviderParametersCopyRepository, encryptionService,
-				salt, password);
+		this.cloudProviderParametersCopyService = new CloudProviderParamsCopyService(cloudProviderParametersCopyRepository, encryptionService);
 		this.cloudProviderParametersService = new CloudProviderParametersService(cloudProviderParametersRepository, 
-				domainService, cloudProviderParametersCopyService, encryptionService, salt, password);
+				domainService, cloudProviderParametersCopyService, encryptionService);
 		this.configurationDeploymentParametersService = new ConfigurationDeploymentParametersService(configurationDeploymentParametersRepository, domainService);
 		this.configurationDeploymentParameterService = new ConfigurationDeploymentParameterService(configurationDeploymentParameterRepository);
 		deploymentService = new DeploymentService(deploymentRepository, deploymentStatusRepository);
@@ -368,7 +365,6 @@ public class ConfigurationRestController {
 
 			//stop all deployments using the configuration deployment parameters
 			this.configurationService.stopDeploymentsOnDeletionOfDeploymentParameters(name,
-					principal, 
 					deploymentService, 
 					deploymentRestController, 
 					cdpCopy, 

@@ -1,0 +1,9 @@
+
+
+docker  run                               \
+        -e "POSTGRES_DB=ecpTest"          \
+        -e "POSTGRES_USER=ecpTest"        \
+        -e "POSTGRES_PASSWORD=changeme"   \
+        -p 5432:5432                      \
+        'ebitsi/postgres-logging'
+

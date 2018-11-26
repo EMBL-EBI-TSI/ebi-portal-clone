@@ -10,7 +10,7 @@ import static org.springframework.hateoas.mvc.ControllerLinkBuilder.linkTo;
  * @since v0.0.1
  * @author Navis Raj <navis@ebi.ac.uk>
  */
-class DeploymentGeneratedOutputResource extends ResourceSupport {
+public class DeploymentGeneratedOutputResource extends ResourceSupport {
 
     private String outputName;
     private String generatedValue;
@@ -37,5 +37,13 @@ class DeploymentGeneratedOutputResource extends ResourceSupport {
 
     public String getGeneratedValue() {
         return generatedValue;
+    }
+
+    public void setOutputName(String outputName) {
+        this.outputName = outputName;
+    }
+
+    public void setGeneratedValue(String generatedValue) {
+        this.generatedValue = generatedValue;
     }
 }

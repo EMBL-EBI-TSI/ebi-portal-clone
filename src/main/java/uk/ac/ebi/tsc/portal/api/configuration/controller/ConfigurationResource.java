@@ -1,16 +1,18 @@
 package uk.ac.ebi.tsc.portal.api.configuration.controller;
 
-import org.springframework.hateoas.ResourceSupport;
-import org.springframework.hateoas.mvc.ControllerLinkBuilder;
-import uk.ac.ebi.tsc.portal.api.account.controller.AccountRestController;
-import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParamsCopy;
-import uk.ac.ebi.tsc.portal.api.configuration.repo.Configuration;
-import uk.ac.ebi.tsc.portal.api.team.repo.Team;
+import static org.springframework.hateoas.mvc.ControllerLinkBuilder.methodOn;
 
 import java.util.Collection;
 import java.util.stream.Collectors;
 
-import static org.springframework.hateoas.mvc.ControllerLinkBuilder.methodOn;
+import org.springframework.hateoas.ResourceSupport;
+import org.springframework.hateoas.mvc.ControllerLinkBuilder;
+
+import uk.ac.ebi.tsc.portal.api.account.controller.AccountRestController;
+import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParamsCopy;
+import uk.ac.ebi.tsc.portal.api.configuration.repo.Configuration;
+import uk.ac.ebi.tsc.portal.api.team.controller.TeamResource;
+import uk.ac.ebi.tsc.portal.api.team.repo.Team;
 
 
 /**
@@ -36,7 +38,8 @@ public class ConfigurationResource extends ResourceSupport {
     private String cloudProviderType;
     private Double softUsageLimit;
     private Double hardUsageLimit;
-
+    private Collection<TeamResource> sharedWithTeams;
+    
     public ConfigurationResource() {
     }
 
@@ -59,7 +62,8 @@ public class ConfigurationResource extends ResourceSupport {
         this.cloudProviderType = cppCopy.getCloudProvider();
         this.softUsageLimit = configuration.getSoftUsageLimit();
         this.hardUsageLimit = configuration.getHardUsageLimit();
-
+        this.sharedWithTeams = configuration.getSharedWithTeams().stream().map(TeamResource::new).collect(Collectors.toList());
+        
         this.add(
                 ControllerLinkBuilder.linkTo(
                         methodOn(
@@ -165,5 +169,13 @@ public class ConfigurationResource extends ResourceSupport {
 
 	public Double getHardUsageLimit() {
 		return hardUsageLimit;
+	}
+
+	public Collection<TeamResource> getSharedWithTeams() {
+		return sharedWithTeams;
+	}
+
+	public void setSharedWithTeams(Collection<TeamResource> sharedWithTeams) {
+		this.sharedWithTeams = sharedWithTeams;
 	}
 }

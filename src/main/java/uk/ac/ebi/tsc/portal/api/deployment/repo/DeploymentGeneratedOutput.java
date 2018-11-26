@@ -60,4 +60,8 @@ public class DeploymentGeneratedOutput {
     public void setOutputName(String outputName) {
         this.outputName = outputName;
     }
+
+    public void setValue(String value) {
+        this.value = value;
+    }
 }

@@ -46,6 +46,9 @@ public class Deployment{
     @OneToOne(cascade = CascadeType.ALL)
     public DeploymentStatus deploymentStatus;
 
+    @OneToOne(mappedBy = "deployment",cascade = CascadeType.ALL)
+    public DeploymentSecret deploymentSecret;
+
     @LazyCollection(LazyCollectionOption.FALSE)
     @OneToMany(mappedBy = "deployment", cascade = CascadeType.ALL)
     public Collection<DeploymentAttachedVolume> attachedVolumes;
@@ -195,7 +198,15 @@ public class Deployment{
 		this.assignedParameters = assignedParameters;
 	}
 
-	public java.sql.Timestamp getStartTime() {
+    public DeploymentSecret getDeploymentSecret() {
+        return deploymentSecret;
+    }
+
+    public void setDeploymentSecret(DeploymentSecret deploymentSecret) {
+        this.deploymentSecret = deploymentSecret;
+    }
+
+    public java.sql.Timestamp getStartTime() {
 		return startTime;
 	}
 
@@ -250,4 +261,5 @@ public class Deployment{
 	public void setUserSshKey(String userSshKey) {
 		this.userSshKey = userSshKey;
 	}
+	
 }

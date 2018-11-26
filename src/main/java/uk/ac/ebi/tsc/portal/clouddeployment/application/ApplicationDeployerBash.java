@@ -10,40 +10,34 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import uk.ac.ebi.tsc.aap.client.repo.DomainService;
 import uk.ac.ebi.tsc.portal.api.application.repo.Application;
-import uk.ac.ebi.tsc.portal.api.application.repo.ApplicationOutput;
 import uk.ac.ebi.tsc.portal.api.application.repo.ApplicationRepository;
-import uk.ac.ebi.tsc.portal.api.application.service.ApplicationService;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParamsCopy;
-import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParamsCopyField;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParamsCopyRepository;
-import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParamsCopyService;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigDeploymentParamCopy;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigDeploymentParamsCopyRepository;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.Configuration;
-import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigDeploymentParamsCopyService;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.*;
+import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentSecretService;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
+import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
 import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDeployerException;
-import uk.ac.ebi.tsc.portal.clouddeployment.model.ErrorFromTerraformOutput;
-import uk.ac.ebi.tsc.portal.clouddeployment.model.MachineSpecs;
 import uk.ac.ebi.tsc.portal.clouddeployment.model.StateFromTerraformOutput;
-import uk.ac.ebi.tsc.portal.clouddeployment.model.terraform.TerraformModule;
-import uk.ac.ebi.tsc.portal.clouddeployment.model.terraform.TerraformResource;
 import uk.ac.ebi.tsc.portal.clouddeployment.model.terraform.TerraformState;
 import uk.ac.ebi.tsc.portal.clouddeployment.utils.InputStreamLogger;
 import uk.ac.ebi.tsc.portal.clouddeployment.utils.SSHKeyGenerator;
 import uk.ac.ebi.tsc.portal.usage.deployment.model.DeploymentDocument;
 import uk.ac.ebi.tsc.portal.usage.deployment.model.ParameterDocument;
 import uk.ac.ebi.tsc.portal.usage.deployment.service.DeploymentIndexService;
-import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
 
-import java.io.*;
+import static java.lang.String.format;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 /**
  * @author Jose A. Dianes <jdianes@ebi.ac.uk>
@@ -52,25 +46,14 @@ import java.util.stream.Collectors;
  * @since v0.0.1
  */
 @Component
-public class ApplicationDeployerBash {
+public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 
 	private static final Logger logger = LoggerFactory.getLogger(ApplicationDeployerBash.class);
 
 	private static final String BASH_COMMAND = "bash";
-	private static final String OS_FLOATING_IP = "floating_ip";
-
-	private static final String ERROR_MESSAGE = "error(s) occurred";
-	private static final String IMAGE_NAME_ERROR_MESSAGE = "Error resolving image name";
-	private static final String TIMEOUT_ERROR_MESSAGE = "Error waiting for instance";
-	private static final String QUOTA_EXCEEDED_ERROR_MESSAGE = "Quota exceeded for ";
-
-	private final DeploymentService deploymentService;
-	private final CloudProviderParamsCopyService cloudProviderParametersCopyService;
-	private final ApplicationService applicationService;
-	private final ConfigDeploymentParamsCopyService configDeploymentParamsCopyService;
 
 	@Value("${be.deployments.root}")
-	private String deploymentsRoot;
+	String deploymentsRoot;
 
 	@Value("${elasticsearch.url}")
 	private String elasticSearchUrl;
@@ -84,24 +67,26 @@ public class ApplicationDeployerBash {
 	@Value("${elasticsearch.password}")
 	private String elasticSearchPassword;
 
-	@Autowired
-	public ApplicationDeployerBash(DeploymentRepository deploymentRepository,
-			DeploymentStatusRepository deploymentStatusRepository,
-			ApplicationRepository applicationRepository,
-			DomainService domainService,
-			CloudProviderParamsCopyRepository cloudProviderParametersRepository,
-			ConfigDeploymentParamsCopyRepository configDeploymentParamsCopyRepository,
-			EncryptionService encryptionService,
-			@Value("${ecp.security.salt}") final String salt, 
-			@Value("${ecp.security.password}") final String password) {
-		this.deploymentService = new DeploymentService(deploymentRepository, deploymentStatusRepository);
-		this.applicationService = new ApplicationService(applicationRepository, domainService);
-		this.cloudProviderParametersCopyService = new CloudProviderParamsCopyService(cloudProviderParametersRepository, encryptionService,
-				salt, password);
-		this.configDeploymentParamsCopyService = new ConfigDeploymentParamsCopyService(configDeploymentParamsCopyRepository);
 
+	@Autowired
+	public ApplicationDeployerBash(DeploymentService deploymentService,
+	                               ApplicationRepository applicationRepository,
+								   DomainService domainService,
+								   CloudProviderParamsCopyRepository cloudProviderParametersRepository,
+								   ConfigDeploymentParamsCopyRepository configDeploymentParamsCopyRepository,
+								   EncryptionService encryptionService,
+								   DeploymentSecretService secretService) {
+	    super(  deploymentService,
+	            applicationRepository,
+                domainService,
+                cloudProviderParametersRepository,
+                configDeploymentParamsCopyRepository,
+                encryptionService,
+				secretService
+        );
 	}
 
+	@Override
 	public void deploy(String userEmail,
 			Application theApplication,
 			String reference,
@@ -113,7 +98,8 @@ public class ApplicationDeployerBash {
 			CloudProviderParamsCopy cloudProviderParametersCopy,
 			Configuration configuration,
 			java.sql.Timestamp startTime, 
-			String userSshKey) throws IOException,
+			String userSshKey,
+			String baseUrl) throws IOException,
 	ApplicationDeployerException, NoSuchAlgorithmException, NoSuchProviderException {
 
 		DeploymentIndexService deploymentIndexService = new DeploymentIndexService(
@@ -139,8 +125,12 @@ public class ApplicationDeployerBash {
 		processBuilder.redirectOutput(logs);
 		processBuilder.redirectErrorStream(true);
 
+        logger.info("Looking for deployment " + reference);
+		Deployment theDeployment = deploymentService.findByReference(reference);
+        logger.info("Can't find deployment " + reference);
+
 		Map<String, String> env = processBuilder.environment();
-		addGenericProviderCreds(env, cloudProviderParametersCopy);
+		ApplicationDeployerHelper.addGenericProviderCreds(env, cloudProviderParametersCopy, logger);
 
 		logger.info("  With DEPLOYMENTS_ROOT=" + deploymentsRoot);
 		logger.info("  With PORTAL_DEPLOYMENT_REFERENCE=" + reference);
@@ -149,6 +139,9 @@ public class ApplicationDeployerBash {
 		env.put("PORTAL_DEPLOYMENTS_ROOT", deploymentsRoot);
 		env.put("PORTAL_DEPLOYMENT_REFERENCE", reference);
 		env.put("PORTAL_APP_REPO_FOLDER", theApplication.repoPath);
+		env.put("PORTAL_CALLBACK_SECRET", secretService.create(theDeployment));
+		env.put("PORTAL_BASE_URL", baseUrl);
+		
 		env.put("TF_VAR_key_pair", "demo-key"); 
 
 
@@ -223,7 +216,7 @@ public class ApplicationDeployerBash {
 
 		processBuilder.directory(new File(theApplication.repoPath));
 
-		Process p = processBuilder.start();
+		Process p = startProcess(processBuilder);
 
 		logger.info("Starting deployment index service"); // Index deployment as started
 		DeploymentDocument theDeploymentDocument = new DeploymentDocument(
@@ -258,18 +251,24 @@ public class ApplicationDeployerBash {
 					}
 					logger.info("Exit from process input stream");
 					p.waitFor();
-					updateDeploymentStatus(deploymentIndexService, reference,
-							DeploymentStatusEnum.STARTING, "Interrupted deployment process", null, null, startTime);
+					Deployment theDeployment = deploymentService.findByReference(reference);
+					updateDeploymentStatus(deploymentIndexService, theDeployment,
+							DeploymentStatusEnum.STARTING, "Interrupted deployment process",
+                            null, null, startTime);
+					deploymentService.save(theDeployment);
 				} catch (InterruptedException e) {
-					String errorOutput = getOutputFromFile(logs);
+					String errorOutput = ApplicationDeployerHelper.getOutputFromFile(logs, logger);
 					logger.error("There is an interruption while deploying application from " + theApplication.repoPath);
 					logger.error(errorOutput);
 					// kill the process if alive?
 					p.destroy();
 					// Set the right deployment status
 					Deployment theDeployment = deploymentService.findByReference(reference);
-					updateDeploymentStatus(deploymentIndexService, theDeployment.getReference(),
-							DeploymentStatusEnum.STARTING_FAILED, "Interrupted deployment process", null, errorOutput, startTime);
+					updateDeploymentStatus(deploymentIndexService,
+                            deploymentService.findByReference(theDeployment.getReference()),
+							DeploymentStatusEnum.STARTING_FAILED, "Interrupted deployment process",
+                            null, errorOutput, startTime);
+					deploymentService.save(theDeployment);
 					// Throw application deployer exception
 					try {
 						throw new ApplicationDeployerException(errorOutput);
@@ -284,7 +283,7 @@ public class ApplicationDeployerBash {
 
 				if (p.exitValue() != 0) {
 
-					String errorOutput = getOutputFromFile(logs);
+					String errorOutput = ApplicationDeployerHelper.getOutputFromFile(logs, logger);
 
 					logger.error("There is a non-zero exit code while deploying application from " + theApplication.repoPath);
 					//					logger.error("Error: " + errorOutput);
@@ -293,8 +292,9 @@ public class ApplicationDeployerBash {
 					p.destroy();
 					// Set the right deployment status
 					Deployment theDeployment = deploymentService.findByReference(reference);
-					updateDeploymentStatus(deploymentIndexService, theDeployment.getReference(),
+					updateDeploymentStatus(deploymentIndexService, theDeployment,
 							DeploymentStatusEnum.STARTING_FAILED, "Failed deployment process exit code", null, errorOutput, startTime);
+					deploymentService.save(theDeployment);
 					// Throw application deployer exception
 					try {
 						throw new ApplicationDeployerException(errorOutput);
@@ -308,7 +308,7 @@ public class ApplicationDeployerBash {
 					logger.info("Successfully deployed application from " + theApplication.repoPath);
 					Deployment theDeployment = deploymentService.findByReference(reference);
 
-					String output = getOutputFromFile(logs);
+					String output = ApplicationDeployerHelper.getOutputFromFile(logs, logger);
 					logger.debug(output);
 					// Read terraform state file
 					ObjectMapper mapper = new ObjectMapper();
@@ -322,13 +322,21 @@ public class ApplicationDeployerBash {
 						terraformState = new TerraformState();
 						e.printStackTrace();
 					}
-					updateDeploymentStatus(deploymentIndexService, theDeployment.getReference(), DeploymentStatusEnum.RUNNING, null, terraformState, null, startTime);
-					updateDeploymentOutputs(deploymentIndexService, theDeployment.getReference(), cloudProviderPath, DeploymentStatusEnum.RUNNING_FAILED, configuration, null);
+					updateDeploymentStatus(deploymentIndexService, theDeployment, DeploymentStatusEnum.RUNNING,
+                            null, terraformState, null, startTime);
+                    updateDeploymentOutputs(deploymentIndexService, applicationService, theDeployment, cloudProviderPath,
+                            DeploymentStatusEnum.RUNNING_FAILED, configuration, null);
+                    deploymentService.save(theDeployment);
 				}
 			}
 		});
 		newThread.start();
 	}
+
+    Process startProcess(ProcessBuilder processBuilder) throws IOException {
+        
+        return processBuilder.start();
+    }
 
 	public StateFromTerraformOutput state(String repoPath, 
 			String reference,
@@ -385,7 +393,7 @@ public class ApplicationDeployerBash {
 
 		processBuilder.directory(new File(repoPath));
 
-		Process p = processBuilder.start();
+		Process p = startProcess(processBuilder);
 
 		try {
 			p.waitFor();
@@ -404,7 +412,7 @@ public class ApplicationDeployerBash {
 		} else {
 			String output = InputStreamLogger.logInputStream(p.getInputStream());
 			logger.debug(output);
-			return terraformStateFromString(output, outputs);
+			return ApplicationDeployerHelper.terraformStateFromString(output, outputs, logger);
 		}
 
 	}
@@ -444,7 +452,7 @@ public class ApplicationDeployerBash {
 
 
 
-		addGenericProviderCreds(env, cloudProviderParametersCopy);
+		ApplicationDeployerHelper.addGenericProviderCreds(env, cloudProviderParametersCopy, logger);
 		env.put("PORTAL_DEPLOYMENTS_ROOT", deploymentsRoot);
 		env.put("PORTAL_DEPLOYMENT_REFERENCE", reference);
 		env.put("PORTAL_APP_REPO_FOLDER", repoPath);
@@ -507,7 +515,7 @@ public class ApplicationDeployerBash {
 		logger.info("- Provider path at " + cloudProviderPath);
 		logger.info("- With Cloud Provider Parameters Copy '" + cloudProviderParametersCopy.getName() + "'");
 
-		Process p = processBuilder.start();
+		Process p = startProcess(processBuilder);
 
 		Thread newThread = new Thread(new Runnable() {
 			@Override
@@ -523,15 +531,16 @@ public class ApplicationDeployerBash {
 					p.waitFor();
 				} catch (InterruptedException e) {
 					logger.error("There is an interruption while destroying application from " + repoPath);
-					String errorOutput = getOutputFromFile(logs);
+					String errorOutput = ApplicationDeployerHelper.getOutputFromFile(logs, logger);
 					logger.error(errorOutput);
 					// kill the process if alive?
 					p.destroy();
 					// Set the right deployment status
 					Deployment theDeployment = deploymentService.findByReference(reference);
-					updateDeploymentStatus(deploymentIndexService, theDeployment.getReference(),
+					updateDeploymentStatus(deploymentIndexService, theDeployment,
 							DeploymentStatusEnum.DESTROYING_FAILED, "Interrupted destroy process",
 							null, errorOutput, null);
+					deploymentService.save(theDeployment);
 					// Throw application deployer exception
 					try {
 						throw new ApplicationDeployerException(errorOutput);
@@ -545,15 +554,16 @@ public class ApplicationDeployerBash {
 
 				if (p.exitValue() != 0) {
 					logger.error("There is a non-zero exit code while destroying application from " + repoPath);
-					String errorOutput = getOutputFromFile(logs);
+					String errorOutput = ApplicationDeployerHelper.getOutputFromFile(logs, logger);
 					logger.error(errorOutput);
 					// kill the process if alive?
 					p.destroy();
 					// Set the right deployment status
 					Deployment theDeployment = deploymentService.findByReference(reference);
-					updateDeploymentStatus(deploymentIndexService, theDeployment.getReference(),
+					updateDeploymentStatus(deploymentIndexService, theDeployment,
 							DeploymentStatusEnum.DESTROYING_FAILED,
 							"Failed destroy process exit code", null, errorOutput, null);
+					deploymentService.save(theDeployment);
 					// Throw application deployer exception
 					try {
 						throw new ApplicationDeployerException(errorOutput);
@@ -569,10 +579,11 @@ public class ApplicationDeployerBash {
 						e.printStackTrace();
 					}
 					Deployment theDeployment = deploymentService.findByReference(reference);
-					updateDeploymentStatus(deploymentIndexService, theDeployment.getReference(),
+					updateDeploymentStatus(deploymentIndexService, theDeployment,
 							DeploymentStatusEnum.DESTROYED, null,
 							null, null, null);
 					//updateDeploymentOutputs(theDeployment.getReference(), cloudProviderPath, DeploymentStatusEnum.DESTROYING_FAILED, deploymentsRoot);
+                    deploymentService.save(theDeployment);
 				}
 			}
 		});
@@ -580,299 +591,5 @@ public class ApplicationDeployerBash {
 
 	}
 
-	protected String getOutputFromFile(File file) {
-		logger.info("Retrieving output for process from " + file.getAbsolutePath());
 
-		String output = null;
-		try {
-			output = new Scanner(file).useDelimiter("\\Z").next();
-		} catch (FileNotFoundException e) {
-			logger.error("Can't read output from file " + file.getAbsolutePath());
-			e.printStackTrace();
-		}
-
-		return output;
-	}
-
-
-	private void addGenericProviderCreds(Map<String, String> env, CloudProviderParamsCopy cloudProviderCredentialsCopy) {
-		logger.info("Setting Cloud Provider Parameters Copy for " + cloudProviderCredentialsCopy.getName());
-
-		for (CloudProviderParamsCopyField cloudProviderParametersCopyField : cloudProviderCredentialsCopy.getFields()) {
-			logger.info("Setting " + cloudProviderParametersCopyField.getKey());
-			env.put(cloudProviderParametersCopyField.getKey(), cloudProviderParametersCopyField.getValue());
-		}
-	}
-
-	private StateFromTerraformOutput terraformStateFromString(String output, Map<String, String> outputs) throws IOException {
-
-		logger.info("The whole terraform state is: " + output);
-
-		StateFromTerraformOutput stateFromTerraformOutput = new StateFromTerraformOutput();
-
-		String[] lines = output.split(System.getProperty("line.separator"));
-
-		// Read Id, it should be the first ID (TODO improve this later)
-		stateFromTerraformOutput.setId(lines[1].replaceAll(" ","").split("=")[1]);
-		// look for the IP
-		Pattern osFloatingIpPattern = Pattern.compile(OS_FLOATING_IP);
-		boolean ipFound = false;
-		int i=1;
-		while (!ipFound && i<lines.length) {
-			String line = lines[i].replaceAll(" ","");
-			Matcher osFloatingIpMatcher = osFloatingIpPattern.matcher(line);
-			if (osFloatingIpMatcher.lookingAt()) {
-				// Read IP
-				String ip = line.split("=")[1].replaceAll("\n", "").replaceAll("\r", "");
-				logger.debug("There is a match. IP = " + ip);
-				stateFromTerraformOutput.setAccessIp(ip);
-				ipFound = true;
-			}
-			i++;
-		}
-		// parse for any other outputs
-		if (outputs != null) {
-			getOutputs(lines, outputs);
-		}
-
-		return stateFromTerraformOutput;
-	}
-
-	private ErrorFromTerraformOutput errorFromTerraformOutput(String terraformOutput) {
-		ErrorFromTerraformOutput res = new ErrorFromTerraformOutput();
-		res.setErrorMessage("unknown");
-
-		// look for specific error message
-
-		if (terraformOutput.contains(TIMEOUT_ERROR_MESSAGE)) {
-			logger.info("Timeout error");
-			res.setErrorMessage("timeout");
-			return res;
-		}
-
-		if (terraformOutput.contains(QUOTA_EXCEEDED_ERROR_MESSAGE)) {
-			logger.info("Quota exceeded error");
-			res.setErrorMessage("quota exceeded");
-			return res;
-		}
-
-		if (terraformOutput.contains(IMAGE_NAME_ERROR_MESSAGE)) {
-			logger.info("Error resolving image name");
-			res.setErrorMessage("unresolvable image name");
-			return res;
-		}
-
-		return res;
-	}
-
-	private void getOutputs(String[] lines, Map<String, String> outputs) {
-		for (int i = 0; i<lines.length; i++) {
-			String line = lines[i].replaceAll(" ","");
-			String[] lineSplit = line.split("=");
-			if ( outputs.containsKey(lineSplit[0]) ) {
-				outputs.put(lineSplit[0], lineSplit[1].replaceAll("\n", "").replaceAll("\r", "").replaceAll("\\[0m","").trim());
-				logger.debug("There is a match. " + lineSplit[0] + " = " + outputs.get(lineSplit[0]));
-			}
-		}
-	}
-
-	private void updateDeploymentStatus(DeploymentIndexService deploymentIndexService, String deploymentReference,
-			DeploymentStatusEnum status, String cause, TerraformState terraformState, String terraformOutput,
-			java.sql.Timestamp startTime) {
-		Deployment theDeployment = this.deploymentService.findByReference(deploymentReference);
-		// update status
-		theDeployment.getDeploymentStatus().setStatus(status);
-		// persist changes
-		this.deploymentService.save(theDeployment);
-
-		CloudProviderParamsCopy cloudProviderParametersCopy = this.cloudProviderParametersCopyService.
-				findByCloudProviderParametersReference(theDeployment.getCloudProviderParametersReference());
-
-
-		// Index deployment
-		if (deploymentIndexService != null) {
-			DeploymentDocument theDeploymentDocument = deploymentIndexService.findById(deploymentReference);
-			if (theDeploymentDocument == null) {
-				theDeploymentDocument = new DeploymentDocument(
-						theDeployment.getAccount().getEmail(),
-						theDeployment.getReference(),
-						theDeployment.getDeploymentApplication().getName(),
-						theDeployment.getDeploymentApplication().getContact(),
-						theDeployment.getDeploymentApplication().getVersion(),
-						theDeployment.getDeploymentApplication().getName(),
-						cloudProviderParametersCopy.cloudProvider);
-			}
-			// set resources if provided
-			if (terraformState!=null) {
-				updateResourceConsumptionFromTerraformState(terraformState, theDeploymentDocument);
-			}
-			// set status
-			theDeploymentDocument.setStatus(status.toString());
-			switch (status) {
-			case STARTING:
-				theDeploymentDocument.setStartedTime(new Date(System.currentTimeMillis()));
-				//start time
-				theDeployment.setStartTime(startTime);
-				break;
-			case RUNNING:
-				//deployed time
-				theDeploymentDocument.setDeployedTime(new Date(System.currentTimeMillis()));
-				theDeployment.setDeployedTime(new java.sql.Timestamp(System.currentTimeMillis()));
-				break;
-			case DESTROYED:
-				theDeploymentDocument.setDestroyedTime(new Date(System.currentTimeMillis()));
-				theDeployment.setDestroyedTime(new java.sql.Timestamp(System.currentTimeMillis()));
-				if (theDeploymentDocument.getDeployedTime()!=null) {
-					theDeploymentDocument.setTotalRunningTime(
-							theDeploymentDocument.getDestroyedTime().getTime() - theDeploymentDocument.getDeployedTime().getTime()
-							);
-				}
-				break;
-			case STARTING_FAILED:
-			case RUNNING_FAILED:
-			case DESTROYING_FAILED:
-				//start time, would be null for detroying_failed
-				if(startTime != null){
-					theDeployment.setStartTime(startTime);
-				}
-				theDeploymentDocument.setFailedTime(new Date(System.currentTimeMillis()));
-				theDeployment.setFailedTime(new java.sql.Timestamp(System.currentTimeMillis()));
-				theDeploymentDocument.setErrorCause(cause);
-				ErrorFromTerraformOutput error = errorFromTerraformOutput(terraformOutput);
-				theDeploymentDocument.setErrorCause(error.getErrorMessage());
-				break;
-			}
-			try {
-				deploymentIndexService.save(theDeploymentDocument);
-			} catch (RestClientException rce) {
-				logger.error("DeploymentIndex service not available. Cause: ");
-				rce.printStackTrace();
-			}
-			logger.info("Saving deployment status times");
-			this.deploymentService.save(theDeployment);
-		}
-
-	}
-
-
-	private void updateDeploymentOutputs(DeploymentIndexService deploymentIndexService, String deploymentReference, String cloudProviderPath, DeploymentStatusEnum failStatus, Configuration configuration, String terraformOutput) {
-		Deployment theDeployment = this.deploymentService.findByReference(deploymentReference);
-		Application theApplication = this.applicationService.findByAccountUsernameAndName(
-				theDeployment.getDeploymentApplication().getAccount().getUsername(),
-				theDeployment.getDeploymentApplication().getName());
-
-		// get deployment state
-		Map<String,String> deploymentOutputs = theApplication.getOutputs().stream()
-				.collect(Collectors.toMap(ApplicationOutput::getName, s -> ""));
-		StateFromTerraformOutput stateFromTerraformOutput = null;
-		try {
-			stateFromTerraformOutput = this.state(
-					theApplication.getRepoPath(),
-					theDeployment.getReference(),
-					cloudProviderPath,
-					deploymentOutputs,
-					configuration,
-					theDeployment.getUserSshKey()
-					);
-
-
-			// update the deployment
-			theDeployment.setAccessIp(stateFromTerraformOutput.getAccessIp());
-			theDeployment.setProviderId(stateFromTerraformOutput.getId()!=null ? stateFromTerraformOutput.getId():"");
-
-			// set outputs
-			theApplication.getOutputs().forEach(output ->  {
-				logger.debug( "Adding output " + output.getName() + " = " + deploymentOutputs.get(output.getName()) );
-				//                        logger.info( "  with length " + deploymentOutputs.get(output.getName()).length());
-				DeploymentGeneratedOutput newOutput = new DeploymentGeneratedOutput(
-						output.getName(),
-						deploymentOutputs.get(output.getName()),
-						theDeployment
-						);
-				//                        logger.info( "  with new length " + newOutput.getValue().length());
-				theDeployment.getGeneratedOutputs().add(newOutput);
-			}
-					);
-
-		} catch (IOException | ApplicationDeployerException e) {
-			e.printStackTrace();
-			// update status
-			this.updateDeploymentStatus(deploymentIndexService, deploymentReference,
-					failStatus,"Failed to obtain outputs from state file", null, terraformOutput, null);
-		}
-		// persist changes
-		this.deploymentService.save(theDeployment);
-	}
-
-	private long updateResourceConsumptionFromTerraformState(TerraformState terraformState, DeploymentDocument deploymentDocument) {
-		long res = 0;
-		if (terraformState.modules!=null && terraformState.modules.length>0) {
-			Iterator<TerraformModule> itModules = Arrays.stream(terraformState.modules).iterator();
-			while (itModules.hasNext()) {
-				TerraformModule terraformModule = itModules.next();
-				Iterator<Map.Entry<String, TerraformResource>> it = terraformModule.resources.entrySet().iterator();
-				while (it.hasNext()) {
-					TerraformResource terraformResource = it.next().getValue();
-					if (terraformResource.type.equals("openstack_compute_instance_v2")) {
-						deploymentDocument.setInstanceCount(deploymentDocument.getInstanceCount()+1);
-						deploymentDocument.setTotalVcpus(
-								deploymentDocument.getTotalVcpus()
-								+ MachineSpecs.fromFlavourName(terraformResource.primary.attributes.get("flavor_name")).getvCPUSs()
-								);
-						deploymentDocument.setTotalRamGb(
-								deploymentDocument.getTotalRamGb()
-								+ MachineSpecs.fromFlavourName(terraformResource.primary.attributes.get("flavor_name")).getRamGb()
-								);
-						deploymentDocument.setTotalDiskGb(
-								deploymentDocument.getTotalDiskGb()
-								+ MachineSpecs.fromFlavourName(terraformResource.primary.attributes.get("flavor_name")).getDiskSpaceGb()
-								);
-					} else if (terraformResource.type.equals("google_compute_instance")) {
-						deploymentDocument.setInstanceCount(deploymentDocument.getInstanceCount()+1);
-						deploymentDocument.setTotalVcpus(
-								deploymentDocument.getTotalVcpus()
-								+ MachineSpecs.fromFlavourName(terraformResource.primary.attributes.get("machine_type")).getvCPUSs()
-								);
-						deploymentDocument.setTotalRamGb(
-								deploymentDocument.getTotalRamGb()
-								+ MachineSpecs.fromFlavourName(terraformResource.primary.attributes.get("machine_type")).getRamGb()
-								);
-						deploymentDocument.setTotalDiskGb(
-								deploymentDocument.getTotalDiskGb()
-								+ MachineSpecs.fromFlavourName(terraformResource.primary.attributes.get("machine_type")).getDiskSpaceGb()
-								);
-					} else if (terraformResource.type.equals("aws_instance")) {
-						deploymentDocument.setInstanceCount(deploymentDocument.getInstanceCount()+1);
-						deploymentDocument.setTotalVcpus(
-								deploymentDocument.getTotalVcpus()
-								+ MachineSpecs.fromFlavourName(terraformResource.primary.attributes.get("instance_type")).getvCPUSs()
-								);
-						deploymentDocument.setTotalRamGb(
-								deploymentDocument.getTotalRamGb()
-								+ MachineSpecs.fromFlavourName(terraformResource.primary.attributes.get("instance_type")).getRamGb()
-								);
-						deploymentDocument.setTotalDiskGb(
-								deploymentDocument.getTotalDiskGb()
-								+ MachineSpecs.fromFlavourName(terraformResource.primary.attributes.get("instance_type")).getDiskSpaceGb()
-								);
-					} else if (terraformResource.type.equals("azurerm_virtual_machine")) {
-						deploymentDocument.setInstanceCount(deploymentDocument.getInstanceCount()+1);
-						deploymentDocument.setTotalVcpus(
-								deploymentDocument.getTotalVcpus()
-								+ MachineSpecs.fromFlavourName(terraformResource.primary.attributes.get("vm_size")).getvCPUSs()
-								);
-						deploymentDocument.setTotalRamGb(
-								deploymentDocument.getTotalRamGb()
-								+ MachineSpecs.fromFlavourName(terraformResource.primary.attributes.get("vm_size")).getRamGb()
-								);
-						deploymentDocument.setTotalDiskGb(
-								deploymentDocument.getTotalDiskGb()
-								+ MachineSpecs.fromFlavourName(terraformResource.primary.attributes.get("vm_size")).getDiskSpaceGb()
-								);
-					}
-				}
-			}
-		}
-		return res;
-	}
 }

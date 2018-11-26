@@ -1,8 +1,12 @@
 package uk.ac.ebi.tsc.portal.api.deployment.controller;
 
+import static java.lang.String.format;
+
 import java.io.File;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URI;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -20,6 +24,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -28,6 +33,7 @@ import java.util.stream.Collectors;
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
+import javax.servlet.http.HttpServletRequest;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,15 +41,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.hateoas.Link;
 import org.springframework.hateoas.Resources;
+import org.springframework.hateoas.VndErrors;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 
@@ -98,8 +107,13 @@ import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentStatusEnum;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentStatusRepository;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentApplicationService;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentConfigurationService;
+import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentGeneratedOutputService;
+import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentNotFoundException;
+import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentSecretService;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
 import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
+import uk.ac.ebi.tsc.portal.api.error.ErrorMessage;
+import uk.ac.ebi.tsc.portal.api.error.MissingParameterException;
 import uk.ac.ebi.tsc.portal.api.team.repo.Team;
 import uk.ac.ebi.tsc.portal.api.team.repo.TeamRepository;
 import uk.ac.ebi.tsc.portal.api.team.service.TeamService;
@@ -146,6 +160,8 @@ public class DeploymentRestController {
 
 	private final DeploymentService deploymentService;
 
+	private final DeploymentGeneratedOutputService deploymentGeneratedOutputService;
+
 	private final AccountService accountService;
 
 	private final ApplicationService applicationService;
@@ -172,6 +188,8 @@ public class DeploymentRestController {
 
 	private final ConfigDeploymentParamsCopyService configDeploymentParamsCopyService;
 
+	private DeploymentSecretService deploymentSecretService;
+
 	@Autowired
 	DeploymentRestController(DeploymentRepository deploymentRepository,
 			DeploymentStatusRepository deploymentStatusRepository,
@@ -194,19 +212,19 @@ public class DeploymentRestController {
 			CloudProviderParamsCopyRepository cloudProviderParametersCopyRepository,
 			ConfigDeploymentParamsCopyRepository configDeploymentParamsCopyRepository,
 			EncryptionService encryptionService,
-
-			@Value("${ecp.security.salt}") final String salt, 
+			DeploymentSecretService deploymentSecretService,
+			DeploymentGeneratedOutputService deploymentGeneratedOutputService,
+			@Value("${ecp.security.salt}") final String salt,
 			@Value("${ecp.security.password}") final String password
 			) {
-		this.cloudProviderParametersCopyService = new CloudProviderParamsCopyService(cloudProviderParametersCopyRepository, encryptionService
-				,salt, password);
+		this.cloudProviderParametersCopyService = new CloudProviderParamsCopyService(cloudProviderParametersCopyRepository, encryptionService);
 		this.deploymentService = new DeploymentService(deploymentRepository, deploymentStatusRepository);
 		this.accountService = new AccountService(accountRepository);
 		this.applicationService = new ApplicationService(applicationRepository, domainService);
 		this.volumeInstanceService = new VolumeInstanceService(volumeInstanceRepository,
 				volumeInstanceStatusRepository);
 		this.cloudProviderParametersService = new CloudProviderParametersService(cloudProviderParametersRepository, domainService, 
-				cloudProviderParametersCopyService, encryptionService, salt, password);
+				cloudProviderParametersCopyService, encryptionService);
 		this.applicationDeployerBash = applicationDeployerBash;
 		this.deploymentStatusTracker = deploymentStatusTracker;
 		this.deploymentStatusTracker.start(0, UPDATE_TRACKER_PERIOD);
@@ -220,7 +238,8 @@ public class DeploymentRestController {
 		this.configDeploymentParamsCopyService = new ConfigDeploymentParamsCopyService(configDeploymentParamsCopyRepository);
 		this.teamService = new TeamService(teamRepository, accountRepository, domainService,
 				deploymentService, cloudProviderParametersCopyService, deploymentConfigurationService, applicationDeployerBash);
-
+		this.deploymentSecretService = deploymentSecretService;
+		this.deploymentGeneratedOutputService = deploymentGeneratedOutputService;
 	}
 
 	/* useful to inject values without involving spring - i.e. tests */
@@ -230,7 +249,7 @@ public class DeploymentRestController {
 	}
 
 	@RequestMapping(method = RequestMethod.POST)
-	public ResponseEntity<?> addDeployment(Principal principal, @RequestBody DeploymentResource input)
+	public ResponseEntity<?> addDeployment(HttpServletRequest request, Principal principal, @RequestBody DeploymentResource input)
 			throws IOException, NoSuchPaddingException, InvalidKeyException,
 			NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException,
 			InvalidAlgorithmParameterException, InvalidKeySpecException, NoSuchProviderException, ApplicationDeployerException {
@@ -251,49 +270,56 @@ public class DeploymentRestController {
 
 		// Get the requester and owner accounts
 		Account account = this.accountService.findByUsername(principal.getName());
+		logger.info("Principal username " + principal.getName());
+		logger.info("Account user name " + account.getUsername());
 		logger.debug("Found requesting account {}", account.getGivenName());
 		Account applicationOwnerAccount = this.accountService.findByUsername(input.getApplicationAccountUsername());
 		logger.debug("Found application owner account {}", applicationOwnerAccount.getGivenName());
+		Account configurationOwnerAccount = this.accountService.findByUsername(input.getConfigurationAccountUsername());
+		logger.debug("Found configuration owner account {}", configurationOwnerAccount.getGivenName());
 
 		// Get the application
-		logger.info("Looking for application " + input.getApplicationName() + "for user " + account.getGivenName());
+		logger.info("Looking for application " + input.getApplicationName() + " for user " + account.getGivenName());
 		Application theApplication;
 		try {
 			theApplication = this.applicationService.findByAccountUsernameAndName(
 					applicationOwnerAccount.getUsername(), input.getApplicationName());
-			if(account.getUsername().equals(input.getApplicationAccountUsername())){
-				logger.debug("The account user is the owner of the application");
-			}else{
-				//check if the application is shared with the account user
-				Set<Team> teams = theApplication.getSharedWithTeams();
-				if( ! (teams.stream().anyMatch(t -> t.getAccountsBelongingToTeam().stream().anyMatch(a -> a.equals(account)))) ){
+			logger.info("Found application {}", theApplication.getName());
+			if(theApplication.getAccount()!= account){
+				//find if the application is shared with user
+				logger.info("Account user is not application owner, checking if it has been shared with him" );
+				theApplication = this.applicationService.findByAccountUsernameAndName(
+						applicationOwnerAccount.getUsername(), input.getApplicationName());
+				if(!applicationService.isApplicationSharedWithAccount(account, theApplication)){
+					logger.error("Application " + theApplication.getName() + " has not been shared with " + account.getGivenName());
 					throw new ApplicationNotSharedException(account.getGivenName(), theApplication.getName());
 				}
 				logger.debug("Application " + theApplication.getName() + " has been shared with " + account.getGivenName());
 			}
 		}catch(ApplicationNotFoundException e){
+			logger.error("Could not find application " + input.applicationName + "for user " + applicationOwnerAccount.getGivenName());
 			throw new ApplicationNotFoundException(applicationOwnerAccount.getGivenName(), input.getApplicationName());
 		}
 
-		//get the configuration 
-		logger.info("Looking for configuration " + input.getConfigurationName() + "for user " + account.getGivenName());
-		Configuration configuration;
-		try{
-			configuration = this.configurationService.findByNameAndAccountUsername(input.getConfigurationName(), input.getConfigurationAccountUsername());
-			if(account.getUsername().equals(input.getConfigurationAccountUsername())){
-				logger.debug("The account user is the owner of the configuration");
-			}else{
-				//check if the  configuration is shared with the account user
-				Set<Team> teams = configuration.getSharedWithTeams();
-				if( ! (teams.stream().anyMatch(t -> t.getAccountsBelongingToTeam().stream().anyMatch(a -> a.equals(account)))) ){
-					throw new ConfigurationNotSharedException(account.getGivenName(), configuration.getName());
-				}
-				logger.debug("Configuration " + configuration.getName() + " has been shared with " + account.getGivenName());
-			}
-		}catch(ConfigurationNotFoundException e){
-			throw new ConfigurationNotFoundException(input.getAccountGivenName(), input.getConfigurationName());
-		}
 
+		// Get the configuration
+		logger.info("Looking for configuration " + input.getConfigurationName() + " for user " + account.getGivenName());
+		Configuration configuration = null;
+		try{
+			logger.info("Checking if the account user is the owner of the configuration");
+			configuration = this.configurationService.findByNameAndAccountUsername(
+					input.getConfigurationName(), account.getUsername());
+		}catch(ConfigurationNotFoundException e){
+			logger.debug("The user does not own the configuration, check if it has been shared with him");
+			logger.info("Checking if the configuration " +
+					input.getConfigurationName() + " has been shared with user by its owner " +
+					configurationOwnerAccount.getUsername());
+			configuration = this.configurationService.findByNameAndAccountUsername(
+					input.getConfigurationName(), configurationOwnerAccount.getUsername());
+			if(!configurationService.isConfigurationSharedWithAccount(account, configuration)){
+				throw new ConfigurationNotSharedException(account.getGivenName(), configuration.getName());
+			}
+		}
 		// Find the cloud provider parameters
 		CloudProviderParameters selectedCloudProviderParameters;
 		if(configuration != null) {
@@ -306,13 +332,16 @@ public class DeploymentRestController {
 			}catch(CloudProviderParametersNotFoundException e){
 				//configuration and cloud owner are different
 				logger.info("Looking for CONFIGURATION cloud provider params(shared) '{}' by username '{}'", configuration.cloudProviderParametersName, credentialOwnerAccount.getUsername());
-				selectedCloudProviderParameters = this.cloudProviderParametersService.findByReference(
-						configuration.getCloudProviderParametersReference());
-				Set<Team> teams = selectedCloudProviderParameters.getSharedWithTeams();
-				if( ! (teams.stream().anyMatch(t -> t.getAccountsBelongingToTeam().stream().anyMatch(a -> a.equals(account)))) ){
-					throw new CloudProviderParametersNotSharedException(account.getGivenName(), selectedCloudProviderParameters.getName());
+				try{
+					selectedCloudProviderParameters = this.cloudProviderParametersService.findByReference(
+							configuration.getCloudProviderParametersReference());
+					if(!cloudProviderParametersService.isCloudProviderParametersSharedWithAccount(account, selectedCloudProviderParameters)){
+						throw new CloudProviderParametersNotSharedException(account.getGivenName(), selectedCloudProviderParameters.getName());
+					}
+					logger.debug("Cloud provider parameters" + selectedCloudProviderParameters.getName() + " has been shared with " + account.getGivenName());
+				}catch(CloudProviderParametersNotFoundException ex){
+					throw new CloudProviderParametersNotFoundException(credentialOwnerAccount.getUsername(), configuration.cloudProviderParametersName);
 				}
-				logger.debug("Cloud provider parameters" + selectedCloudProviderParameters.getName() + " has been shared with " + account.getGivenName());
 			}
 		} else { // TODO: At some point we shouldn't allow to pass specific cloud provider parameters and use just those in a configuration
 			CloudProviderParameters cpp = this.cloudProviderParametersService.findByReference(input.getCloudProviderParametersCopy().getCloudProviderParametersReference());
@@ -358,17 +387,16 @@ public class DeploymentRestController {
 			if (configuration.getHardUsageLimit()!= null && this.configurationService.getTotalConsumption(configuration, deploymentIndexService)>=configuration.getHardUsageLimit()) {
 				throw new UsageLimitsException(configuration.getName(), configuration.getAccount().getEmail(), configuration.getHardUsageLimit());
 			}
-			String configurationDeploymentParametersName = this.configDeploymentParamsCopyService.findByConfigurationDeploymentParametersReference(configuration.getConfigDeployParamsReference()).getName();
+			String configurationDeploymentParametersReference = this.configDeploymentParamsCopyService.findByConfigurationDeploymentParametersReference(configuration.getConfigDeployParamsReference()).getConfigurationDeploymentParametersReference();
 			try{
-				ConfigDeploymentParamsCopy configDeploymentParamsCopy = this.configDeploymentParamsCopyService.findByName(configurationDeploymentParametersName);
+				ConfigDeploymentParamsCopy configDeploymentParamsCopy = this.configDeploymentParamsCopyService.findByConfigurationDeploymentParametersReference(configurationDeploymentParametersReference);
 				configDeploymentParamsCopy.getConfigDeploymentParamCopy().forEach( parameter ->{
 					deploymentParameterKV.put(parameter.getKey(), parameter.getValue());
 				});
 			}catch(ConfigDeploymentParamsCopyNotFoundException e){
-				throw new ConfigDeploymentParamsCopyNotFoundException(configurationDeploymentParametersName, account.getGivenName());
+				throw new ConfigDeploymentParamsCopyNotFoundException(configuration.getConfigDeploymentParamsName(), account.getGivenName());
 			}
 		}
-
 
 		CloudProviderParamsCopy cloudProviderParametersCopy =
 				this.cloudProviderParametersCopyService.findByCloudProviderParametersReference(selectedCloudProviderParameters.getReference());
@@ -378,25 +406,6 @@ public class DeploymentRestController {
 
 		// Trigger application deployment
 		String theReference = "TSI" + System.currentTimeMillis();
-
-		//Deploy
-		this.applicationDeployerBash.deploy(
-				account.getEmail(),
-				theApplication,
-				theReference,
-				getCloudProviderPathFromApplication(theApplication, selectedCloudProviderParameters.getCloudProvider()),
-				input.getAssignedInputs()!=null ? 
-						input.getAssignedInputs().stream().collect(Collectors.toMap(s -> s.getInputName(), s-> s.getAssignedValue()))
-						: null,
-						//the following based on precedence discussion might change, so placeholder here		
-						deploymentParameterKV!=null ? deploymentParameterKV :null,
-								input.getAttachedVolumes()!=null? toProviderIdHashMap(input.getAttachedVolumes()) : null,
-										deploymentParameterKV!=null ? deploymentParameterKV :null,
-												cloudProviderParametersCopy,
-												configuration,
-												new java.sql.Timestamp(startTime.getTime()),
-												input.getUserSshKey()
-				);
 
 		//create a copy of the application as deployment application
 		logger.info("Creating deploymentApplication, from the application");
@@ -411,6 +420,27 @@ public class DeploymentRestController {
 				deploymentApplication,
 				selectedCloudProviderParameters.getReference(),
 				input.getUserSshKey()
+				);
+		Deployment resDeployment = this.deploymentService.save(deployment);
+
+		//Deploy
+		this.applicationDeployerBash.deploy(
+				account.getEmail(),
+				theApplication,
+				theReference,
+				getCloudProviderPathFromApplication(theApplication, selectedCloudProviderParameters.getCloudProvider()),
+				input.getAssignedInputs()!=null ?
+						input.getAssignedInputs().stream().collect(Collectors.toMap(s -> s.getInputName(), s-> s.getAssignedValue()))
+						: null,
+						//the following based on precedence discussion might change, so placeholder here
+						deploymentParameterKV!=null ? deploymentParameterKV :null,
+								input.getAttachedVolumes()!=null? toProviderIdHashMap(input.getAttachedVolumes()) : null,
+										deploymentParameterKV!=null ? deploymentParameterKV :null,
+												cloudProviderParametersCopy,
+												configuration,
+												new java.sql.Timestamp(startTime.getTime()),
+												input.getUserSshKey(),
+												baseURL(request)
 				);
 
 		// set input assignments
@@ -464,7 +494,7 @@ public class DeploymentRestController {
 		}
 
 		deployment.setStartTime(new Timestamp(startTime.getTime()));
-		Deployment resDeployment = this.deploymentService.save(deployment);
+		resDeployment = this.deploymentService.save(deployment);
 
 		// set deployment to attachments
 		if (input.getAttachedVolumes()!=null) {
@@ -491,6 +521,28 @@ public class DeploymentRestController {
 		httpHeaders.setLocation(URI.create(forOneDeployment.getHref()));
 
 		return new ResponseEntity<>(deploymentResource, httpHeaders, HttpStatus.CREATED);
+	}
+
+	String baseURL(HttpServletRequest request) throws MalformedURLException {
+
+		String requestUrl = request.getRequestURL().toString(); // includes the server path
+
+		// Let's remove it
+		URL url = new URL(requestUrl);
+
+		return String.format("%s://%s%s" , url.getProtocol()
+				, url.getHost()
+				, getPortStr(url)
+				);
+	}
+
+	String getPortStr(URL url) {
+
+		int port = url.getPort();
+
+		return port == -1 ? ""
+				: format(":%d", port)
+				;
 	}
 
 	private String getCloudProviderPathFromApplication(Application application, String cloudProvider) {
@@ -603,6 +655,16 @@ public class DeploymentRestController {
 				);
 	}
 
+	@RequestMapping(value = "/{deploymentReference}/outputs", method = RequestMethod.PUT)
+	public ResponseEntity<?> addDeploymentOutputs(@PathVariable("deploymentReference") String reference, @RequestHeader("Deployment-Secret") String secret,
+			@RequestBody List<DeploymentGeneratedOutputResource> payLoadGeneratedOutputList) {
+
+		Optional<ErrorMessage> errorMessage = deploymentGeneratedOutputService.saveOrUpdateDeploymentOutputs(reference, secret, payLoadGeneratedOutputList);
+		if (errorMessage.isPresent())
+			return new ResponseEntity<>(errorMessage.get().getError(), null, errorMessage.get().getStatus());
+		return new ResponseEntity<>(null, null, HttpStatus.NO_CONTENT);
+	}
+
 	@RequestMapping(value = "/{deploymentReference}/logs", method = RequestMethod.GET)
 	public String getDeploymentLogsByReference(Principal principal, @PathVariable("deploymentReference") String reference) throws IOException, ApplicationDeployerException {
 
@@ -645,17 +707,54 @@ public class DeploymentRestController {
 		}
 	}
 
-	@RequestMapping(value = "/{deploymentReference}/stop", method = RequestMethod.PUT)
-	public ResponseEntity<?> stopDeploymentByReference(Principal principal,
-			@PathVariable("deploymentReference") String reference)
+	@ExceptionHandler
+	@ResponseStatus(HttpStatus.NOT_ACCEPTABLE)
+	VndErrors handleException(MissingParameterException e) {
+
+		return new VndErrors("error", e.getMessage());
+	}
+
+	@RequestMapping(value = "/{deploymentReference}/stopme", method = RequestMethod.PUT)
+	public void stopMe( @PathVariable("deploymentReference") String                     deploymentReference
+			, @RequestBody                         HashMap<String, String>    body
+			)
 					throws IOException, ApplicationDeployerException, NoSuchPaddingException, InvalidKeyException,
 					NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException,
-					InvalidAlgorithmParameterException, InvalidKeySpecException {
+					InvalidAlgorithmParameterException, InvalidKeySpecException 
+	{
+		String secret = body.get("secret");
 
+		if (secret == null || secret.isEmpty()) {
 
+			throw new MissingParameterException("secret");
+		}
+
+		if (!deploymentSecretService.exists(deploymentReference, secret)) {
+
+			throw new DeploymentNotFoundException(deploymentReference);
+		}
+
+		stop(deploymentReference);
+	}
+
+	@RequestMapping(value = "/{deploymentReference}/stop", method = RequestMethod.PUT)
+	public ResponseEntity<?> stopByReference(@PathVariable("deploymentReference") String reference)
+			throws IOException, ApplicationDeployerException, NoSuchPaddingException, InvalidKeyException,
+			NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException,
+			InvalidAlgorithmParameterException, InvalidKeySpecException 
+	{
+		stop(reference);
+
+		return new ResponseEntity<>(null, new HttpHeaders(), HttpStatus.OK);
+	}
+
+	void stop(String reference)
+			throws IOException, ApplicationDeployerException, NoSuchPaddingException, InvalidKeyException,
+			NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException,
+			InvalidAlgorithmParameterException, InvalidKeySpecException 
+	{
 		logger.info("Stopping deployment '" + reference + "'");
 
-		Account account = this.accountService.findByUsername(principal.getName());
 		Deployment theDeployment = this.deploymentService.findByReference(reference);
 
 		// get credentials decrypted through the service layer
@@ -683,11 +782,6 @@ public class DeploymentRestController {
 				deploymentConfiguration,
 				theCloudProviderParametersCopy
 				);
-
-		// Prepare response
-		HttpHeaders httpHeaders = new HttpHeaders();
-
-		return new ResponseEntity<>(null, httpHeaders, HttpStatus.OK);
 	}
 
 	@RequestMapping(value = "/{deploymentReference}", method = RequestMethod.DELETE)

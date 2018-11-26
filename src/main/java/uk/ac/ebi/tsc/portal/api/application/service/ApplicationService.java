@@ -14,6 +14,7 @@ import uk.ac.ebi.tsc.portal.api.team.repo.Team;
 
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -86,6 +87,10 @@ public class ApplicationService {
 				logger.error("Could not add all shared applications from team " + memberTeam.getName());
 			}
 		}
+		//print the shared application info
+		for(Application a: sharedApplications){
+			logger.info("Application name: " + a.getName() + "from repo " + a.getRepoPath());
+		}
 		return sharedApplications;
 	}
 
@@ -117,5 +122,13 @@ public class ApplicationService {
 			}
 		}
 		return null;
+	}
+
+	public boolean isApplicationSharedWithAccount(Account account, Application application){
+		if(account.getMemberOfTeams().stream().anyMatch(t ->
+		t.getApplicationsBelongingToTeam().stream().anyMatch(a -> a.equals(application)))){
+			return true;
+		}
+		return false;
 	}
 }

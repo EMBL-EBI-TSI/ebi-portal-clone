@@ -1,0 +1,14 @@
+
+
+{
+    "name"          : ""
+   ,"cloudProvider" : "OSTACK"
+   ,"fields": [
+
+         {"key":"OS_AUTH_URL"  	  , "value": "" }
+        ,{"key":"OS_USERNAME"  	  , "value": "" }
+        ,{"key":"OS_PASSWORD"  	  , "value": "M4_PASSWORD" }
+        ,{"key":"OS_TENANT_ID"    , "value": "" }
+        ,{"key":"OS_TENANT_NAME"  , "value": "" }
+    ]
+}

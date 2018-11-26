@@ -2,9 +2,12 @@ package uk.ac.ebi.tsc.portal.security;
 
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 import uk.ac.ebi.tsc.aap.client.repo.DomainService;
@@ -71,8 +74,7 @@ public class EcpAuthenticationService {
                                     DomainService domainService,
                                     TokenService tokenService,
                                     EncryptionService encryptionService,
-                                    @Value("${ecp.security.salt}") final String salt,
-                                    @Value("${ecp.security.password}") final String password,
+                                    ResourceLoader resourceLoader,
                                     @Value("${ecp.aap.username}") final String ecpAapUsername,
                                     @Value("${ecp.aap.password}") final String ecpAapPassword,
                                     @Value("${ecp.default.teams.file}") final String ecpDefaultTeamsFilePath) throws IOException {
@@ -85,8 +87,7 @@ public class EcpAuthenticationService {
         this.deploymentService = new DeploymentService(deploymentRepository, deploymentStatusRepository);
         this.cloudProviderParamsCopyService = new CloudProviderParamsCopyService(
                 cloudProviderParamsCopyRepository,
-                encryptionService,
-                salt, password);
+                encryptionService);
         this.deploymentConfigurationService = new DeploymentConfigurationService(deploymentConfigurationRepository);
         this.teamService = new TeamService(
                 teamRepository, accountRepository, domainService, this.deploymentService,
@@ -97,15 +98,12 @@ public class EcpAuthenticationService {
         ObjectMapper mapper = new ObjectMapper();
         try {
             logger.info("Reading mappings file " + ecpDefaultTeamsFilePath);
-            InputStream is = DefaultTeamMap.class.getResourceAsStream(ecpDefaultTeamsFilePath);
-            DefaultTeamMap[] maps = mapper.readValue(is, DefaultTeamMap[].class);
+            Resource defaultMapsResource = resourceLoader.getResource(ecpDefaultTeamsFilePath);
+            DefaultTeamMap[] maps = mapper.readValue(defaultMapsResource.getInputStream(), DefaultTeamMap[].class);
             Arrays.stream(maps).forEach(defaultTeamMap -> {
                 logger.info("Registering team " + defaultTeamMap.getTeamName() + " mapping for email domain " + defaultTeamMap.getEmailDomain());
-                if (this.defaultTeamsMap.containsKey(defaultTeamMap.getEmailDomain())) {
-                    this.defaultTeamsMap.get(defaultTeamMap.getEmailDomain()).add(defaultTeamMap);
-                } else {
-                    this.defaultTeamsMap.put(defaultTeamMap.getEmailDomain(), Arrays.asList(defaultTeamMap));
-                }
+                this.defaultTeamsMap.putIfAbsent(defaultTeamMap.getEmailDomain(), Lists.newArrayList());
+                this.defaultTeamsMap.get(defaultTeamMap.getEmailDomain()).add(defaultTeamMap);
             });
         } catch (JsonMappingException jme) {
             logger.info("Can't find any default team mappings");

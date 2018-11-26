@@ -32,6 +32,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+import org.springframework.data.util.ReflectionUtils;
 import org.springframework.hateoas.Resources;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -140,9 +141,7 @@ public class CloudProviderParameterRestControllerTest {
 				configurationRepository, 
 				cdpRepository, 
 				cloudProviderParametersCopyRepository,
-				encryptionService,
-				salt,
-				password);
+				encryptionService);
 	}
 	
 	/**

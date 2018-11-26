@@ -1,5 +1,7 @@
 package uk.ac.ebi.tsc.portal.api.account.service;
 
+import org.springframework.stereotype.Component;
+
 import uk.ac.ebi.tsc.portal.api.account.repo.Account;
 import uk.ac.ebi.tsc.portal.api.account.repo.AccountRepository;
 
@@ -8,6 +10,7 @@ import uk.ac.ebi.tsc.portal.api.account.repo.AccountRepository;
  * @since v0.0.1
  * @author Navis Raj <navis@ebi.ac.uk>
  */
+@Component
 public class AccountService {
 
     private final AccountRepository accountRepository;

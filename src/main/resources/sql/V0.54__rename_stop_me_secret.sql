@@ -1,0 +1,1 @@
+ALTER TABLE stop_me_secret RENAME TO deployment_secret;

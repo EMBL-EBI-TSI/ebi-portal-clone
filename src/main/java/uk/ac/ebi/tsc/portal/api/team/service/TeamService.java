@@ -41,6 +41,7 @@ import java.util.stream.Collectors;
  * @author Navis Raj <navis@ebi.ac.uk>
  * @author Jose A. Dianes <jdianes@ebi.ac.uk> (code refactoring)
  */
+
 public class TeamService {
 
 	private final TeamRepository teamRepository;
@@ -48,7 +49,6 @@ public class TeamService {
 	private final DomainService domainService;
 	private final DeploymentService deploymentService;
 	private final CloudProviderParamsCopyService cloudProviderParametersCopyService;
-	private final DeploymentConfigurationService deploymentConfigurationService;
 	private final ApplicationDeployerBash applicationDeployerBash;
 
 	private static final Logger logger = LoggerFactory.getLogger(TeamService.class);
@@ -67,7 +67,6 @@ public class TeamService {
 		this.domainService = domainService;
 		this.deploymentService = deploymentService ;
 		this.cloudProviderParametersCopyService = cloudProviderParametersCopyService;
-		this.deploymentConfigurationService = deploymentConfigurationService;
 		this.applicationDeployerBash = applicationDeployerBash;
 
 	}
@@ -101,16 +100,16 @@ public class TeamService {
 		return this.teamRepository.findByDomainReference(domainReference).orElseThrow(() -> new TeamNotFoundException("with domain reference " + domainReference));
 	}
 
-    /**
-     * Create a new team and associated AAP domain.
-     *
-     * @param userName
-     * @param teamResource
-     * @param accountService
-     * @param token
-     * @return
-     * @throws UserNotFoundException
-     */
+	/**
+	 * Create a new team and associated AAP domain.
+	 *
+	 * @param userName
+	 * @param teamResource
+	 * @param accountService
+	 * @param token
+	 * @return
+	 * @throws UserNotFoundException
+	 */
 	public Team constructTeam(
 			String userName,
 			TeamResource teamResource, 
@@ -121,66 +120,66 @@ public class TeamService {
 		logger.info("Creating team " + teamResource.getName() + " for user " + userName);
 
 		// Create team
-        logger.info("Creating new team");
-        Team team = new Team();
-        team.setName(teamResource.getName());
+		logger.info("Creating new team");
+		Team team = new Team();
+		team.setName(teamResource.getName());
 
-        team.setAccount(accountService.findByUsername(userName));
-        Account ownerAccount = team.getAccount();
+		team.setAccount(accountService.findByUsername(userName));
+		Account ownerAccount = team.getAccount();
 
-        // Add team members if needed
-        if (teamResource.getMemberAccountEmails()!=null) {
-            Set<Account> memberAccounts = teamResource.getMemberAccountEmails().stream()
-                    .map(email -> accountService.findByEmail(email)).collect(Collectors.toSet());
-            memberAccounts.add(ownerAccount);
-            team.setAccountsBelongingToTeam(memberAccounts);
-        }
+		// Add team members if needed
+		if (teamResource.getMemberAccountEmails()!=null) {
+			Set<Account> memberAccounts = teamResource.getMemberAccountEmails().stream()
+					.map(email -> accountService.findByEmail(email)).collect(Collectors.toSet());
+			memberAccounts.add(ownerAccount);
+			team.setAccountsBelongingToTeam(memberAccounts);
+		}
 
-        // Create associated domain
-        // Form domain name
-        String domainName = "TEAM_"+ teamResource.getName().toUpperCase()+"_PORTAL_" + userName.toUpperCase();
-        try {
-            Domain domain = domainService.createDomain(domainName, "Domain " + domainName + " created", token);
+		// Create associated domain
+		// Form domain name
+		String domainName = "TEAM_"+ teamResource.getName().toUpperCase()+"_PORTAL_" + userName.toUpperCase();
+		try {
+			Domain domain = domainService.createDomain(domainName, "Domain " + domainName + " created", token);
 
-            logger.info("Created domain " + domain.getDomainName());
+			logger.info("Created domain " + domain.getDomainName());
 
-            team.setDomainReference(domain.getDomainReference());
+			team.setDomainReference(domain.getDomainReference());
 
-            logger.info("In TeamService: Created team, now saving it " + team.getName());
+			logger.info("In TeamService: Created team, now saving it " + team.getName());
 
-            try {
-                this.save(team);
-                return team;
-            } catch (Exception e) {
-                logger.error("Failed to persist team, after creating AAP domain, so deleting domain: " + e.getMessage());
-                try {
-                    domainService.deleteDomain(domain, token);
-                } catch(Exception ex){
-                    logger.error("Failed to delete the already created AAP domain: " + ex.getMessage());
-                    throw new TeamNotCreatedException(teamResource.getName(), "failed to persist team and delete already created domain");
-                }
+			try {
+				this.save(team);
+				return team;
+			} catch (Exception e) {
+				logger.error("Failed to persist team, after creating AAP domain, so deleting domain: " + e.getMessage());
+				try {
+					domainService.deleteDomain(domain, token);
+				} catch(Exception ex){
+					logger.error("Failed to delete the already created AAP domain: " + ex.getMessage());
+					throw new TeamNotCreatedException(teamResource.getName(), "failed to persist team and delete already created domain");
+				}
 
-                throw new TeamNotCreatedException(teamResource.getName(), "failed to persist team");
-            }
+				throw new TeamNotCreatedException(teamResource.getName(), "failed to persist team");
+			}
 
-        } catch (Exception e) {
-            logger.error("Failed to create AAP domain " + domainName);
-            throw new TeamNotCreatedException(teamResource.getName(), "failed to create domain " + domainName + ". Reason: " + e.getMessage());
-        }
+		} catch (Exception e) {
+			logger.error("Failed to create AAP domain " + domainName);
+			throw new TeamNotCreatedException(teamResource.getName(), "failed to create domain " + domainName + ". Reason: " + e.getMessage());
+		}
 
 
 
 	}
 
-    /**
-     * Remove an account by email from a team given its name.
-     *
-     * @param token
-     * @param teamName
-     * @param userEmail
-     * @return
-     * @throws AccountNotFoundException
-     */
+	/**
+	 * Remove an account by email from a team given its name.
+	 *
+	 * @param token
+	 * @param teamName
+	 * @param userEmail
+	 * @return
+	 * @throws AccountNotFoundException
+	 */
 	public Team removeMemberFromTeam(
 			String token,
 			String teamName, 
@@ -201,10 +200,10 @@ public class TeamService {
 		}
 
 		// Only proceed if account is member of team
-        if (!team.getAccountsBelongingToTeam().contains(account)) {
-		    throw new TeamMemberNotRemovedException(teamName, "account " +
-                    account.getReference() + " is not a member of the team");
-        }
+		if (!team.getAccountsBelongingToTeam().contains(account)) {
+			throw new TeamMemberNotRemovedException(teamName, "account " +
+					account.getReference() + " is not a member of the team");
+		}
 
 		logger.debug("Found associated user with reference " + account.getUsername());
 
@@ -224,10 +223,10 @@ public class TeamService {
 					// If the account is actually part of the domain, update the domain
 					if (domainUser != null) {
 						this.domainService.removeUserFromDomain(new User(null,
-										account.getEmail(),
-										account.getUsername(),
-										account.getGivenName(),
-										null),
+								account.getEmail(),
+								account.getUsername(),
+								account.getGivenName(),
+								null),
 								domain,
 								token);
 					}
@@ -251,17 +250,17 @@ public class TeamService {
 		return this.save(team);
 	}
 
-    /**
-     * Add accounts to a team, given a token. Send notification emails.
-     *
-     * @param token
-     * @param teamName
-     * @param newMemberEmails
-     * @param baseURL
-     * @return
-     * @throws AccountNotFoundException
-     * @throws UserNotFoundException
-     */
+	/**
+	 * Add accounts to a team, given a token. Send notification emails.
+	 *
+	 * @param token
+	 * @param teamName
+	 * @param newMemberEmails
+	 * @param baseURL
+	 * @return
+	 * @throws AccountNotFoundException
+	 * @throws UserNotFoundException
+	 */
 	public Team addMemberToTeam(
 			String token,
 			String teamName,
@@ -270,93 +269,84 @@ public class TeamService {
 
 		logger.info("Adding member to team " + teamName);
 
-        // Get team
-        Team team = this.findByName(teamName);
-        if (team==null) {
-            throw new TeamNotFoundException(teamName);
-        }
+		// Get team
+		Team team = this.findByName(teamName);
+		if (team==null) {
+			throw new TeamNotFoundException(teamName);
+		}
 
-        // get the future member accounts
-        logger.info("Checking if user is already a member");
-        Set<String> memberAccountEmails = team.getAccountsBelongingToTeam().stream().map(Account::getEmail).collect(Collectors.toSet());
-        Collection<String> yetToBeMemberEmails = newMemberEmails.stream().filter(
-                a -> !memberAccountEmails.contains(a)).collect(Collectors.toSet());
-        // throw exception if not all accounts can be added
-        if (newMemberEmails.size()!=yetToBeMemberEmails.size()) {
-            throw new TeamMemberNotAddedException(teamName, "some accounts already belong to the team, nothing added");
-        }
-        // get the accounts
-        Collection<Account> yetToBeMemberAccounts = yetToBeMemberEmails.stream().map(
-                email -> accountService.findByEmail(email)).collect(Collectors.toSet());
-        // throw exception if not all accounts can be found
-        if (newMemberEmails.size()!=yetToBeMemberAccounts.size()) {
-            throw new TeamMemberNotAddedException(teamName, "some accounts cannot be found, nothing added");
-        }
+		// get the future member accounts
+		logger.info("Checking if user is already a member");
+		Set<String> memberAccountEmails = team.getAccountsBelongingToTeam().stream().map(Account::getEmail).collect(Collectors.toSet());
+		Collection<String> yetToBeMemberEmails = newMemberEmails.stream().filter(
+				a -> !memberAccountEmails.contains(a)).collect(Collectors.toSet());
+		// throw exception if not all accounts can be added
+		if (newMemberEmails.size()!=yetToBeMemberEmails.size()) {
+			throw new TeamMemberNotAddedException(teamName, "some accounts already belong to the team, nothing added");
+		}
+		// get the accounts
+		Collection<Account> yetToBeMemberAccounts = yetToBeMemberEmails.stream().map(
+				email -> accountService.findByEmail(email)).collect(Collectors.toSet());
+		// throw exception if not all accounts can be found
+		if (newMemberEmails.size()!=yetToBeMemberAccounts.size()) {
+			throw new TeamMemberNotAddedException(teamName, "some accounts cannot be found, nothing added");
+		}
 
-        // add accounts to team and persist
-        yetToBeMemberAccounts.stream().forEach(
-                account -> {
-                    // Update domain if needed
-                    if (team.getDomainReference() != null) {
-                        logger.info("Team has associated domain " + team.getDomainReference() + ". Updating...");
-                        logger.info("Getting domain");
-                        Domain domain = domainService.getDomainByReference(
-                                team.getDomainReference(),
-                                token);
-                        if (domain != null) {
-                            domainService.addUserToDomain(
-                                    domain,
-                                    new User(null, account.getEmail(), account.getUsername(), account.getGivenName() , null),
-                                    token
-                            );
+		// add accounts to team and persist
+		yetToBeMemberAccounts.stream().forEach(
+				account -> {
+					// Update domain if needed
+					if (team.getDomainReference() != null) {
+						logger.info("Team has associated domain " + team.getDomainReference() + ". Updating...");
+						logger.info("Getting domain");
+						Domain domain = domainService.getDomainByReference(
+								team.getDomainReference(),
+								token);
+						if (domain != null) {
+							domainService.addUserToDomain(
+									domain,
+									new User(null, account.getEmail(), account.getUsername(), account.getGivenName() , null),
+									token
+									);
 
-                        } else {
-                            throw new TeamMemberNotAddedException(teamName, "cannot find associated domain " + team.getDomainReference());
-                        }
-                    }
+						} else {
+							throw new TeamMemberNotAddedException(teamName, "cannot find associated domain " + team.getDomainReference());
+						}
+					}
 
-                    //update account
-                    account.getMemberOfTeams().add(team);
-                    account = this.accountService.save(account);
+					//update account
+					account.getMemberOfTeams().add(team);
+					account = this.accountService.save(account);
 
-                    // update team
-                    team.getAccountsBelongingToTeam().add(account);
-                    this.save(team);
+					// update team
+					team.getAccountsBelongingToTeam().add(account);
+					this.save(team);
 
-                    // Send email notification
-                    String loginURL = baseURL + "login";
-                    String teamURL = baseURL + "team" + "/" + team.getName() ;
-                    String message = "User " + team.getAccount().getGivenName() +
-                            " has added you to the team " + "'"+team.getName()+"'" + ".\n\n"
-                            + "Please click on the link below to login if you haven't already \n"
-                            + loginURL.replaceAll(" ", "%20") + "\n\nor click on " + teamURL.replaceAll(" ", "%20")  + "\n"
-                            + "to view the team.";
-                    String toNotifyEmail = account.getEmail();
+					// Send email notification
+					String loginURL = baseURL + "login";
+					String teamURL = baseURL + "team" + "/" + team.getName() ;
+					String message = "User " + team.getAccount().getGivenName() +
+							" has added you to the team " + "'"+team.getName()+"'" + ".\n\n"
+							+ "Please click on the link below to login if you haven't already \n"
+							+ loginURL.replaceAll(" ", "%20") + "\n\nor click on " + teamURL.replaceAll(" ", "%20")  + "\n"
+							+ "to view the team.";
+					String toNotifyEmail = account.getEmail();
 
-                    try {
-                        SendMail.send(new ArrayList<String>(){{
-                            add(toNotifyEmail);
-                        }}, "Request granted: Added to team " + team.getName(), message );
-                    } catch (IOException e) {
-                        logger.error("Couldn't send notification email");
-                        e.printStackTrace();
-                    }
-                }
+					try {
+						SendMail.send(new ArrayList<String>(){{
+							add(toNotifyEmail);
+						}}, "Request granted: Added to team " + team.getName(), message );
+					} catch (IOException e) {
+						logger.error("Couldn't send notification email");
+						e.printStackTrace();
+					}
+				}
 
-        );
+				);
 
 		return team;
 	}
 
-    /**
-     * Add an account to a team given a token. Send no notification.
-     * TODO: use token to get domains
-     *
-     * @param token
-     * @param teamName
-     * @param account
-     * @return
-     */
 	public Team addMemberToTeamByAccountNoNotification(
 	        String token,
             String teamName,

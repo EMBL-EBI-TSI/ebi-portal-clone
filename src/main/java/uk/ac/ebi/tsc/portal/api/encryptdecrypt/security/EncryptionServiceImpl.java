@@ -1,10 +1,13 @@
 package uk.ac.ebi.tsc.portal.api.encryptdecrypt.security;
 
+import java.math.BigInteger;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.encrypt.Encryptors;
 import org.springframework.security.crypto.encrypt.TextEncryptor;
 
@@ -14,13 +17,22 @@ import org.springframework.security.crypto.encrypt.TextEncryptor;
  * @author Navis Raj <navis@ebi.ac.uk>
  */
 public class EncryptionServiceImpl implements EncryptionService{
+
+	private final String salt, password;
+	
+	@Autowired
+	public EncryptionServiceImpl(@Value("${ecp.security.salt}") final String salt, 
+			@Value("${ecp.security.password}") final String password){
+		this.salt = salt;
+		this.password = password;
+	}
 	
 	@Override
 	public Map<String, String> encrypt(Map<String, String> params, Object ...values) {
 
 		Map<String, String> encryptedValues = new HashMap<>();
 
-		TextEncryptor encryptor = Encryptors.text(values[0].toString(), values[1].toString());
+		TextEncryptor encryptor = Encryptors.text(salt, toHex(password));
 
 		for(Map.Entry<String, String> entry : params.entrySet()){
 			String key = entry.getKey();
@@ -36,7 +48,7 @@ public class EncryptionServiceImpl implements EncryptionService{
 
 		Map<String, String> decryptedValues = new HashMap<>();
 
-		TextEncryptor encryptor = Encryptors.text(values[0].toString(), values[1].toString());
+		TextEncryptor encryptor = Encryptors.text(salt, toHex(password));
 		
 		for(Map.Entry<String, String> entry : params.entrySet()){
 			String key = entry.getKey();
@@ -58,5 +70,9 @@ public class EncryptionServiceImpl implements EncryptionService{
 
 		return decryptedRes;
 
+	}
+	
+	public String toHex(String arg) {
+		return String.format("%040x", new BigInteger(1, arg.getBytes()));
 	}
 }

@@ -1,8 +1,19 @@
 package uk.ac.ebi.tsc.portal.api.configuration.service;
 
+import java.io.IOException;
+import java.security.Principal;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+
 import uk.ac.ebi.tsc.aap.client.model.Domain;
 import uk.ac.ebi.tsc.aap.client.model.User;
 import uk.ac.ebi.tsc.aap.client.repo.DomainService;
@@ -16,20 +27,21 @@ import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderPar
 import uk.ac.ebi.tsc.portal.api.configuration.controller.ConfigurationDeploymentParametersResource;
 import uk.ac.ebi.tsc.portal.api.configuration.controller.ConfigurationResource;
 import uk.ac.ebi.tsc.portal.api.configuration.controller.InvalidConfigurationInputException;
-import uk.ac.ebi.tsc.portal.api.configuration.repo.*;
+import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigDeploymentParamCopy;
+import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigDeploymentParamsCopy;
+import uk.ac.ebi.tsc.portal.api.configuration.repo.Configuration;
+import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationDeploymentParameter;
+import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationDeploymentParameters;
+import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationRepository;
 import uk.ac.ebi.tsc.portal.api.deployment.controller.DeploymentRestController;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.Deployment;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentStatusEnum;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
 import uk.ac.ebi.tsc.portal.api.team.repo.Team;
+import uk.ac.ebi.tsc.portal.api.team.service.TeamNotFoundException;
 import uk.ac.ebi.tsc.portal.api.utils.SendMail;
 import uk.ac.ebi.tsc.portal.usage.deployment.model.DeploymentDocument;
 import uk.ac.ebi.tsc.portal.usage.deployment.service.DeploymentIndexService;
-
-import java.io.IOException;
-import java.security.Principal;
-import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * @author Jose A. Dianes <jdianes@ebi.ac.uk>
@@ -49,8 +61,8 @@ public class ConfigurationService {
 
 	@Autowired
 	public ConfigurationService(ConfigurationRepository configurationRepository, DomainService domainService,
-                                CloudProviderParametersService cppService, ConfigurationDeploymentParametersService cdpService,
-                                CloudProviderParamsCopyService cloudProviderParametersCopyService, DeploymentService deploymentService) {
+			CloudProviderParametersService cppService, ConfigurationDeploymentParametersService cdpService,
+			CloudProviderParamsCopyService cloudProviderParametersCopyService, DeploymentService deploymentService) {
 		this.configurationRepository = configurationRepository;
 		this.domainService = domainService;
 		this.cppService = cppService;
@@ -121,7 +133,6 @@ public class ConfigurationService {
 							}catch(Exception e){
 								logger.error("In ConfigurationService: Failed to get team configurations, for team with domain reference " + memberTeam.getName());
 							}
-
 						}
 					}
 				}else{
@@ -467,7 +478,7 @@ public class ConfigurationService {
 					if(deployment.deploymentStatus.getStatus().equals(DeploymentStatusEnum.RUNNING)
 							|| deployment.deploymentStatus.getStatus().equals(DeploymentStatusEnum.STARTING)){
 						logger.info("Found deployment using the configuration, stopping it");
-						deploymentRestController.stopDeploymentByReference(principal, deployment.getReference());
+						deploymentRestController.stopByReference(deployment.getReference());
 						toNotify.add(deployment.getAccount().getEmail());
 					}
 				}catch(Exception e){
@@ -563,7 +574,6 @@ public class ConfigurationService {
 	}
 
 	public void stopDeploymentsOnDeletionOfDeploymentParameters(String name, 
-			Principal principal,
 			DeploymentService deploymentService, 
 			DeploymentRestController deploymentRestController,
 			ConfigDeploymentParamsCopy cdpCopy,
@@ -592,7 +602,7 @@ public class ConfigurationService {
 						if(deployment.deploymentStatus.getStatus().equals(DeploymentStatusEnum.RUNNING)
 								|| deployment.deploymentStatus.getStatus().equals(DeploymentStatusEnum.STARTING)){
 							logger.info("Found deployment using the configuration deployment parameter, stopping it");
-							deploymentRestController.stopDeploymentByReference(principal, deployment.getReference());
+							deploymentRestController.stopByReference(deployment.getReference());
 							toNotify.add(deployment.getAccount().getEmail());
 						}
 					}catch(Exception e){
@@ -639,21 +649,22 @@ public class ConfigurationService {
 				logger.info("Could not find the cloud provider copy for configuration " + configuration.getName());
 			}
 		});
+
 		return configurationResources;
 	}
 
 	public Configuration getByReference(String username, String reference) {
 		return this.configurationRepository.findByReference(reference).orElseThrow(
 				() -> new ConfigurationNotFoundException(username, reference)
-		);
+				);
 	}
 
 	public double getTotalConsumptionByReference(String username, String reference, DeploymentIndexService deploymentIndexService) {
-        logger.debug("Calculating total usage for configuration " + reference);
+		logger.debug("Calculating total usage for configuration " + reference);
 
-	    Configuration theConfiguration = this.getByReference(username, reference);
+		Configuration theConfiguration = this.getByReference(username, reference);
 
-	    return this.getTotalConsumption(theConfiguration, deploymentIndexService);
+		return this.getTotalConsumption(theConfiguration, deploymentIndexService);
 	}
 
 	public double getTotalConsumption(Configuration configuration, DeploymentIndexService deploymentIndexService) {
@@ -684,5 +695,17 @@ public class ConfigurationService {
 			}
 			return totalConsumption;
 		}).sum();
+	}
+
+	public boolean isConfigurationSharedWithAccount(Account account, Configuration configuration){
+
+		logger.info("Looking for shared configuration " + configuration.getName()
+		+ " belonging to " + account.getGivenName());
+		if(account.getMemberOfTeams().stream().anyMatch(team ->
+		configuration.getSharedWithTeams().stream().anyMatch(t -> t.getDomainReference().equals(team.getDomainReference())))){
+			return true;
+		}else{
+			return false;
+		}
 	}
 }

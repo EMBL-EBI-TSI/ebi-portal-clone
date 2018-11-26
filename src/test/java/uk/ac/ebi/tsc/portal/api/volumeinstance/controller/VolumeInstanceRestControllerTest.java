@@ -54,8 +54,6 @@ public class VolumeInstanceRestControllerTest {
     public final Date A_DATE = new Date(1);
     public final String A_REFERENCE = "acc-1010101";
     public final String A_CLOUD_PROVIDER = "OSTACK";
-    String salt= "salt";
-    String password= "password";
 
     AccountRepository mockAccountRepo = mock(AccountRepository.class);
     VolumeInstanceRepository mockVolumeInstanceRepo = mock(VolumeInstanceRepository.class);
@@ -80,9 +78,7 @@ public class VolumeInstanceRestControllerTest {
                 mockVolumeDeployerBash,
                 domainService,
                 cloudProviderParametersCopyRepository,
-                encryptionService,
-                salt,
-                password
+                encryptionService
         );
 
         Properties props = new Properties();

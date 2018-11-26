@@ -1,7 +1,9 @@
 package uk.ac.ebi.tsc.portal.security;
 
 import org.junit.Test;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.util.InMemoryResource;
 import uk.ac.ebi.tsc.aap.client.model.User;
 import uk.ac.ebi.tsc.aap.client.repo.DomainService;
 import uk.ac.ebi.tsc.aap.client.repo.TokenService;
@@ -45,10 +47,24 @@ public class EcpAuthenticationServiceTest {
     private ApplicationDeployerBash mockApplicationDeployerBash = mock(ApplicationDeployerBash.class);
     private DomainService mockDomainService = mock(DomainService.class);
     private EncryptionService mockEncryptionService = mock(EncryptionService.class);
+    private ResourceLoader mockResourceLoader = mock(ResourceLoader.class);
 
 
     public EcpAuthenticationServiceTest() throws IOException {
-
+        when(mockResourceLoader.getResource("ecp.default.teams.file")).thenReturn(new InMemoryResource("[\n" +
+                "  {\n" +
+                "    \"emailDomain\":\"test.com\",\n" +
+                "    \"teamName\": \"TEST1\"\n" +
+                "  },\n" +
+                "  {\n" +
+                "    \"emailDomain\":\"test.org\",\n" +
+                "    \"teamName\": \"TEST2\"\n" +
+                "  },\n" +
+                "  {\n" +
+                "    \"emailDomain\":\"test.org\",\n" +
+                "    \"teamName\": \"TEST3\"\n" +
+                "  }\n" +
+                "]"));
         subject = new EcpAuthenticationService(
                 mockAuthService,
                 mockAccountRepo,
@@ -61,12 +77,12 @@ public class EcpAuthenticationServiceTest {
                 mockDomainService,
                 mockTokenService,
                 mockEncryptionService,
-                "salt",
-                "password",
+                mockResourceLoader,
                 "aap.ecp.user",
                 "aap.ecp.password",
                 "ecp.default.teams.file"
         );
+
     }
 
     @Test

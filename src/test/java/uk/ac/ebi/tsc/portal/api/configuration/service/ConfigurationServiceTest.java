@@ -474,8 +474,8 @@ public class ConfigurationServiceTest {
 		assertTrue(depParam != null);
 		assertTrue(depParam.getConfigurationDeploymentParameter().size() == 2);
 	}
-    
-    private void getTeamResource(Team team){
+   
+	private void getTeamResource(Team team){
 
 		given(team.getAccount()).willReturn(accountMock);
 		given(team.getName()).willReturn(teamName);

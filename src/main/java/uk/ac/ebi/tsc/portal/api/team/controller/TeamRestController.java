@@ -121,15 +121,12 @@ public class TeamRestController {
 			DeploymentRestController deploymentRestController,
 			CloudProviderParamsCopyRepository cloudProviderParametersCopyRepository,
 			EncryptionService encryptionService,
-			ApplicationDeployerBash applicationDeployerBash,
-			@Value("${ecp.security.salt}") final String salt, 
-			@Value("${ecp.security.password}") final String password){
-		this.cloudProviderParametersCopyService = new CloudProviderParamsCopyService(cloudProviderParametersCopyRepository, encryptionService,
-				salt, password);
+			ApplicationDeployerBash applicationDeployerBash){
+		this.cloudProviderParametersCopyService = new CloudProviderParamsCopyService(cloudProviderParametersCopyRepository, encryptionService);
 		this.accountService = new AccountService(accountRepository);
 		this.applicationService = new ApplicationService(applicationRepository, domainService);
 		this.cloudProviderParametersService = new CloudProviderParametersService(cppRepository, domainService, 
-				cloudProviderParametersCopyService, encryptionService, salt, password);
+				cloudProviderParametersCopyService, encryptionService);
 		this.configDepParamsService = new ConfigurationDeploymentParametersService(configDepParamsRepository, domainService);
 		this.deploymentService = new DeploymentService(deploymentRepository, deploymentStatusRepository);
 		this.configurationService = new ConfigurationService(configRepository, domainService, 

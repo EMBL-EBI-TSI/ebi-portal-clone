@@ -88,7 +88,7 @@ public class Account {
         this.avatarImageUrl = avatarImageUrl;
     }
 
-    Account() { // jpa only
+    public Account() { // jpa only
     }
 
     public Set<Deployment> getDeployments() {
