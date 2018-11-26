@@ -4,7 +4,7 @@
    ,"fields": [
 
         { "key": "network_name" 	 , "value": "CRUK_private" 	}
-       ,{ "key": "floating_ip_pool"  , "value": "ext-net-37"	}
+       ,{ "key": "floating_ip_pool"  , "value": "ext-net" 		}
        ,{ "key": "subnet_id" 		 , "value": "CRUK_subnet" 	}
     ]
 }
