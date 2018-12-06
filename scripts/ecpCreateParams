@@ -1,0 +1,3 @@
+
+
+ecp --dev create params -f "$1"

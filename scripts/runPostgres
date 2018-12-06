@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 
 
 docker  run                               \
@@ -6,4 +8,3 @@ docker  run                               \
         -e "POSTGRES_PASSWORD=changeme"   \
         -p 5432:5432                      \
         'ebitsi/postgres-logging'
-
