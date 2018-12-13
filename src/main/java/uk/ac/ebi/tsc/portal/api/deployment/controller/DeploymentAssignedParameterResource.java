@@ -3,6 +3,7 @@ package uk.ac.ebi.tsc.portal.api.deployment.controller;
 import static org.springframework.hateoas.mvc.ControllerLinkBuilder.linkTo;
 
 import org.springframework.hateoas.ResourceSupport;
+import org.springframework.stereotype.Component;
 
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentAssignedParameter;
 
@@ -11,6 +12,7 @@ import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentAssignedParameter;
  * @since v0.0.1
  * @author Navis Raj <navis@ebi.ac.uk>
  */
+@Component
 public class DeploymentAssignedParameterResource extends ResourceSupport {
 
     private String parameterName;

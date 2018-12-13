@@ -13,6 +13,7 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import uk.ac.ebi.tsc.aap.client.model.Domain;
 import uk.ac.ebi.tsc.aap.client.model.User;
@@ -48,6 +49,7 @@ import uk.ac.ebi.tsc.portal.usage.deployment.service.DeploymentIndexService;
  * @since v0.0.1
  * @author Navis Raj <navis@ebi.ac.uk>
  */
+@Service
 public class ConfigurationService {
 
 	private final ConfigurationRepository configurationRepository;

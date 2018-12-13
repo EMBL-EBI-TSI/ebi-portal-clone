@@ -1,6 +1,8 @@
 package uk.ac.ebi.tsc.portal.api.account.controller;
 
 import org.springframework.hateoas.ResourceSupport;
+import org.springframework.stereotype.Component;
+
 import uk.ac.ebi.tsc.portal.api.account.repo.Account;
 import uk.ac.ebi.tsc.portal.api.deployment.controller.DeploymentRestController;
 
@@ -14,6 +16,7 @@ import static org.springframework.hateoas.mvc.ControllerLinkBuilder.methodOn;
  * @since v0.0.1
  * @author Navis Raj <navis@ebi.ac.uk>
  */
+@Component
 class AccountResource extends ResourceSupport {
 
     private final Long id;

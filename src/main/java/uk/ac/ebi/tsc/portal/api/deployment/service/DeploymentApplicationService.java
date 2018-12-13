@@ -5,6 +5,7 @@ import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
 
 import uk.ac.ebi.tsc.portal.api.application.repo.Application;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentApplication;
@@ -19,6 +20,7 @@ import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentApplicationRepository;
  * @since v0.0.1
  * @author Navis Raj <navis@ebi.ac.uk>
  */
+@Service
 public class DeploymentApplicationService {
 
     private static final Logger logger = LoggerFactory.getLogger(DeploymentApplicationService.class);

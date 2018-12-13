@@ -14,16 +14,18 @@ import java.util.stream.Collectors;
 /**
  * @author Felix Xavier <famaladoss@ebi.ac.uk>
  */
+@Service
 public class DeploymentGeneratedOutputService {
 
 
-    private DeploymentRepository deploymentRepository;
+    private final DeploymentRepository deploymentRepository;
     List<DeploymentGeneratedOutput> deploymentGeneratedOutputList;
     List<String> payLoadKeyList;
     Deployment theDeployment;
     StringBuilder replacingOutputValues;
     StringBuilder payLoadOutputValues;
 
+    @Autowired
     public DeploymentGeneratedOutputService(DeploymentRepository deploymentRepository) {
         this.deploymentRepository = deploymentRepository;
     }

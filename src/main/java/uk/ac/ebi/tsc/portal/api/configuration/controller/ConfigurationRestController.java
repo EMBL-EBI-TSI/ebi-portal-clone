@@ -80,36 +80,33 @@ public class ConfigurationRestController {
     private String elasticSearchPassword;
 	
 	@Autowired
-	public ConfigurationRestController(ConfigurationRepository configurationRepository,
-			AccountRepository accountRepository,
-			CloudProviderParametersRepository cloudProviderParametersRepository,
-			ConfigurationDeploymentParametersRepository configurationDeploymentParametersRepository,
-			ConfigurationDeploymentParameterRepository configurationDeploymentParameterRepository,
+	public ConfigurationRestController(ConfigurationService configurationService,
+			AccountService accountService,
+			CloudProviderParametersService cloudProviderParametersService,
+			ConfigurationDeploymentParametersService configurationDeploymentParametersService,
+			ConfigurationDeploymentParameterService configurationDeploymentParameterService,
 			DomainService domainService,
 									   uk.ac.ebi.tsc.aap.client.security.TokenHandler tokenHandler,
-			DeploymentRepository deploymentRepository,
-			DeploymentStatusRepository deploymentStatusRepository,
+			DeploymentService deploymentService,
 			DeploymentRestController deploymentRestController,
-			CloudProviderParamsCopyRepository cloudProviderParametersCopyRepository,
-			ConfigDeploymentParamsCopyRepository configDeploymentParamsCopyRepository,
-			ConfigDeploymentParamCopyRepository configDeploymentParamCopyRepository,
+			CloudProviderParamsCopyService cloudProviderParametersCopyService,
+			ConfigDeploymentParamsCopyService configDeploymentParamsCopyService,
+			ConfigDeploymentParamCopyService configDeploymentParamCopyService,
 			EncryptionService encryptionService
 			) {
-		this.accountService = new AccountService(accountRepository);
-		this.cloudProviderParametersCopyService = new CloudProviderParamsCopyService(cloudProviderParametersCopyRepository, encryptionService);
-		this.cloudProviderParametersService = new CloudProviderParametersService(cloudProviderParametersRepository, 
-				domainService, cloudProviderParametersCopyService, encryptionService);
-		this.configurationDeploymentParametersService = new ConfigurationDeploymentParametersService(configurationDeploymentParametersRepository, domainService);
-		this.configurationDeploymentParameterService = new ConfigurationDeploymentParameterService(configurationDeploymentParameterRepository);
-		deploymentService = new DeploymentService(deploymentRepository, deploymentStatusRepository);
-		this.configurationService = new ConfigurationService(configurationRepository, domainService,
-				cloudProviderParametersService, configurationDeploymentParametersService, cloudProviderParametersCopyService, deploymentService );
+		this.accountService = accountService;
+		this.cloudProviderParametersCopyService = cloudProviderParametersCopyService;
+		this.cloudProviderParametersService = cloudProviderParametersService;
+		this.configurationDeploymentParametersService = configurationDeploymentParametersService;
+		this.configurationDeploymentParameterService = configurationDeploymentParameterService;
+		this.deploymentService = deploymentService;
+		this.configurationService = configurationService;
 		this.tokenHandler = tokenHandler;
-
 		this.deploymentRestController = deploymentRestController;
-		this.configDeploymentParamsCopyService = new ConfigDeploymentParamsCopyService(configDeploymentParamsCopyRepository);
-		this.configDeploymentParamCopyService = new ConfigDeploymentParamCopyService(configDeploymentParamCopyRepository);
+		this.configDeploymentParamsCopyService = configDeploymentParamsCopyService;
+		this.configDeploymentParamCopyService = configDeploymentParamCopyService;
 	}
+
 
 
 	@RequestMapping(method = {RequestMethod.GET, RequestMethod.OPTIONS} )

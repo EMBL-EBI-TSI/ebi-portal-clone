@@ -28,8 +28,8 @@ public class AccountRestController {
     private final AccountService accountService;
 
     @Autowired
-    AccountRestController(AccountRepository accountRepository) {
-        this.accountService = new AccountService(accountRepository);
+    AccountRestController(AccountService accountService) {
+        this.accountService = accountService;
     }
 
     @RequestMapping(method = {RequestMethod.GET, RequestMethod.OPTIONS} )

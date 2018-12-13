@@ -84,22 +84,19 @@ public class VolumeInstanceRestController {
     private final CloudProviderParamsCopyService cloudProviderParametersCopyService;
 
     @Autowired
-    VolumeInstanceRestController(VolumeInstanceRepository volumeInstanceRepository,
-                                 VolumeInstanceStatusRepository volumeInstanceStatusRepository,
-                                 AccountRepository accountRepository,
-                                 VolumeSetupRepository volumeSetupRepository,
-                                 CloudProviderParametersRepository cloudProviderParametersRepository,
+    VolumeInstanceRestController(VolumeInstanceService volumeInstanceService,
+                                 AccountService accountService,
+                                 VolumeSetupService volumeSetupService,
+                                 CloudProviderParametersService cloudProviderParametersService,
                                  VolumeDeployerBash volumeDeployerBash,
                                  DomainService domainService,
-                                 CloudProviderParamsCopyRepository cloudProviderParametersCopyRepository,
+                                 CloudProviderParamsCopyService cloudProviderParametersCopyService,
                                  EncryptionService encryptionService) {
-        this.volumeInstanceService = new VolumeInstanceService(
-                volumeInstanceRepository, volumeInstanceStatusRepository);
-        this.accountService = new AccountService(accountRepository);
-        this.volumeSetupService = new VolumeSetupService(volumeSetupRepository);
-        this.cloudProviderParametersCopyService = new CloudProviderParamsCopyService(cloudProviderParametersCopyRepository, encryptionService);
-        this.cloudProviderParametersService = new CloudProviderParametersService(cloudProviderParametersRepository, domainService,
-        		cloudProviderParametersCopyService, encryptionService);
+        this.volumeInstanceService = volumeInstanceService;
+        this.accountService = accountService;
+        this.volumeSetupService = volumeSetupService;
+        this.cloudProviderParametersCopyService = cloudProviderParametersCopyService;
+        this.cloudProviderParametersService = cloudProviderParametersService;
         this.volumeDeployerBash = volumeDeployerBash;
     }
 

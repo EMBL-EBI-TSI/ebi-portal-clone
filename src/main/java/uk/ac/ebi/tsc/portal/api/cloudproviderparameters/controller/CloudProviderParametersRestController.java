@@ -73,32 +73,26 @@ public class CloudProviderParametersRestController {
 
 	@Autowired
 	CloudProviderParametersRestController(
-			CloudProviderParametersRepository cloudProviderParametersRepository,
-			AccountRepository accountRepository,
+			CloudProviderParametersService cloudProviderParametersService,
+			AccountService accountService,
 			DomainService domainService,
 			uk.ac.ebi.tsc.aap.client.security.TokenHandler tokenHandler,
-			DeploymentRepository deploymentRepository,
-			DeploymentStatusRepository deploymentStatusRepository,
+			DeploymentService deploymentService,
 			DeploymentRestController deploymentRestController,
-			ConfigurationRepository configurationRepository,
-			ConfigurationDeploymentParametersRepository cdpRepository,
-			CloudProviderParamsCopyRepository cloudProviderParametersCopyRepository,
+			ConfigurationService configurationService,
+			ConfigurationDeploymentParametersService cdpService,
+			CloudProviderParamsCopyService cloudProviderParametersCopyService,
 			EncryptionService encryptionService
 			) {
-		this.cloudProviderParametersCopyService = new CloudProviderParamsCopyService(cloudProviderParametersCopyRepository,
-				encryptionService);
-		this.cloudProviderParametersService = new CloudProviderParametersService(cloudProviderParametersRepository, domainService,
-				cloudProviderParametersCopyService, encryptionService);
-		this.accountService = new AccountService(accountRepository);
-		deploymentService = new DeploymentService(deploymentRepository, deploymentStatusRepository);
-		this.cdpService = new ConfigurationDeploymentParametersService(cdpRepository, domainService);
+		this.cloudProviderParametersCopyService = cloudProviderParametersCopyService;
+		this.cloudProviderParametersService = cloudProviderParametersService;
+		this.accountService = accountService;
+		this.deploymentService = deploymentService;
+		this.cdpService = cdpService;
 		this.tokenHandler = tokenHandler;
 		this.deploymentRestController = deploymentRestController;
-		this.configurationService = new ConfigurationService(
-				configurationRepository, domainService, cloudProviderParametersService,
-				cdpService, cloudProviderParametersCopyService, deploymentService);
+		this.configurationService = configurationService;
 	}
-
 
 	@RequestMapping(method = {RequestMethod.GET})
 	public Resources<CloudProviderParametersResource> getCurrentUserCredentials(Principal principal)

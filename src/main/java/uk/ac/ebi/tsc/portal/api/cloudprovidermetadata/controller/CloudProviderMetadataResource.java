@@ -5,7 +5,9 @@ import org.jose4j.json.internal.json_simple.JSONObject;
 import org.jose4j.json.internal.json_simple.parser.JSONParser;
 import org.jose4j.json.internal.json_simple.parser.ParseException;
 import org.springframework.hateoas.ResourceSupport;
+import org.springframework.stereotype.Component;
 
+@Component
 public class CloudProviderMetadataResource extends ResourceSupport {
 
     private String username;

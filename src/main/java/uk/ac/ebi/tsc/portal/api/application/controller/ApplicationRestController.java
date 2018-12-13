@@ -61,18 +61,18 @@ public class ApplicationRestController {
 
 	@Autowired
 	ApplicationRestController(
-			ApplicationRepository applicationRepository,
-			AccountRepository accountRepository,
+			ApplicationService applicationService,
+			AccountService accountService,
 			ApplicationDownloader applicationDownloader,
 			TeamRepository teamRepository,
 			uk.ac.ebi.tsc.aap.client.security.TokenHandler tokenHandler,
 			DomainService domainService,
-			DeploymentApplicationRepository deploymentApplicationRepository) {
-		this.applicationService = new ApplicationService(applicationRepository, domainService);
-		this.accountService = new AccountService(accountRepository);
+			DeploymentApplicationService deploymentApplicationService) {
+		this.applicationService = applicationService;
+		this.accountService = accountService;
 		this.applicationDownloader = applicationDownloader;
 		this.tokenHandler = tokenHandler;
-		this.deploymentApplicationService = new DeploymentApplicationService(deploymentApplicationRepository);
+		this.deploymentApplicationService = deploymentApplicationService;
 		
 	}
 

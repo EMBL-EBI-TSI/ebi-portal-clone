@@ -2,6 +2,8 @@ package uk.ac.ebi.tsc.portal.api.cloudproviderparameters.controller;
 
 import org.springframework.hateoas.ResourceSupport;
 import org.springframework.hateoas.mvc.ControllerLinkBuilder;
+import org.springframework.stereotype.Component;
+
 import uk.ac.ebi.tsc.portal.api.account.controller.AccountRestController;
 import uk.ac.ebi.tsc.portal.api.account.repo.Account;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParameters;
@@ -18,6 +20,7 @@ import static org.springframework.hateoas.mvc.ControllerLinkBuilder.methodOn;
  * @since v0.0.1
  * @author Navis Raj <navis@ebi.ac.uk>
  */
+@Component
 public class CloudProviderParametersResource extends ResourceSupport {
 
     private Long id;

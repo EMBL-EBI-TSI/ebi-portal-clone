@@ -9,11 +9,13 @@ import org.openstack4j.model.network.Network;
 import org.openstack4j.openstack.OSFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+
 import uk.ac.ebi.tsc.portal.api.cloudprovidermetadata.controller.CloudProviderMetadataResource;
 
 import java.util.List;
 
-
+@Service
 public class CloudProviderMetadataService {
 
 	private static final Logger logger = LoggerFactory.getLogger(CloudProviderMetadataService.class);

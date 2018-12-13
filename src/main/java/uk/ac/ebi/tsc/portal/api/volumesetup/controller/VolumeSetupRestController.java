@@ -44,8 +44,8 @@ public class VolumeSetupRestController {
     private VolumeSetupDownloader volumeSetupDownloader;
 
     @Autowired
-    VolumeSetupRestController(VolumeSetupRepository volumeSetupRepository, VolumeSetupDownloader volumeSetupDownloader) {
-        this.volumeSetupService = new VolumeSetupService(volumeSetupRepository);
+    VolumeSetupRestController(VolumeSetupService volumeSetupService, VolumeSetupDownloader volumeSetupDownloader) {
+        this.volumeSetupService = volumeSetupService;
         this.volumeSetupDownloader = volumeSetupDownloader;
     }
 

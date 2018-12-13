@@ -1,6 +1,8 @@
 package uk.ac.ebi.tsc.portal.api.deployment.controller;
 
 import org.springframework.hateoas.ResourceSupport;
+import org.springframework.stereotype.Component;
+
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentAttachedVolume;
 import uk.ac.ebi.tsc.portal.api.volumeinstance.controller.VolumeInstanceRestController;
 
@@ -12,6 +14,7 @@ import static org.springframework.hateoas.mvc.ControllerLinkBuilder.methodOn;
  * @since v0.0.1
  * @author Navis Raj <navis@ebi.ac.uk>
  */
+@Component
 class DeploymentAttachedVolumeResource extends ResourceSupport {
 
     private String name;

@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import uk.ac.ebi.tsc.aap.client.model.Domain;
 import uk.ac.ebi.tsc.aap.client.model.User;
@@ -42,6 +43,7 @@ import java.util.stream.Collectors;
  * @author Jose A. Dianes <jdianes@ebi.ac.uk> (code refactoring)
  */
 
+@Service
 public class TeamService {
 
 	private final TeamRepository teamRepository;
@@ -55,7 +57,7 @@ public class TeamService {
 
 	@Autowired
 	public TeamService(TeamRepository teamRepository,
-			AccountRepository accountRepository, 
+			AccountService accountService, 
 			DomainService domainService,
 			DeploymentService deploymentService,
 			CloudProviderParamsCopyService cloudProviderParametersCopyService,
@@ -63,7 +65,7 @@ public class TeamService {
 			ApplicationDeployerBash applicationDeployerBash
 			){
 		this.teamRepository = teamRepository;
-		this.accountService = new AccountService(accountRepository);
+		this.accountService = accountService;
 		this.domainService = domainService;
 		this.deploymentService = deploymentService ;
 		this.cloudProviderParametersCopyService = cloudProviderParametersCopyService;

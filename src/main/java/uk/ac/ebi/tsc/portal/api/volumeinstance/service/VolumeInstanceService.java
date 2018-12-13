@@ -7,16 +7,21 @@ import uk.ac.ebi.tsc.portal.api.volumeinstance.repo.VolumeInstanceStatusReposito
 
 import java.util.Collection;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
 /**
  * @author Jose A. Dianes <jdianes@ebi.ac.uk>
  * @since v0.0.1
  * @author Navis Raj <navis@ebi.ac.uk>
  */
+@Service
 public class VolumeInstanceService {
 
     private final VolumeInstanceRepository volumeInstanceRepository;
     private final VolumeInstanceStatusRepository volumeInstanceStatusRepository;
 
+    @Autowired
     public VolumeInstanceService(VolumeInstanceRepository volumeInstanceRepository,
                                  VolumeInstanceStatusRepository volumeInstanceStatusRepository) {
         this.volumeInstanceRepository = volumeInstanceRepository;

@@ -1,6 +1,8 @@
 package uk.ac.ebi.tsc.portal.api.deployment.controller;
 
 import org.springframework.hateoas.ResourceSupport;
+import org.springframework.stereotype.Component;
+
 import uk.ac.ebi.tsc.portal.api.deployment.repo.Deployment;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentStatus;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentStatusEnum;
@@ -15,6 +17,7 @@ import static org.springframework.hateoas.mvc.ControllerLinkBuilder.linkTo;
  * @since v0.0.1
  * @author Navis Raj <navis@ebi.ac.uk>
  */
+@Component
 class DeploymentStatusResource extends ResourceSupport {
 
     private final DeploymentStatusEnum status;
