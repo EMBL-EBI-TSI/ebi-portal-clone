@@ -7,12 +7,15 @@ import uk.ac.ebi.tsc.portal.api.application.repo.ApplicationDeploymentParameter;
 
 import java.util.Collection;
 
+import org.springframework.stereotype.Component;
+
 /**
  * @author Jose A. Dianes <jdianes@ebi.ac.uk>
  * @since v0.0.1
  * @author Navis Raj <navis@ebi.ac.uk>
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
+@Component
 public class ApplicationManifest {
 
     @JsonProperty

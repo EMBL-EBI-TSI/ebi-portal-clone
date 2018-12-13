@@ -21,7 +21,6 @@ import static org.springframework.hateoas.mvc.ControllerLinkBuilder.methodOn;
  * @since v0.0.1
  * @author Navis Raj <navis@ebi.ac.uk>
  */
-@Component
 public class CloudProviderParametersCopyResource extends ResourceSupport {
 
     private Long id;

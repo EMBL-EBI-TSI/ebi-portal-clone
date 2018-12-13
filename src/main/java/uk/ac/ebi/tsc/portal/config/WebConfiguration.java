@@ -1,7 +1,11 @@
 package uk.ac.ebi.tsc.portal.config;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
 
@@ -25,6 +29,26 @@ public class WebConfiguration extends WebMvcConfigurerAdapter {
                 .allowedMethods("*", "OPTIONS", "PUT")
                 .allowedHeaders("accept", "authorization", "origin", "content-type", "x-requested-with")
                 .allowCredentials(true).maxAge(3600);
+    }
+    
+    @Bean
+    public RestTemplate restTemplate(RestTemplateBuilder builder) {
+       return builder.build();
+    }
+    
+    @Bean
+    public String elasticindexurl(@Value("${elasticsearch.url}") String elasticindexurl) {
+       return elasticindexurl;
+    }
+    
+    @Bean
+    public String elasticsearchusername(@Value("${elasticsearch.username}") String elasticsearchusername) {
+       return elasticsearchusername;
+    }
+    
+    @Bean
+    public String elasticsearchpassword(@Value("${elasticsearch.password}") String elasticsearchpassword) {
+       return elasticsearchpassword;
     }
 
 

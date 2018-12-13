@@ -8,7 +8,6 @@ import org.springframework.stereotype.Component;
  * @since v0.0.1
  * @author Navis Raj <navis@ebi.ac.uk>
  */
-@Component
 public class SharedCloudProviderParametersResource extends ResourceSupport{
 	
 	private String userEmail;

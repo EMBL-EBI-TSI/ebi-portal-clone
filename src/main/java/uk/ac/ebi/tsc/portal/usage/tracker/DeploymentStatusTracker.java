@@ -11,17 +11,11 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
 import uk.ac.ebi.tsc.aap.client.repo.DomainService;
-import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParametersRepository;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParamsCopyRepository;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParametersService;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParamsCopyService;
-import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationDeploymentParametersRepository;
-import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationRepository;
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationDeploymentParametersService;
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationService;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentConfigurationRepository;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentRepository;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentStatusRepository;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentConfigurationService;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
 import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
@@ -53,49 +47,39 @@ public class DeploymentStatusTracker {
 	@Value("${elasticsearch.password}")
 	private String elasticSearchPassword;
 
-	private ScheduledThreadPoolExecutor scheduledThreadPoolExecutor;
+	private final ScheduledThreadPoolExecutor scheduledThreadPoolExecutor;
 
-	private DeploymentService deploymentService;
-	private ConfigurationService configurationService;
-	private DeploymentConfigurationService deploymentConfigurationService;
-	private CloudProviderParametersService cloudProviderParametersService;
-	private CloudProviderParamsCopyService cloudProviderParamsCopyService;
-	private ConfigurationDeploymentParametersService configurationDeploymentParametersService;
-	private ApplicationDeployerBash applicationDeployerBash;
-
+	private final DeploymentService deploymentService;
+	private final ConfigurationService configurationService;
+	private final DeploymentConfigurationService deploymentConfigurationService;
+	private final CloudProviderParametersService cloudProviderParametersService;
+	private final ConfigurationDeploymentParametersService configurationDeploymentParametersService;
+	private final ApplicationDeployerBash applicationDeployerBash;
+	private final CloudProviderParamsCopyService cloudProviderParametersCopyService;
 	private final CloudProviderParamsCopyRepository cloudProviderParametersCopyRepository;
-
 	private final EncryptionService encryptionService;
 
 	@Autowired
-	public DeploymentStatusTracker(DeploymentRepository deploymentRepository,
-			DeploymentStatusRepository deploymentStatusRepository,
-			CloudProviderParamsCopyRepository cloudProviderParametersCopyRepository,
-			ConfigurationRepository configurationRepository,
+	public DeploymentStatusTracker(DeploymentService deploymentService,
+			CloudProviderParamsCopyService cloudProviderParametersCopyService,
+			ConfigurationService configurationService,
 			DomainService domainService,
-			CloudProviderParametersRepository cloudProviderParametersRepository,
-			ConfigurationDeploymentParametersRepository configurationDeploymentParametersRepository,
-			DeploymentConfigurationRepository deploymentConfigurationRepository,
+			CloudProviderParametersService cloudProviderParametersService,
+			ConfigurationDeploymentParametersService configurationDeploymentParametersService,
+			DeploymentConfigurationService deploymentConfigurationService,
 			ApplicationDeployerBash applicationDeployerBash,
-			EncryptionService encryptionService) {
-		this.cloudProviderParametersCopyRepository = cloudProviderParametersCopyRepository;
-		this.deploymentService = new DeploymentService(deploymentRepository, deploymentStatusRepository);
-		this.cloudProviderParamsCopyService = new CloudProviderParamsCopyService(cloudProviderParametersCopyRepository, encryptionService);
-		this.cloudProviderParametersService = new CloudProviderParametersService(cloudProviderParametersRepository, domainService, cloudProviderParamsCopyService, encryptionService);
-		this.configurationDeploymentParametersService = new ConfigurationDeploymentParametersService(configurationDeploymentParametersRepository, domainService);
-		this.configurationService = new ConfigurationService(
-				configurationRepository,
-				domainService,
-				cloudProviderParametersService,
-				configurationDeploymentParametersService,
-				cloudProviderParamsCopyService,
-				deploymentService);
-		this.deploymentConfigurationService = new DeploymentConfigurationService(deploymentConfigurationRepository);
+			EncryptionService encryptionService,
+			CloudProviderParamsCopyRepository cloudProviderParametersCopyRepository) {
+		this.deploymentService = deploymentService;
+		this.cloudProviderParametersCopyService = cloudProviderParametersCopyService;
+		this.cloudProviderParametersService = cloudProviderParametersService;
+		this.configurationDeploymentParametersService = configurationDeploymentParametersService;
+		this.configurationService = configurationService;
+		this.deploymentConfigurationService = deploymentConfigurationService;
 		this.applicationDeployerBash = applicationDeployerBash;
 		scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(4);
-		this.deploymentService = new DeploymentService(deploymentRepository, deploymentStatusRepository);
-		scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(2);
 		this.encryptionService = encryptionService;
+		this.cloudProviderParametersCopyRepository = cloudProviderParametersCopyRepository;
 	}
 
 	public void start(long initialDelay, long periodInSeconds) {
@@ -108,7 +92,7 @@ public class DeploymentStatusTracker {
 		logger.info("DeploymentIndexService initiated... (2/4)");
 		scheduledThreadPoolExecutor.scheduleAtFixedRate(
 				new DeploymentStatusUpdate(deploymentIndexService, deploymentService, 
-						cloudProviderParametersCopyRepository, encryptionService),
+						cloudProviderParametersCopyRepository, encryptionService, cloudProviderParametersCopyService),
 				initialDelay,
 				periodInSeconds,
 				TimeUnit.SECONDS
@@ -119,7 +103,7 @@ public class DeploymentStatusTracker {
 						deploymentIndexService,
 						deploymentService,
 						configurationService,
-						cloudProviderParamsCopyService,
+						cloudProviderParametersCopyService,
 						deploymentConfigurationService,
 						applicationDeployerBash),
 				initialDelay,

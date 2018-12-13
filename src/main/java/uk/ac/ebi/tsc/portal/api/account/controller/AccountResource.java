@@ -1,5 +1,6 @@
 package uk.ac.ebi.tsc.portal.api.account.controller;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.hateoas.ResourceSupport;
 import org.springframework.stereotype.Component;
 
@@ -16,7 +17,7 @@ import static org.springframework.hateoas.mvc.ControllerLinkBuilder.methodOn;
  * @since v0.0.1
  * @author Navis Raj <navis@ebi.ac.uk>
  */
-@Component
+
 class AccountResource extends ResourceSupport {
 
     private final Long id;
@@ -28,6 +29,7 @@ class AccountResource extends ResourceSupport {
     private final String organisation;
     private final String avatarImageUrl;
 
+  
     AccountResource(Account account) {
 
         this.id = account.getId();

@@ -20,7 +20,7 @@ import static org.springframework.hateoas.mvc.ControllerLinkBuilder.linkTo;
  * @since v0.0.1
  * @author Navis Raj <navis@ebi.ac.uk>
  */
-@Component
+
 public class ApplicationResource extends ResourceSupport {
 
     private Long id;

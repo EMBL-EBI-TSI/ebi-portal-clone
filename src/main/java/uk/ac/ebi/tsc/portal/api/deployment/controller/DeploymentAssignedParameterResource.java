@@ -12,7 +12,6 @@ import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentAssignedParameter;
  * @since v0.0.1
  * @author Navis Raj <navis@ebi.ac.uk>
  */
-@Component
 public class DeploymentAssignedParameterResource extends ResourceSupport {
 
     private String parameterName;

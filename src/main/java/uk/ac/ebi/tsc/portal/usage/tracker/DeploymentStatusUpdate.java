@@ -6,6 +6,7 @@ import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientException;
 
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParamsCopy;
@@ -25,22 +26,27 @@ import uk.ac.ebi.tsc.portal.usage.deployment.service.DeploymentIndexService;
  * @since v0.0.1
  * @author Navis Raj <navis@ebi.ac.uk>
  */
+@Component
 public class DeploymentStatusUpdate implements Runnable {
 
 	private static final Logger logger = LoggerFactory.getLogger(DeploymentStatusUpdate.class);
 
 	private DeploymentIndexService deploymentIndexService;
 	private DeploymentService deploymentService;
+	private final EncryptionService encryptionService;
+	private final CloudProviderParamsCopyRepository cloudProviderParametersCopyRepository;
 	private final CloudProviderParamsCopyService cloudProviderParametersCopyService;
 
 	public DeploymentStatusUpdate(DeploymentIndexService deploymentIndexService, 
 			DeploymentService deploymentService,
 			CloudProviderParamsCopyRepository cloudProviderParametersCopyRepository,
-			EncryptionService encryptionService) {
+			EncryptionService encryptionService,
+			CloudProviderParamsCopyService cloudProviderParametersCopyService) {
 		this.deploymentIndexService = deploymentIndexService;
 		this.deploymentService = deploymentService;
-		this.cloudProviderParametersCopyService = new CloudProviderParamsCopyService(cloudProviderParametersCopyRepository, 
-				encryptionService);
+		this.cloudProviderParametersCopyRepository = cloudProviderParametersCopyRepository;
+		this.encryptionService = encryptionService;
+		this.cloudProviderParametersCopyService = cloudProviderParametersCopyService;
 	}
 
 	@Override

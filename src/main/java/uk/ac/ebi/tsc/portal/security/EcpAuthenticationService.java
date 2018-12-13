@@ -63,36 +63,26 @@ public class EcpAuthenticationService {
     private final String ecpAapPassword;
     private final Map<String, List<DefaultTeamMap>> defaultTeamsMap;
 
-    public EcpAuthenticationService(uk.ac.ebi.tsc.aap.client.security.TokenAuthenticationService tokenAuthenticationService,
-                                    AccountRepository accountRepository,
-                                    DeploymentRepository deploymentRepository,
-                                    DeploymentStatusRepository deploymentStatusRepository,
-                                    DeploymentConfigurationRepository deploymentConfigurationRepository,
-                                    CloudProviderParamsCopyRepository cloudProviderParamsCopyRepository,
-                                    TeamRepository teamRepository,
-                                    ApplicationDeployerBash applicationDeployerBash,
-                                    DomainService domainService,
-                                    TokenService tokenService,
-                                    EncryptionService encryptionService,
-                                    ResourceLoader resourceLoader,
-                                    @Value("${ecp.aap.username}") final String ecpAapUsername,
-                                    @Value("${ecp.aap.password}") final String ecpAapPassword,
-                                    @Value("${ecp.default.teams.file}") final String ecpDefaultTeamsFilePath) throws IOException {
+	public EcpAuthenticationService(
+			uk.ac.ebi.tsc.aap.client.security.TokenAuthenticationService tokenAuthenticationService,
+			AccountService accountService, DeploymentService deploymentService,
+			DeploymentConfigurationService deploymentConfigurationService,
+			CloudProviderParamsCopyService cloudProviderParamsCopyService, TeamService teamService,
+			ApplicationDeployerBash applicationDeployerBash, DomainService domainService, TokenService tokenService,
+			EncryptionService encryptionService, ResourceLoader resourceLoader,
+			@Value("${ecp.aap.username}") final String ecpAapUsername,
+			@Value("${ecp.aap.password}") final String ecpAapPassword,
+			@Value("${ecp.default.teams.file}") final String ecpDefaultTeamsFilePath) throws IOException {
         this.tokenAuthenticationService = tokenAuthenticationService;
         this.ecpAapUsername = ecpAapUsername;
         this.ecpAapPassword = ecpAapPassword;
         this.tokenService = tokenService;
-        this.accountService = new AccountService(accountRepository);
+        this.accountService = accountService;
         this.applicationDeployerBash = applicationDeployerBash;
-        this.deploymentService = new DeploymentService(deploymentRepository, deploymentStatusRepository);
-        this.cloudProviderParamsCopyService = new CloudProviderParamsCopyService(
-                cloudProviderParamsCopyRepository,
-                encryptionService);
-        this.deploymentConfigurationService = new DeploymentConfigurationService(deploymentConfigurationRepository);
-        this.teamService = new TeamService(
-                teamRepository, accountRepository, domainService, this.deploymentService,
-                this.cloudProviderParamsCopyService, this.deploymentConfigurationService,
-                this.applicationDeployerBash);
+        this.deploymentService = deploymentService;
+        this.deploymentConfigurationService = deploymentConfigurationService;
+        this.cloudProviderParamsCopyService = cloudProviderParamsCopyService;
+        this.teamService = teamService;
         this.defaultTeamsMap = new HashMap<>();
         // Read maps from json file
         ObjectMapper mapper = new ObjectMapper();
