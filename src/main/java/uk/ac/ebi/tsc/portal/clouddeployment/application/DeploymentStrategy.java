@@ -1,16 +1,17 @@
 package uk.ac.ebi.tsc.portal.clouddeployment.application;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
 import static com.github.underscore.U.chain;
 import static com.github.underscore.U.concat;
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
 
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.PropertySource;
 import org.springframework.stereotype.Component;
 
 
@@ -26,7 +27,7 @@ public class DeploymentStrategy {
     @Value("${be.deployments.root}")
     String deploymentsRoot;
 
-    @Value("${be.docker}")
+    @Value("${be.docker}") 
     boolean docker;
     
     

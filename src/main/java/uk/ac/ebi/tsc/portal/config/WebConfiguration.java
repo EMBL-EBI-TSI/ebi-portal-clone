@@ -51,5 +51,4 @@ public class WebConfiguration extends WebMvcConfigurerAdapter {
        return elasticsearchpassword;
     }
 
-
 }

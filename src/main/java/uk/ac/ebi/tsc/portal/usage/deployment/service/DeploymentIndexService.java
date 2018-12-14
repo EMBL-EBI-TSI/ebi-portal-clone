@@ -40,9 +40,9 @@ public class DeploymentIndexService {
 
     @Autowired
     public DeploymentIndexService(RestTemplate restTemplate,  
-    	    @Qualifier("elasticindexurl")  String indexUrl, 
-    	    @Qualifier("elasticsearchusername") String username, 
-    	    @Qualifier("elasticsearchpassword")  String password) {
+    	    @Qualifier("elasticindexurl")  @Value("#{elasticindexurl}") String indexUrl, 
+    	    @Qualifier("elasticsearchusername") @Value("#{elasticsearchusername}") String username, 
+    	    @Qualifier("elasticsearchpassword") @Value("#{elasticsearchpassword}")  String password) {
         this.restTemplate = restTemplate;
         this.indexUrl = indexUrl;
         this.username = username;
