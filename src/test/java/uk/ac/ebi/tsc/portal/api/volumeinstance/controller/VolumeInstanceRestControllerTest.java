@@ -69,18 +69,6 @@ public class VolumeInstanceRestControllerTest {
 
     @Before
     public void setUp() {
-        subject = new VolumeInstanceRestController(
-                mockVolumeInstanceRepo,
-                mockVolumeInstanceStatusRepo,
-                mockAccountRepo,
-                mockVolumeSetupRepo,
-                mockCloudCredentialsRepo,
-                mockVolumeDeployerBash,
-                domainService,
-                cloudProviderParametersCopyRepository,
-                encryptionService
-        );
-
         Properties props = new Properties();
         props.put("be.applications.root", "blah");
         props.put("be.deployments.root", "bleh");

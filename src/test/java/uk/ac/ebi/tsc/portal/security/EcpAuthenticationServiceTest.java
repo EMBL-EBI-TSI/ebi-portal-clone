@@ -65,24 +65,6 @@ public class EcpAuthenticationServiceTest {
                 "    \"teamName\": \"TEST3\"\n" +
                 "  }\n" +
                 "]"));
-        subject = new EcpAuthenticationService(
-                mockAuthService,
-                mockAccountRepo,
-                mockDeploymentRepository,
-                mockDeploymentStatusRepository,
-                mockDeploymentConfigurationRepository,
-                mockCloudProviderParamsCopyRepository,
-                mockTeamRepository,
-                mockApplicationDeployerBash,
-                mockDomainService,
-                mockTokenService,
-                mockEncryptionService,
-                mockResourceLoader,
-                "aap.ecp.user",
-                "aap.ecp.password",
-                "ecp.default.teams.file"
-        );
-
     }
 
     @Test

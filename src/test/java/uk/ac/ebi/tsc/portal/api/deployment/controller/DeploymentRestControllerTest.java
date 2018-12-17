@@ -71,8 +71,8 @@ import uk.ac.ebi.tsc.portal.api.team.repo.TeamRepository;
 import uk.ac.ebi.tsc.portal.api.team.service.TeamService;
 import uk.ac.ebi.tsc.portal.api.volumeinstance.repo.VolumeInstanceRepository;
 import uk.ac.ebi.tsc.portal.api.volumeinstance.repo.VolumeInstanceStatusRepository;
+import uk.ac.ebi.tsc.portal.api.volumeinstance.service.VolumeInstanceService;
 import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployerBash;
-import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentSecretService;
 import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDeployerException;
 import uk.ac.ebi.tsc.portal.usage.deployment.service.DeploymentIndexService;
 import uk.ac.ebi.tsc.portal.usage.tracker.DeploymentStatusTracker;
@@ -205,29 +205,6 @@ public class DeploymentRestControllerTest {
 	String cppReference = "cppReference";
 	@Before 
 	public void setUp() {
-		subject = new DeploymentRestController(
-				deploymentRepository, 
-				deploymentStatusRepository,
-				accountRepository,
-				applicationRepository, 
-				volumeInstanceRepositoryRepository, 
-				volumeInstanceStatusRepository,
-				cloudProviderParametersRepository,
-				configurationRepository, 
-				teamRepository, 
-				applicationDeployerBash,
-				deploymentStatusTracker, 
-				configurationDeploymentParametersRepository,
-				domainService,
-				deploymentConfigurationRepository,
-				deploymentApplicationRepository,
-				cloudProviderParametersCopyRepository,
-				configurationDeploymentParamsCopyRepository,
-				encryptionService,
-				deploymentSecretService,
-				salt,
-				password);
-
 
 		ReflectionTestUtils.setField(deploymentService, "deploymentRepository", deploymentRepository);
 		ReflectionTestUtils.setField(configurationDeploymentParametersService, "configurationDeploymentParametersRepository",

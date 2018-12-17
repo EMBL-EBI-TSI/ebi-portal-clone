@@ -83,9 +83,7 @@ public class ApplicationRestControllerTest {
 
 	@Before
 	public void setUp() {
-
-		subject = new ApplicationRestController(mockApplicationRepo, mockAccountRepo, 
-				mockApplicationDownloader, teamRepoMock, tokenHandler, domainService, deploymentApplicationRepo );
+		
 		Properties props = new Properties();
 		props.put("be.applications.root", APPS_ROOT_FOLDER);
 		subject.setProperties(props);

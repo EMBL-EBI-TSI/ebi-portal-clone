@@ -47,7 +47,6 @@ public class VolumeSetupRestControllerTest {
 
     @Before
     public void setUp() {
-        subject = new VolumeSetupRestController(mockVolumeSetupRepo, mockVolumeSetupDownloader);
 
         Properties props = new Properties();
         props.put("be.applications.root", APPS_ROOT_FOLDER);

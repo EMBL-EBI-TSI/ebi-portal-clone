@@ -133,15 +133,6 @@ public class CloudProviderParameterRestControllerTest {
 		principalMock();
 		cppMock();
 		cppRepoMock();
-		subject = new CloudProviderParametersRestController(cppRepoMock, 
-				accountRepoMock, domainService,
-				tokenHandler, deploymentRepository,
-				deploymentStatusRepository, 
-				deploymentRestController,
-				configurationRepository, 
-				cdpRepository, 
-				cloudProviderParametersCopyRepository,
-				encryptionService);
 	}
 	
 	/**
