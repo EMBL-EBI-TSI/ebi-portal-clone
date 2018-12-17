@@ -1,20 +1,49 @@
 
 package uk.ac.ebi.tsc.portal.api.application.controller;
 
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.io.File;
+import java.io.IOException;
+import java.security.Principal;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Optional;
+import java.util.Properties;
+import java.util.Set;
+
+import javax.servlet.http.HttpServletRequest;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.util.ReflectionUtils;
 import org.springframework.hateoas.Resources;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.util.ReflectionTestUtils;
+
 import uk.ac.ebi.tsc.aap.client.model.User;
 import uk.ac.ebi.tsc.aap.client.repo.DomainService;
 import uk.ac.ebi.tsc.portal.api.account.repo.Account;
@@ -34,24 +63,12 @@ import uk.ac.ebi.tsc.portal.clouddeployment.application.ProcessRunner;
 import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDownloaderException;
 import uk.ac.ebi.tsc.portal.clouddeployment.model.ApplicationManifest;
 
-import javax.servlet.http.HttpServletRequest;
-import java.io.File;
-import java.io.IOException;
-import java.security.Principal;
-import java.util.*;
-
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.*;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
 /**
  * @author Jose A. Dianes <jdianes@ebi.ac.uk>
  * @since v0.0.1
  * @author Navis Raj <navis@ebi.ac.uk>
  */
+@ContextConfiguration
 @RunWith(SpringJUnit4ClassRunner.class)
 @WebAppConfiguration
 public class ApplicationRestControllerTest {
@@ -70,9 +87,12 @@ public class ApplicationRestControllerTest {
 	DeploymentApplicationService deploymentApplicationService = mock(DeploymentApplicationService.class);
 	DeploymentApplicationRepository deploymentApplicationRepo = mock(DeploymentApplicationRepository.class);
 	Principal principalMock = mock(Principal.class);
+	ApplicationDownloader applicationDownloader = mock(ApplicationDownloader.class);
 	User user = mock(User.class);
 	Account accountMock = mock(Account.class);
-	ApplicationRestController subject;
+	
+	@MockBean
+	ApplicationRestController subject; 
 
 	private static final String APPS_ROOT_FOLDER = "/a/path/has/no/name";
 	private static final int CREATED_HTTP_STATUS = 201;
@@ -83,9 +103,14 @@ public class ApplicationRestControllerTest {
 
 	@Before
 	public void setUp() {
-		
 		Properties props = new Properties();
 		props.put("be.applications.root", APPS_ROOT_FOLDER);
+		ReflectionTestUtils.setField(subject, "applicationService", applicationService);
+		ReflectionTestUtils.setField(subject, "accountService", accountService);
+		ReflectionTestUtils.setField(subject, "applicationDownloader", applicationDownloader);
+		ReflectionTestUtils.setField(subject, "tokenHandler", tokenHandler);
+		ReflectionTestUtils.setField(subject, "deploymentApplicationService", deploymentApplicationService);
+		ReflectionTestUtils.setField(subject, "applicationsRoot", APPS_ROOT_FOLDER);
 		subject.setProperties(props);
 		when(this.principalMock.getName()).thenReturn("A user name");
 		when(this.accountMock.getId()).thenReturn(1L);
@@ -102,13 +127,14 @@ public class ApplicationRestControllerTest {
 	 * @throws IOException
 	 * @throws ApplicationDownloaderException
 	 */
-	@Test public void
+	@Test 
+	public void
 	can_list_all_application_for_account() throws IOException, ApplicationDownloaderException{
 
 		when(principalMock.getName()).thenReturn("username");
-		when(mockAccountRepo.findByUsername("username")).thenReturn(Optional.of(accountMock));
+		when(accountService.findByUsername("username")).thenReturn(accountMock);
 		when(accountMock.getApplications()).thenReturn((Set<Application>) mock(Set.class));
-
+		when(subject.getAllApplications(principalMock, new Sort("name.asc"))).thenCallRealMethod();
 		Resources<ApplicationResource> resources = subject.getAllApplications(principalMock, new Sort("name.asc"));
 		assertNotNull(resources);
 	}
@@ -126,8 +152,8 @@ public class ApplicationRestControllerTest {
 
 		Application application = mockApplication(repoUri, APPS_ROOT_FOLDER + File.separator + appName, appName);
 		mockSavedApplication(application, repoUri);
-		when(mockApplicationRepo.findByAccountUsernameAndName(this.accountMock.getUsername(), appName)).thenReturn(Optional.of(application));
-
+		when(applicationService.findByAccountUsernameAndName(this.accountMock.getUsername(), appName)).thenReturn(application);
+		when(subject.getApplicationByAccountUsernameAndName(principalMock, appName)).thenCallRealMethod();
 		ApplicationResource applicationResource = subject.getApplicationByAccountUsernameAndName(principalMock, appName);
 		assertNotNull(applicationResource);
 	}
@@ -137,18 +163,18 @@ public class ApplicationRestControllerTest {
 	 * @throws IOException
 	 * @throws ApplicationDownloaderException
 	 */
-	@Test public void
+	@Test 
+	public void
 	can_add_application_given_repo_uri() throws IOException, ApplicationDownloaderException {
 
 		String theUri = "blah";
 		String theName = "an-app-has-no-name";
 		Application mockApplication = mockApplication(theUri, APPS_ROOT_FOLDER + File.separator + theName, theName);
-
-		when(mockApplicationRepo.save(mockApplication)).thenReturn(mockApplication);
 		ApplicationResource inputResource = new ApplicationResource(mockApplication);
-		when(mockApplicationRepo.findByAccountUsernameAndName(this.accountMock.getUsername(), inputResource.getName())).thenReturn(Optional.empty());
-		when(mockApplicationDownloader.downloadApplication(APPS_ROOT_FOLDER, inputResource.getRepoUri(), this.accountMock.getUsername())).thenReturn(mockApplication);
-
+		when(applicationService.findByAccountUsernameAndName(this.accountMock.getUsername(), inputResource.getName())).thenThrow(ApplicationNotFoundException.class);
+		when(applicationService.save(mockApplication)).thenReturn(mockApplication);
+		when(applicationDownloader.downloadApplication(APPS_ROOT_FOLDER, inputResource.getRepoUri(), this.accountMock.getUsername())).thenReturn(mockApplication);
+		when(subject.add(principalMock, inputResource)).thenCallRealMethod();
 		// do the request
 		ResponseEntity response = subject.add(principalMock, inputResource);
 
@@ -170,7 +196,7 @@ public class ApplicationRestControllerTest {
 
 		Application application = mockApplication(theUri, APPS_ROOT_FOLDER + File.separator + theName, theName);
 		mockSavedApplication(application, theUri);
-
+		when(subject.deleteApplicationByAccountUsernameAndName(principalMock, theName)).thenCallRealMethod();
 		ResponseEntity response = subject.deleteApplicationByAccountUsernameAndName(principalMock, theName);
 
 		assertThat(response.getStatusCode().value(), is(OK_HTTP_STATUS));
@@ -185,8 +211,6 @@ public class ApplicationRestControllerTest {
 	can_list_all_shared_application_for_account() throws IOException, ApplicationDownloaderException{
 
 		String username = "username";
-		ReflectionTestUtils.setField(subject, "applicationService", applicationService);
-		ReflectionTestUtils.setField(subject, "accountService", accountService);
 
 		when(accountService.findByUsername(username)).thenReturn(accountMock);
 		when(mockAccountRepo.findByUsername(username)).thenReturn(Optional.of(accountMock));
@@ -213,6 +237,7 @@ public class ApplicationRestControllerTest {
 				any(Account.class),
 				any(String.class),
 				any(User.class))).thenReturn(applications);
+		when(subject.getSharedApplicationByAccount(request, principalMock)).thenCallRealMethod();
 		Resources<ApplicationResource> applicationList = subject.getSharedApplicationByAccount(request, principalMock);
 		assertNotNull(applicationList);
 		assertEquals(1, applicationList.getContent().size());
@@ -228,10 +253,7 @@ public class ApplicationRestControllerTest {
 	can_get_not_null_when_account_not_member_of_any_team() throws IOException, ApplicationDownloaderException{
 
 		String username = "username";
-		ReflectionTestUtils.setField(subject, "applicationService", applicationService);
-		ReflectionTestUtils.setField(subject, "accountService", accountService);
 		when(accountService.findByUsername(username)).thenReturn(accountMock);
-		when(mockAccountRepo.findByUsername(username)).thenReturn(Optional.of(accountMock));
 		Set<Application> applications = new HashSet<>();
 		Application applicationMock = mock(Application.class);
 		applications.add(applicationMock);
@@ -239,6 +261,7 @@ public class ApplicationRestControllerTest {
 		when(principalMock.getName()).thenReturn(username);
 		getApplicationResource(applicationMock);
 		when(request.getHeader(HttpHeaders.AUTHORIZATION)).thenReturn("some token");
+		when(subject.getSharedApplicationByAccount(request, principalMock)).thenCallRealMethod();
 		Resources<ApplicationResource> applicationList = subject.getSharedApplicationByAccount(request, principalMock);
 		assertNotNull(applicationList);
 		assertEquals(0, applicationList.getContent().size());
@@ -270,9 +293,7 @@ public class ApplicationRestControllerTest {
 	 */
 	@Test
 	public void can_user_see_owned_applications(){
-
-		ReflectionTestUtils.setField(subject, "applicationService", applicationService);
-		ReflectionTestUtils.setField(subject, "accountService", accountService);
+		
 		String username = "username";
 		Sort sortMock = mock(Sort.class);
 		when(principalMock.getName()).thenReturn(username);
@@ -281,9 +302,9 @@ public class ApplicationRestControllerTest {
 		Application accountMockApp = mock(Application.class);
 		Set<Application> accountApplications = new HashSet<>();
 		accountApplications.add(accountMockApp);
-		when(mockApplicationRepo.findByAccountUsername(username, sortMock)).thenReturn(accountApplications);
 		when(applicationService.findByAccountUsername(username, sortMock)).thenReturn(accountApplications);
 		getApplicationResource(accountMockApp);
+		when(subject.getAllApplications(principalMock, sortMock)).thenCallRealMethod();
 		Resources<ApplicationResource> applicationList = subject.getAllApplications(principalMock, sortMock);
 		assertNotNull(applicationList);
 		assertEquals(1, applicationList.getContent().size());
@@ -298,12 +319,11 @@ public class ApplicationRestControllerTest {
 		ReflectionTestUtils.setField(subject, "applicationService", applicationService);
 		ReflectionTestUtils.setField(subject, "accountService", accountService);
 		String username = "username";
-
 		when(principalMock.getName()).thenReturn(username);
 		when(accountMock.getUsername()).thenReturn(username);
 		when(accountService.findByUsername(username)).thenReturn(accountMock);
-		when(mockApplicationRepo.findByAccountUsername(username, new Sort("name.asc"))).thenReturn(new HashSet<>());
 		when(applicationService.findByAccountUsername(username, new Sort("sort.name"))).thenReturn(new HashSet<>());
+		when(subject.getAllApplications(principalMock, new Sort("name.asc"))).thenCallRealMethod();
 		Resources<ApplicationResource> applicationList = subject.getAllApplications(principalMock, new Sort("name.asc"));
 		assertNotNull(applicationList);
 		assertEquals(0, applicationList.getContent().size());
@@ -312,16 +332,13 @@ public class ApplicationRestControllerTest {
 	@Test
 	public void can_get_shared_applications_by_account(){
 
-		ReflectionTestUtils.setField(subject, "applicationService", applicationService);
-		ReflectionTestUtils.setField(subject, "accountService", accountService);
-		ReflectionTestUtils.setField(subject, "tokenHandler", tokenHandler);
-		ReflectionTestUtils.setField(applicationService, "domainService", domainService);
 		this.getRequest();
 		Application application = mock(Application.class);
 		getApplicationResource(application);
 		Set<Application> applications = new HashSet<>();
 		applications.add(application);
 		when(applicationService.getSharedApplicationsByAccount(any(Account.class), Mockito.anyString(), any(User.class))).thenReturn(applications);
+		when(subject.getSharedApplicationByAccount(request, principalMock)).thenCallRealMethod();
 		Resources resources = subject.getSharedApplicationByAccount(request, principalMock);
 		assertEquals(resources.getContent().size(), 1);
 	}
@@ -329,29 +346,23 @@ public class ApplicationRestControllerTest {
 	@Test
 	public void can_get_shared_applications_by_applicationName_pass() throws IOException, ApplicationDownloaderException{
 
-		ReflectionTestUtils.setField(subject, "applicationService", applicationService);
-		ReflectionTestUtils.setField(subject, "accountService", accountService);
-		ReflectionTestUtils.setField(subject, "tokenHandler", tokenHandler);
-		ReflectionTestUtils.setField(applicationService, "domainService", domainService);
 		this.getRequest();
 		String appName = "name";
 		Application application = mockApplication("repoUri", "repoPath", appName);
 		when(applicationService.findByAccountUsernameAndName(Mockito.anyString(), Mockito.anyString())).thenReturn(application);
 		when(applicationService.getSharedApplicationByApplicationName(any(Account.class), Mockito.anyString(), any(User.class), Mockito.anyString())).thenReturn(application);
+		when(subject.getSharedByName(request, principalMock, "application")).thenCallRealMethod();
 		ApplicationResource resources = subject.getSharedByName(request, principalMock, "application");
 		assertTrue(resources.getId() != null);
 	}
 
 	@Test(expected = ApplicationNotFoundException.class)
 	public void can_get_shared_applications_by_applicationName_fail() throws IOException, ApplicationDownloaderException{
-
-		ReflectionTestUtils.setField(subject, "applicationService", applicationService);
-		ReflectionTestUtils.setField(subject, "accountService", accountService);
-		ReflectionTestUtils.setField(subject, "tokenHandler", tokenHandler);
-		ReflectionTestUtils.setField(applicationService, "domainService", domainService);
+		
 		this.getRequest();
 		when(applicationService.findByAccountUsernameAndName(Mockito.anyString(), Mockito.anyString())).thenReturn(null);
 		when(applicationService.getSharedApplicationByApplicationName(any(Account.class), Mockito.anyString(), any(User.class), Mockito.anyString())).thenReturn(null);
+		when(subject.getSharedByName(request, principalMock, "application")).thenCallRealMethod();
 		ApplicationResource resources = subject.getSharedByName(request, principalMock, "application");
 	}
 	
@@ -380,15 +391,12 @@ public class ApplicationRestControllerTest {
 				return depList;
 			}
 		};
-	
-		when(deploymentApplicationRepo.findByAccountIdAndRepoPath(application.getAccount().getId(), application.getRepoPath()))
-		.thenAnswer(depListAnswer);
 		
 		when(deploymentApplicationService.findByAccountIdAndRepoPath(application.getAccount().getId(), application.getRepoPath()))
-		.thenCallRealMethod();
+		.thenAnswer(depListAnswer);
 		
-		when(mockApplicationDownloader.removeApplication(application)).thenCallRealMethod();
-		
+		when(applicationDownloader.removeApplication(application)).thenCallRealMethod();
+		when(subject.deleteApplicationByAccountUsernameAndName(principalMock, theName)).thenCallRealMethod();
 		ResponseEntity appDeleted = subject.deleteApplicationByAccountUsernameAndName(principalMock, theName);
 		
 		assertTrue(file.exists()==false);
@@ -423,15 +431,12 @@ public class ApplicationRestControllerTest {
 				return depList;
 			}
 		};
-	
-		when(deploymentApplicationRepo.findByAccountIdAndRepoPath(application.getAccount().getId(), application.getRepoPath()))
-		.thenAnswer(depListAnswer);
 		
 		when(deploymentApplicationService.findByAccountIdAndRepoPath(application.getAccount().getId(), application.getRepoPath()))
-		.thenCallRealMethod();
+		.thenAnswer(depListAnswer);
 		
-		when(mockApplicationDownloader.removeApplication(application)).thenCallRealMethod();
-		
+		when(applicationDownloader.removeApplication(application)).thenCallRealMethod();
+		when(subject.deleteApplicationByAccountUsernameAndName(principalMock, theName)).thenCallRealMethod();
 		ResponseEntity appDeleted = subject.deleteApplicationByAccountUsernameAndName(principalMock, theName);
 		
 		
@@ -461,10 +466,10 @@ public class ApplicationRestControllerTest {
 
 	private void mockSavedApplication(Application mockApplication, String repoUri) throws IOException, ApplicationDownloaderException {
 
-		when(mockApplicationRepo.findByAccountUsernameAndName(this.principalMock.getName(), mockApplication.getName())).thenReturn(Optional.of(mockApplication));
-		when(mockApplicationRepo.findById(1L)).thenReturn(Optional.of(mockApplication));
-		when(mockApplicationDownloader.removeApplication(mockApplication)).thenReturn(0);
-		when(mockApplicationDownloader.downloadApplication(APPS_ROOT_FOLDER, null, repoUri)).thenReturn(mockApplication);
+		when(applicationService.findByAccountUsernameAndName(this.principalMock.getName(), mockApplication.getName())).thenReturn(mockApplication);
+		when(applicationService.findById(1L)).thenReturn(mockApplication);
+		when(applicationDownloader.removeApplication(mockApplication)).thenReturn(0);
+		when(applicationDownloader.downloadApplication(APPS_ROOT_FOLDER, null, repoUri)).thenReturn(mockApplication);
 
 	}
 
