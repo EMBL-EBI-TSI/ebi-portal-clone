@@ -28,7 +28,12 @@ public class DeploymentStrategy {
 
     @Value("${be.docker}")
     boolean docker;
-    
+
+    @Value("${ecp.scriptUser}")
+    private String scriptUser;
+
+    @Value("${ecp.executeScript.sudo}")
+    private boolean sudoExecuteScript;
     
     void configure( ProcessBuilder processBuilder
                   , String cloudProviderPath
@@ -78,8 +83,10 @@ public class DeploymentStrategy {
         hostEnv.putAll(env);
         
         // Command
-        processBuilder.command(BASH_COMMAND, cloudProviderPath + File.separator + script);
-        
+        if(sudoExecuteScript)
+            processBuilder.command("sudo", "-u", scriptUser, "-E", BASH_COMMAND, cloudProviderPath + File.separator + script);
+        else
+            processBuilder.command(BASH_COMMAND, cloudProviderPath + File.separator + script);
         // Working dir
         processBuilder.directory(new File(appFolder));
     }

@@ -49,28 +49,32 @@ public class DeploymentIndexService {
         headers.set("Authorization", this.getAuthHeader());
         HttpEntity<?> requestEntity = new HttpEntity<>(search, headers);
 
+        try {
+            ResponseEntity<ElasticSearchResult> response =
+                    restTemplate.exchange(
+                            this.indexUrl + "/_search?q=_id:" + id,
+                            HttpMethod.GET,
+                            requestEntity,
+                            new ParameterizedTypeReference<ElasticSearchResult>() {
+                            }
+                    );
 
-        ResponseEntity<ElasticSearchResult> response =
-                restTemplate.exchange(
-                        this.indexUrl + "/_search?q=_id:" + id,
-                        HttpMethod.GET,
-                        requestEntity,
-                        new ParameterizedTypeReference<ElasticSearchResult>() { }
-                );
 
+            if (response.getBody().hits.hits.length == 0) {
+                return null;
+            }
 
-        if (response.getBody().hits.hits.length==0) {
+            List<DeploymentDocument> res =
+                    Arrays.stream(response.getBody().hits.hits).map(hit -> hit._source).collect(Collectors.toList());
+
+            if (res == null || res.size() == 0) {
+                return null;
+            }
+
+            return res.get(0);
+        }catch (Exception e){
             return null;
         }
-
-        List<DeploymentDocument> res =
-                Arrays.stream(response.getBody().hits.hits).map(hit -> hit._source).collect(Collectors.toList());
-
-        if (res == null || res.size()==0) {
-            return null;
-        }
-
-        return res.get(0);
     }
 
     public Collection<DeploymentDocument> findByStatus(String status) {
@@ -85,7 +89,7 @@ public class DeploymentIndexService {
         HttpHeaders headers = new HttpHeaders();
         headers.set("Authorization", this.getAuthHeader());
         HttpEntity<?> requestEntity = new HttpEntity<>(search, headers);
-
+        try {
         ResponseEntity<ElasticSearchResult> response =
                 restTemplate.exchange(
                         this.indexUrl + "/_search?q=status:" + status,
@@ -107,12 +111,15 @@ public class DeploymentIndexService {
         }
 
         return res;
+        }catch (Exception e){
+            return null;
+        }
     }
 
     public void save(DeploymentDocument deploymentDocument) {
 
         logger.debug("Indexing to index index at " + this.indexUrl);
-
+        try {
         HttpHeaders headers = new HttpHeaders();
         headers.set("Authorization", this.getAuthHeader());
         HttpEntity<?> requestEntity = new HttpEntity<>(deploymentDocument, headers);
@@ -125,6 +132,8 @@ public class DeploymentIndexService {
                         requestEntity,
                         Object.class
                 );
+        }catch (Exception e){
+        }
     }
 
     public void saveTotalRunningTime(String deploymentReference, long totalRunningTime) {
