@@ -56,9 +56,11 @@ import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderPar
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParamsCopyService;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationDeploymentParametersRepository;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationRepository;
+import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationService;
 import uk.ac.ebi.tsc.portal.api.deployment.controller.DeploymentRestController;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentRepository;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentStatusRepository;
+import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
 import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
 import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDownloaderException;
 
@@ -71,6 +73,7 @@ import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDownloaderExce
 @WebAppConfiguration
 public class CloudProviderParameterRestControllerTest {
 
+	
 	CloudProviderParametersRestController subject;
 	CloudProviderParametersRepository cppRepoMock;
 	AccountRepository accountRepoMock;
@@ -83,6 +86,7 @@ public class CloudProviderParameterRestControllerTest {
 	uk.ac.ebi.tsc.aap.client.security.TokenHandler tokenHandler;
 	HttpServletRequest request;
 	CloudProviderParametersService cppService;
+	DeploymentService deploymentService;
 	CloudProviderParamsCopyService cppCopyService;
 	AccountService accountService;
 	User user;
@@ -104,10 +108,11 @@ public class CloudProviderParameterRestControllerTest {
 	ConfigurationRepository configurationRepository;
 	ConfigurationDeploymentParametersRepository cdpRepository;
 	CloudProviderParamsCopyRepository cloudProviderParametersCopyRepository;
+	ConfigurationService configurationService;
 	
 	@Before
 	public void setUp(){
-
+		subject = mock(CloudProviderParametersRestController.class);
 		cppRepoMock = mock(CloudProviderParametersRepository.class);
 		accountRepoMock = mock(AccountRepository.class);
 		accountMock = mock(Account.class);
@@ -128,6 +133,16 @@ public class CloudProviderParameterRestControllerTest {
 		deploymentRepository = mock(DeploymentRepository.class);
 		cppCopyService = mock(CloudProviderParamsCopyService.class);
 		encryptionService = mock(EncryptionService.class);
+		deploymentService = mock(DeploymentService.class);
+		configurationService = mock(ConfigurationService.class);
+		ReflectionTestUtils.setField(subject, "cloudProviderParametersService", cppService);
+		ReflectionTestUtils.setField(subject, "cloudProviderParametersCopyService", cppCopyService);
+		ReflectionTestUtils.setField(subject, "accountService", accountService);
+		ReflectionTestUtils.setField(subject, "deploymentService", deploymentService);
+		ReflectionTestUtils.setField(subject, "configurationService", configurationService);
+		ReflectionTestUtils.setField(subject, "tokenHandler", tokenHandler);
+		ReflectionTestUtils.setField(cppService, "encryptionService", encryptionService);
+		ReflectionTestUtils.setField(cppCopyService, "encryptionService", encryptionService);
 		accountMock();
 		accountRepoMock();
 		principalMock();
@@ -141,7 +156,10 @@ public class CloudProviderParameterRestControllerTest {
 
 	@Test
 	public void testGetCurrentUserCredentials() throws InvalidKeyException, NoSuchPaddingException, NoSuchAlgorithmException, BadPaddingException, IllegalBlockSizeException, InvalidAlgorithmParameterException, InvalidKeySpecException, IOException{
-
+		when(accountService.findByUsername(userName)).thenReturn(accountMock);
+		Set<CloudProviderParameters> cppSet = accountWithCloudeProviderParameter();
+		when(cppService.findByAccountUsername(userName)).thenReturn(cppSet);
+		when(subject.getCurrentUserCredentials(principalMock)).thenCallRealMethod();
 		Resources<CloudProviderParametersResource> resources = subject.getCurrentUserCredentials(principalMock);
 		assertNotNull(resources);
 	}
@@ -151,7 +169,14 @@ public class CloudProviderParameterRestControllerTest {
 	 */
 	@Test
 	public void testGetByName() throws InvalidKeyException, NoSuchPaddingException, NoSuchAlgorithmException, BadPaddingException, IllegalBlockSizeException, InvalidAlgorithmParameterException, InvalidKeySpecException, IOException{
-
+		
+		when(accountService.findByUsername(userName)).thenReturn(accountMock);
+		when(accountMock.getUsername()).thenReturn(userName);
+		accountMock();
+		cppMock();
+		cppResourceMock();
+		when(cppService.findByNameAndAccountUsername(cppName, accountMock.getUsername())).thenReturn(cppMock);
+		when(subject.getByName(principalMock, cppName)).thenCallRealMethod();
 		CloudProviderParametersResource cppResource = subject.getByName(principalMock, cppName);
 		assertNotNull(cppResource);
 
@@ -162,7 +187,7 @@ public class CloudProviderParameterRestControllerTest {
 	 */
 	@Test(expected = NullPointerException.class ) 
 	public void testGetByNameNullCppName() throws InvalidKeyException, NoSuchPaddingException, NoSuchAlgorithmException, BadPaddingException, IllegalBlockSizeException, InvalidAlgorithmParameterException, InvalidKeySpecException, IOException{
-
+		when(subject.getByName(principalMock, null)).thenCallRealMethod();
 		subject.getByName(principalMock, null);
 	}
 
@@ -171,7 +196,7 @@ public class CloudProviderParameterRestControllerTest {
 	 */
 	@Test(expected = NullPointerException.class ) 
 	public void testGetByNameEmptyCppName() throws InvalidKeyException, NoSuchPaddingException, NoSuchAlgorithmException, BadPaddingException, IllegalBlockSizeException, InvalidAlgorithmParameterException, InvalidKeySpecException, IOException{
-
+		when(subject.getByName(principalMock, "")).thenCallRealMethod();
 		subject.getByName(principalMock, "");
 	}
 
@@ -180,13 +205,15 @@ public class CloudProviderParameterRestControllerTest {
 	*/
 	@Test
 	public void addCloudCredential() throws InvalidKeyException, NoSuchAlgorithmException, InvalidKeySpecException, NoSuchPaddingException, InvalidAlgorithmParameterException, BadPaddingException, IllegalBlockSizeException{
-
+		
+		when(accountService.findByUsername(userName)).thenReturn(accountMock);
+		when(accountMock.getUsername()).thenReturn(userName);
+		accountMock();
 		cppResourceMock();
 		cppMock();
-		ReflectionTestUtils.setField(subject, "cloudProviderParametersService", cppService);
 		when(cppService.save(Mockito.any(CloudProviderParameters.class))).thenReturn(cppMock);
+		when(subject.add(principalMock, cppResourceMock)).thenCallRealMethod();
 		ResponseEntity<?> response = subject.add(principalMock, cppResourceMock);
-
 		assertEquals(response.getStatusCode(), HttpStatus.OK);
 	}
 	
@@ -198,6 +225,7 @@ public class CloudProviderParameterRestControllerTest {
 		String cppName = "\\.\\.\\-";
 		when(cppResourceMock.getCloudProvider()).thenReturn(cloudProvider);
 		when(cppResourceMock.getName()).thenReturn(cppName);
+		when(subject.add(principalMock, cppResourceMock)).thenCallRealMethod();
 		ResponseEntity<?> response = subject.add(principalMock, cppResourceMock);
 	}
 
@@ -207,11 +235,11 @@ public class CloudProviderParameterRestControllerTest {
 	 */
 	@Test
 	public void deleteCloudCredential() throws Exception{
-		ReflectionTestUtils.setField(subject, "cloudProviderParametersCopyService", cppCopyService);
-		ReflectionTestUtils.setField( cppCopyService, "cloudProviderParametersCopyRepository", cloudProviderParametersCopyRepository);
 		CloudProviderParamsCopy cppCopyMock = mock(CloudProviderParamsCopy.class);
 		when(cppCopyMock.getAccount()).thenReturn(accountMock);
-		when(cloudProviderParametersCopyRepository.findByCloudProviderParametersReference(Mockito.anyString())).thenReturn(Optional.of(cppCopyMock));
+		when(cppService.findByNameAndAccountUsername(cppName, userName)).thenReturn(cppMock);
+		when(cppCopyService.findByCloudProviderParametersReference(cppMock.getReference())).thenReturn(cppCopyMock);
+		when(subject.delete(principalMock, cppName)).thenCallRealMethod();
 		ResponseEntity<?> response = subject.delete(principalMock, cppName);
 		assertEquals(response.getStatusCode(), HttpStatus.OK);
 	}
@@ -223,9 +251,6 @@ public class CloudProviderParameterRestControllerTest {
 	public void can_list_owned_applications() throws InvalidKeyException, InvalidAlgorithmParameterException, 
 	NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeySpecException, BadPaddingException, 
 	IllegalBlockSizeException, IOException{
-
-		ReflectionTestUtils.setField(subject, "cloudProviderParametersService", cppService);
-		ReflectionTestUtils.setField(subject, "accountService", accountService);
 		String username = "username";
 		when(principalMock.getName()).thenReturn(username);
 		when(accountMock.getUsername()).thenReturn(username);
@@ -236,6 +261,7 @@ public class CloudProviderParameterRestControllerTest {
 		when(cppRepoMock.findByAccountUsername(username)).thenReturn(accountCpp);
 		when(cppService.findByAccountUsername(username)).thenReturn(accountCpp);
 		getCppResoure(accountMockCpp);
+		when(subject.getCurrentUserCredentials(principalMock)).thenCallRealMethod();
 		Resources<CloudProviderParametersResource> cppList = subject.getCurrentUserCredentials(principalMock);
 		assertNotNull(cppList);
 		assertEquals(1, cppList.getContent().size());
@@ -247,20 +273,17 @@ public class CloudProviderParameterRestControllerTest {
 	 */
 	@Test public void
 	can_list_all_shared_cpp_for_account() throws IOException, ApplicationDownloaderException{
-
+		
 		String username = "username";
-		ReflectionTestUtils.setField(subject, "cloudProviderParametersService", cppService);
-		ReflectionTestUtils.setField(subject, "accountService", accountService);
-		ReflectionTestUtils.setField(subject, "tokenHandler", tokenHandler);
 		getRequest();
 		when(accountService.findByUsername(username)).thenReturn(accountMock);
-		when(accountRepoMock.findByUsername(username)).thenReturn(Optional.of(accountMock));
 		Set<CloudProviderParameters> cpps = new HashSet<>();
 		CloudProviderParameters cppMock = mock(CloudProviderParameters.class);
 		cpps.add(cppMock);
 		when(principalMock.getName()).thenReturn(username);
 		getCppResoure(cppMock);
 		when(cppService.getSharedCppsByAccount(Mockito.any(Account.class), Mockito.anyString(), Mockito.any(User.class))).thenReturn(cpps);
+		when( subject.getSharedCredentialsByAccount(request, principalMock)).thenCallRealMethod();
 		Resources<CloudProviderParametersResource> cppList = subject.getSharedCredentialsByAccount(request, principalMock);
 		assertNotNull(cppList);
 		assertEquals(1, cppList.getContent().size());
@@ -271,9 +294,6 @@ public class CloudProviderParameterRestControllerTest {
 	can_list_all_shared_cpp_for_account_fail() throws IOException, ApplicationDownloaderException{
 
 		String username = "username";
-		ReflectionTestUtils.setField(subject, "cloudProviderParametersService", cppService);
-		ReflectionTestUtils.setField(subject, "accountService", accountService);
-		ReflectionTestUtils.setField(subject, "tokenHandler", tokenHandler);
 		getRequest();
 		when(accountService.findByUsername(username)).thenReturn(accountMock);
 		when(accountRepoMock.findByUsername(username)).thenReturn(Optional.of(accountMock));
@@ -282,6 +302,7 @@ public class CloudProviderParameterRestControllerTest {
 		when(principalMock.getName()).thenReturn(username);
 		getCppResoure(cppMock);
 		when(cppService.getSharedCppsByAccount(Mockito.any(Account.class), Mockito.anyString(), Mockito.any(User.class))).thenReturn(new HashSet<>());
+		when(subject.getSharedCredentialsByAccount(request, principalMock)).thenCallRealMethod();
 		Resources<CloudProviderParametersResource> cppList = subject.getSharedCredentialsByAccount(request, principalMock);
 		assertNotNull(cppList);
 		assertEquals(0, cppList.getContent().size());
@@ -292,17 +313,14 @@ public class CloudProviderParameterRestControllerTest {
 	can_get_shared_cpp_by_name_fail() throws IOException, ApplicationDownloaderException, InvalidKeyException, NoSuchPaddingException, NoSuchAlgorithmException, BadPaddingException, IllegalBlockSizeException, InvalidAlgorithmParameterException, InvalidKeySpecException{
 
 		String username = "username";
-		ReflectionTestUtils.setField(subject, "cloudProviderParametersService", cppService);
-		ReflectionTestUtils.setField(subject, "accountService", accountService);
-		ReflectionTestUtils.setField(subject, "tokenHandler", tokenHandler);
 		getRequest();
 		when(accountService.findByUsername(username)).thenReturn(accountMock);
-		when(accountRepoMock.findByUsername(username)).thenReturn(Optional.of(accountMock));
 		CloudProviderParameters cppMock = mock(CloudProviderParameters.class);
 		when(principalMock.getName()).thenReturn(username);
 		getCppResoure(cppMock);
 		when(cppService.getSharedCppsByCppName(Mockito.any(Account.class), Mockito.anyString(), Mockito.any(User.class), Mockito.anyString()
 				)).thenReturn(null);
+		when(subject.getSharedByName(request, principalMock, cppName)).thenCallRealMethod();
 		CloudProviderParametersResource cppReturned = subject.getSharedByName(request, principalMock, cppName);
 	}
 	
@@ -311,18 +329,15 @@ public class CloudProviderParameterRestControllerTest {
 	can_get_shared_cpp_by_name_pass()throws IOException, ApplicationDownloaderException, InvalidKeyException, NoSuchPaddingException, NoSuchAlgorithmException, BadPaddingException, IllegalBlockSizeException, InvalidAlgorithmParameterException, InvalidKeySpecException{
 
 		String username = "username";
-		ReflectionTestUtils.setField(subject, "cloudProviderParametersService", cppService);
-		ReflectionTestUtils.setField(subject, "accountService", accountService);
-		ReflectionTestUtils.setField(subject, "tokenHandler", tokenHandler);
 		getRequest();
 		when(accountService.findByUsername(username)).thenReturn(accountMock);
-		when(accountRepoMock.findByUsername(username)).thenReturn(Optional.of(accountMock));
 		cppMock();
 		when(principalMock.getName()).thenReturn(username);
 		getCppResoure(cppMock);
 		when(cppService.getSharedCppsByCppName(Mockito.any(Account.class), Mockito.anyString(), Mockito.any(User.class), Mockito.anyString()
 				)).thenReturn(cppMock);
 		when(cppService.findByNameAndAccountUsername(Mockito.anyString(), Mockito.anyString())).thenReturn(cppMock);
+		when(subject.getSharedByName(request, principalMock, cppName)).thenCallRealMethod();
 		CloudProviderParametersResource cppReturned = subject.getSharedByName(request, principalMock, cppName);
 		assertTrue(cppReturned.getName().equals(cppName));
 	}
@@ -335,15 +350,12 @@ public class CloudProviderParameterRestControllerTest {
 	can_get_not_null_when_account_not_member_of_any_team() throws IOException, ApplicationDownloaderException{
 
 		String username = "username";
-		ReflectionTestUtils.setField(subject, "cloudProviderParametersService", cppService);
-		ReflectionTestUtils.setField(subject, "accountService", accountService);
-
 		when(accountService.findByUsername(username)).thenReturn(accountMock);
-		when(accountRepoMock.findByUsername(username)).thenReturn(Optional.of(accountMock));
 		when(accountMock.getMemberOfTeams()).thenReturn(new HashSet<>()) ; 
 		when(principalMock.getName()).thenReturn(username);
 		getCppResoure(cppMock);
 		getRequest();
+		when(subject.getSharedCredentialsByAccount(request, principalMock)).thenCallRealMethod();
 		Resources<CloudProviderParametersResource> cppList = subject.getSharedCredentialsByAccount(request, principalMock);
 		assertNotNull(cppList);
 		assertEquals(0, cppList.getContent().size());
@@ -356,16 +368,14 @@ public class CloudProviderParameterRestControllerTest {
 	@Test public void
 	can_get_not_null_when_account_has_no_owned_applications() throws IOException, ApplicationDownloaderException, InvalidKeyException, InvalidAlgorithmParameterException, NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeySpecException, BadPaddingException, IllegalBlockSizeException{
 
-		ReflectionTestUtils.setField(subject, "cloudProviderParametersService", cppService);
-		ReflectionTestUtils.setField(subject, "accountService", accountService);
 		String username = "username";
 		when(principalMock.getName()).thenReturn(username);
 		when(accountMock.getUsername()).thenReturn(username);
 		when(accountService.findByUsername(username)).thenReturn(accountMock);
 		CloudProviderParameters accountMockCpp = mock(CloudProviderParameters.class);
-		when(cppRepoMock.findByAccountUsername(username)).thenReturn(new HashSet<>());
 		when(cppService.findByAccountUsername(username)).thenReturn(new HashSet<>());
 		getCppResoure(accountMockCpp);
+		when(subject.getCurrentUserCredentials(principalMock)).thenCallRealMethod();
 		Resources<CloudProviderParametersResource> cppList = subject.getCurrentUserCredentials(principalMock);
 		assertNotNull(cppList);
 		assertEquals(0, cppList.getContent().size());
@@ -373,36 +383,23 @@ public class CloudProviderParameterRestControllerTest {
 	
 	@Test
 	public void can_update() throws InvalidKeyException, NoSuchAlgorithmException, InvalidKeySpecException, NoSuchPaddingException, InvalidAlgorithmParameterException, BadPaddingException, IllegalBlockSizeException{
-		
-		ReflectionTestUtils.setField(subject, "cloudProviderParametersService", cppService);
-		ReflectionTestUtils.setField(cppService, "cloudProviderParametersRepository", cppRepoMock);
-		ReflectionTestUtils.setField(subject, "accountService", accountService);
-		ReflectionTestUtils.setField(subject, "cloudProviderParametersCopyService", cppCopyService);
-		ReflectionTestUtils.setField( cppCopyService, "cloudProviderParametersCopyRepository", cloudProviderParametersCopyRepository);
-		ReflectionTestUtils.setField(cppService, "encryptionService", encryptionService);
-		ReflectionTestUtils.setField(cppCopyService, "encryptionService", encryptionService);
-		cppResourceMock();cppMock();
+	
+		cppResourceMock();
+		cppMock();
 		String username = "username";
 		when(principalMock.getName()).thenReturn(username);
 		when(accountMock.getUsername()).thenReturn(username);
 		when(accountService.findByUsername(username)).thenReturn(accountMock);
-		when(cppRepoMock.findByNameAndAccountUsername(Mockito.anyString(), Mockito.anyString())).thenReturn(Optional.of(cppMock));
-		when(cppService.findByNameAndAccountUsername(Mockito.anyString(), Mockito.anyString())).thenCallRealMethod();
-		Answer<CloudProviderParameters> cppAnswer = new Answer<CloudProviderParameters>(){
-			@Override
-			public CloudProviderParameters answer(InvocationOnMock invocation) throws Throwable {
-				return cppMock;
-			}
-		};
+		when(cppService.findByNameAndAccountUsername(cppName, username)).thenReturn(cppMock);
 		cppMock.account = accountMock;
-		when(cppService.updateFields(Mockito.any(CloudProviderParameters.class),Mockito.any(CloudProviderParamsCopy.class), Mockito.any(CloudProviderParametersResource.class), Mockito.anyString())).thenAnswer(cppAnswer);
-		when(cppCopyService.findByCloudProviderParametersReference(Mockito.anyString())).thenCallRealMethod();
 		CloudProviderParamsCopy cppCopyMock = mock(CloudProviderParamsCopy.class);
 		when(cppCopyMock.getAccount()).thenReturn(accountMock);
 		Collection<CloudProviderParamsCopyField> fields = new ArrayList();
 		cppCopyMock.fields = fields;
 		when(cppCopyMock.getFields()).thenReturn(fields);
-		when(cloudProviderParametersCopyRepository.findByCloudProviderParametersReference(Mockito.anyString())).thenReturn(Optional.of(cppCopyMock));
+		when(cppCopyService.findByCloudProviderParametersReference(cppMock.getReference())).thenReturn(cppCopyMock);
+		when(cppService.updateFields(cppMock, cppCopyMock, cppResourceMock, username)).thenReturn(cppMock);
+		when(subject.update(principalMock, cppResourceMock, cppName)).thenCallRealMethod();
 		ResponseEntity<?> response = subject.update(principalMock, cppResourceMock, cppName);
 		assertEquals(response.getStatusCode(), HttpStatus.OK);
 	}
@@ -410,31 +407,22 @@ public class CloudProviderParameterRestControllerTest {
 	@Test
 	public void valid_namecan_update() throws InvalidKeyException, NoSuchAlgorithmException, InvalidKeySpecException, NoSuchPaddingException, InvalidAlgorithmParameterException, BadPaddingException, IllegalBlockSizeException{
 		
-		ReflectionTestUtils.setField(subject, "cloudProviderParametersService", cppService);
-		ReflectionTestUtils.setField(cppService, "cloudProviderParametersRepository", cppRepoMock);
-		ReflectionTestUtils.setField(subject, "accountService", accountService);
-		ReflectionTestUtils.setField(subject, "cloudProviderParametersCopyService", cppCopyService);
-		ReflectionTestUtils.setField( cppCopyService, "cloudProviderParametersCopyRepository", cloudProviderParametersCopyRepository);
-		ReflectionTestUtils.setField(cppCopyService, "encryptionService", encryptionService);
-		ReflectionTestUtils.setField(cppService, "encryptionService", encryptionService);
-		cppResourceMock();cppMock();
+		cppResourceMock();
+		cppMock();
 		String username = "username";
 		when(principalMock.getName()).thenReturn(username);
 		when(accountMock.getUsername()).thenReturn(username);
 		when(accountService.findByUsername(username)).thenReturn(accountMock);
-		when(cppRepoMock.findByNameAndAccountUsername(Mockito.anyString(), Mockito.anyString())).thenReturn(Optional.of(cppMock));
-		when(cppService.findByNameAndAccountUsername(Mockito.anyString(), Mockito.anyString())).thenCallRealMethod();
-		Answer<CloudProviderParameters> cppAnswer = new Answer<CloudProviderParameters>(){
-			@Override
-			public CloudProviderParameters answer(InvocationOnMock invocation) throws Throwable {
-				return cppMock;
-			}
-		};
+		when(cppService.findByNameAndAccountUsername(cppName, username)).thenReturn(cppMock);
 		cppMock.account = accountMock;
-		when(cppService.updateFields(Mockito.any(CloudProviderParameters.class), Mockito.any(CloudProviderParamsCopy.class), Mockito.any(CloudProviderParametersResource.class), Mockito.anyString())).thenAnswer(cppAnswer);
 		CloudProviderParamsCopy cppCopyMock = mock(CloudProviderParamsCopy.class);
 		when(cppCopyMock.getAccount()).thenReturn(accountMock);
-		when(cloudProviderParametersCopyRepository.findByCloudProviderParametersReference(Mockito.anyString())).thenReturn(Optional.of(cppCopyMock));
+		Collection<CloudProviderParamsCopyField> fields = new ArrayList();
+		cppCopyMock.fields = fields;
+		when(cppCopyMock.getFields()).thenReturn(fields);
+		when(cppCopyService.findByCloudProviderParametersReference(cppMock.getReference())).thenReturn(cppCopyMock);
+		when(cppService.updateFields(cppMock, cppCopyMock, cppResourceMock, username)).thenReturn(cppMock);
+		when(subject.update(principalMock, cppResourceMock, cppName)).thenCallRealMethod();
 		ResponseEntity<?> response = subject.update(principalMock, cppResourceMock, cppName);
 		assertEquals(response.getStatusCode(), HttpStatus.OK);
 	}
@@ -465,10 +453,12 @@ public class CloudProviderParameterRestControllerTest {
 	}
 
 	private void cppMock(){
+		cppMock.account = accountMock;
 		when(cppMock.getAccount()).thenReturn(accountMock);
 		when(cppMock.getName()).thenReturn(cppName);
 		when(cppMock.getCloudProvider()).thenReturn(cloudProvider);
 		when(cppMock.getId()).thenReturn(1L);
+		when(cppMock.getReference()).thenReturn("somereference");
 	}
 
 	private void cppRepoMock(){
