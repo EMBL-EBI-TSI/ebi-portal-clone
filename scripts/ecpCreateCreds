@@ -2,7 +2,10 @@
 
 file="$1"
 
+echo
 read -p "OS_PASSWORD: " -s passwd
+echo
+echo
 
 m4 -DM4_PASSWORD="$passwd" "$file" | ecp --dev create creds -f -
 

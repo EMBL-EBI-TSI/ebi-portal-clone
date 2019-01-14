@@ -1,6 +1,25 @@
 package uk.ac.ebi.tsc.portal.clouddeployment.application;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import static com.github.underscore.U.chain;
+import static com.github.underscore.U.concat;
+import static java.lang.String.format;
+import static java.util.Arrays.asList;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -8,6 +27,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import uk.ac.ebi.tsc.aap.client.repo.DomainService;
 import uk.ac.ebi.tsc.portal.api.application.repo.Application;
 import uk.ac.ebi.tsc.portal.api.application.repo.ApplicationRepository;
@@ -16,7 +38,12 @@ import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParams
 import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigDeploymentParamCopy;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigDeploymentParamsCopyRepository;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.Configuration;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.*;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.Deployment;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentAssignedInput;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentAssignedParameter;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentAttachedVolume;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentConfiguration;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentStatusEnum;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentSecretService;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
 import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
@@ -29,16 +56,6 @@ import uk.ac.ebi.tsc.portal.usage.deployment.model.DeploymentDocument;
 import uk.ac.ebi.tsc.portal.usage.deployment.model.ParameterDocument;
 import uk.ac.ebi.tsc.portal.usage.deployment.service.DeploymentIndexService;
 
-import static java.lang.String.format;
-
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.util.*;
-
 /**
  * @author Jose A. Dianes <jdianes@ebi.ac.uk>
  * @author Gianni Dalla Torre <giannidallatorre@gmail.com>
@@ -49,9 +66,7 @@ import java.util.*;
 public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 
 	private static final Logger logger = LoggerFactory.getLogger(ApplicationDeployerBash.class);
-
-	private static final String BASH_COMMAND = "bash";
-
+    
 	@Value("${be.deployments.root}")
 	String deploymentsRoot;
 
@@ -66,7 +81,9 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 
 	@Value("${elasticsearch.password}")
 	private String elasticSearchPassword;
-
+	
+	DeploymentStrategy deploymentStrategy;
+	
 
 	@Autowired
 	public ApplicationDeployerBash(DeploymentService deploymentService,
@@ -75,7 +92,8 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 								   CloudProviderParamsCopyRepository cloudProviderParametersRepository,
 								   ConfigDeploymentParamsCopyRepository configDeploymentParamsCopyRepository,
 								   EncryptionService encryptionService,
-								   DeploymentSecretService secretService) {
+								   DeploymentSecretService secretService,
+								   DeploymentStrategy deploymentStrategy) {
 	    super(  deploymentService,
 	            applicationRepository,
                 domainService,
@@ -84,6 +102,8 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
                 encryptionService,
 				secretService
         );
+	    
+	    this.deploymentStrategy = deploymentStrategy;
 	}
 
 	@Override
@@ -116,8 +136,10 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 		if (volumeAttachments!= null) logger.info("  With " + volumeAttachments.keySet().size() + " attached volumes");
 		if (configurationParameters!= null) logger.info("  With " + configurationParameters.keySet().size() + " configuration parameters added ");
 
-		ProcessBuilder processBuilder = new ProcessBuilder(BASH_COMMAND, cloudProviderPath + File.separator + "deploy.sh");
-
+  		ProcessBuilder processBuilder = new ProcessBuilder();
+                                                                          
+        Map<String, String> env = new HashMap<>();
+        
 		logger.info("Creating log file at {}", this.deploymentsRoot+File.separator+reference+File.separator+"output.log");
 		File logs = new File(this.deploymentsRoot+File.separator+reference+File.separator+"output.log");
 		logs.getParentFile().mkdirs();
@@ -129,16 +151,12 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 		Deployment theDeployment = deploymentService.findByReference(reference);
         logger.info("Can't find deployment " + reference);
 
-		Map<String, String> env = processBuilder.environment();
 		ApplicationDeployerHelper.addGenericProviderCreds(env, cloudProviderParametersCopy, logger);
 
 		logger.info("  With DEPLOYMENTS_ROOT=" + deploymentsRoot);
 		logger.info("  With PORTAL_DEPLOYMENT_REFERENCE=" + reference);
 		logger.info("  With PORTAL_APP_REPO_FOLDER=" + theApplication.repoPath);
 
-		env.put("PORTAL_DEPLOYMENTS_ROOT", deploymentsRoot);
-		env.put("PORTAL_DEPLOYMENT_REFERENCE", reference);
-		env.put("PORTAL_APP_REPO_FOLDER", theApplication.repoPath);
 		env.put("PORTAL_CALLBACK_SECRET", secretService.create(theDeployment));
 		env.put("PORTAL_BASE_URL", baseUrl);
 		
@@ -146,18 +164,10 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 
 
 		//generate keys
-		String fileDestination = deploymentsRoot + File.separator + reference + File.separator + reference ;
-		logger.info(fileDestination);
-		SSHKeyGenerator.generateKeys(userEmail, fileDestination);
-		env.put("PRIVATE_KEY", fileDestination);
-		env.put("PUBLIC_KEY", fileDestination + ".pub");
-		env.put("TF_VAR_private_key_path", fileDestination);
-		env.put("TF_VAR_public_key_path", fileDestination + ".pub");
-		env.put("portal_private_key_path", fileDestination);
-		env.put("portal_public_key_path", fileDestination + ".pub");
-		env.put("TF_VAR_portal_private_key_path", fileDestination);
-		env.put("TF_VAR_portal_public_key_path", fileDestination + ".pub");
-
+		String keysFilePath = deploymentsRoot + File.separator + reference + File.separator + reference ;
+		logger.info(keysFilePath);
+		SSHKeyGenerator.generateKeys(userEmail, keysFilePath);
+		
 		// pass parameter assignments
 		Collection<ParameterDocument> deploymentParamDocs = new LinkedList<>();
 		if (parameterAssignments!=null) {
@@ -214,8 +224,11 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 			}
 		}
 
-		processBuilder.directory(new File(theApplication.repoPath));
-
+		String appFolder = theApplication.repoPath;
+        String deploymentsFolder = this.deploymentsRoot;
+        
+        deploymentStrategy.configure(processBuilder, cloudProviderPath, env, appFolder, deploymentsFolder, reference, "deploy.sh");
+        
 		Process p = startProcess(processBuilder);
 
 		logger.info("Starting deployment index service"); // Index deployment as started
@@ -347,11 +360,9 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 
 		logger.info("Showing state of reference: " + reference);
 
-		ProcessBuilder processBuilder = new ProcessBuilder(BASH_COMMAND, cloudProviderPath + File.separator + "state.sh");
+		ProcessBuilder processBuilder = new ProcessBuilder();
 
-		Map<String, String> env = processBuilder.environment();
-		env.put("PORTAL_DEPLOYMENTS_ROOT", deploymentsRoot);
-		env.put("PORTAL_DEPLOYMENT_REFERENCE", reference);
+		Map<String, String> env = new HashMap<>();
 
 		//pass configurations
 		if (configuration!=null) {
@@ -377,21 +388,7 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 			}	
 		}
 
-		//generate keys
-		String fileDestination = deploymentsRoot + File.separator + reference + File.separator + reference ;
-		logger.info(fileDestination);
-		//list of environment variables, come up with a standardized approach
-		env.put("PRIVATE_KEY", fileDestination);
-		env.put("PUBLIC_KEY", fileDestination + ".pub");
-		env.put("TF_VAR_private_key_path", fileDestination);
-		env.put("TF_VAR_public_key_path", fileDestination + ".pub");
-		env.put("portal_private_key_path", fileDestination);
-		env.put("portal_public_key_path", fileDestination + ".pub");
-		env.put("TF_VAR_portal_private_key_path", fileDestination);
-		env.put("TF_VAR_portal_public_key_path", fileDestination + ".pub");
-
-
-		processBuilder.directory(new File(repoPath));
+		deploymentStrategy.configure(processBuilder, cloudProviderPath, env, repoPath, this.deploymentsRoot, reference, "state.sh");
 
 		Process p = startProcess(processBuilder);
 
@@ -439,7 +436,7 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 
 		String path =  deploymentsRoot + File.separator + reference;
 
-		ProcessBuilder processBuilder = new ProcessBuilder(BASH_COMMAND, cloudProviderPath + File.separator + "destroy.sh");
+		ProcessBuilder processBuilder = new ProcessBuilder();
 
 		logger.info("Creating log file at {}", this.deploymentsRoot+File.separator+reference+File.separator+"destroy.log");
 		File logs = new File(this.deploymentsRoot+File.separator+reference+File.separator+"destroy.log");
@@ -448,26 +445,9 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 		processBuilder.redirectOutput(logs);
 		processBuilder.redirectErrorStream(true);
 
-		Map<String, String> env = processBuilder.environment();
-
-
+		Map<String, String> env = new HashMap<>();
 
 		ApplicationDeployerHelper.addGenericProviderCreds(env, cloudProviderParametersCopy, logger);
-		env.put("PORTAL_DEPLOYMENTS_ROOT", deploymentsRoot);
-		env.put("PORTAL_DEPLOYMENT_REFERENCE", reference);
-		env.put("PORTAL_APP_REPO_FOLDER", repoPath);
-
-		//generate keys
-		String fileDestination = deploymentsRoot + File.separator + reference + File.separator + reference ;
-		logger.info(fileDestination);
-		env.put("PRIVATE_KEY", fileDestination);
-		env.put("PUBLIC_KEY", fileDestination + ".pub");
-		env.put("TF_VAR_private_key_path", fileDestination);
-		env.put("TF_VAR_public_key_path", fileDestination + ".pub");
-		env.put("portal_private_key_path", fileDestination);
-		env.put("portal_public_key_path", fileDestination + ".pub");
-		env.put("TF_VAR_portal_private_key_path", fileDestination);
-		env.put("TF_VAR_portal_public_key_path", fileDestination + ".pub");
 
 		// pass input assignments
 		if (inputAssignments!=null) {
@@ -509,12 +489,12 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 			env.put("TF_VAR_profile_public_key" , deploymentConfiguration.getSshKey());
 		}
 
-		processBuilder.directory(new File(repoPath));
-
 		logger.info("Destroying deployment of application at: " + path);
 		logger.info("- Provider path at " + cloudProviderPath);
 		logger.info("- With Cloud Provider Parameters Copy '" + cloudProviderParametersCopy.getName() + "'");
 
+        deploymentStrategy.configure(processBuilder, cloudProviderPath, env, repoPath, this.deploymentsRoot, reference, "destroy.sh");
+		
 		Process p = startProcess(processBuilder);
 
 		Thread newThread = new Thread(new Runnable() {

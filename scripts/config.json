@@ -1,0 +1,9 @@
+
+{
+  "name": "My config",
+  "cloudProviderParametersName": "Embassy",
+  "sshKey": "",
+  "deploymentParametersName": "tfga params",
+  "softUsageLimit": "",
+  "hardUsageLimit": ""
+}

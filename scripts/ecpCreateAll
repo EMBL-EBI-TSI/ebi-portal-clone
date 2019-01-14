@@ -1,0 +1,59 @@
+
+
+dev() {
+    
+    echo "--dev" "$1"                                  # ecp-cli
+    # echo "$1" "$2" "--dev" "http://localhost:8080"   # ecp-cli tfga
+}
+
+login()
+{
+    chromium-browser https://api.aai.ebi.ac.uk/sso &
+
+    ecp $(dev login)
+}
+
+createConfig()
+{
+    ecp $(dev create config) -f "$1"
+}
+
+createCreds()
+{
+    file="$1"
+
+    echo
+    read -p "OS_PASSWORD: " -s passwd
+    echo
+    echo
+
+    m4 -DM4_PASSWORD="$passwd" "$file" | ecp $(dev create creds) -f -
+}
+
+createParams()
+{
+    ecp $(dev create params) -f "$1"
+}
+
+createApp()
+{
+    local appUrl="$1"
+
+    echo "{ \"repoUri\": \"$appUrl\" }" | ecp $(dev create app) -f -
+}
+
+main()
+{
+    login
+
+    createCreds credEmbassy.json
+
+    createParams params.json
+
+    createConfig config.json
+
+    createApp 'https://github.com/EMBL-EBI-TSI/cpa-instance'
+}
+
+
+main
