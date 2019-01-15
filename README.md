@@ -87,6 +87,7 @@ But firstly, a developer would need an AAP account to do this, else users would 
 You can supply the AAP account credentials using the following 2 fields found in application.properties
 
 => ecp.aap.username=your-aap-local-account-for-ecp
+
 => ecp.aap.password=changeme
 
 
