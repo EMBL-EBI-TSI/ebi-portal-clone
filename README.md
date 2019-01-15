@@ -76,12 +76,18 @@ The RESTful API is designed under the [HATEOAS](https://en.wikipedia.org/wiki/HA
 
 We wanted to group people in teams namely EMBL-EBI (UK based) and EMBL (whole EMBL except UK) so that sharing and un-sharing resources can be done organization wide, which would help people to adopt the Cloud Portal easily.
 
-This is the information in /default_teams.json file.
+This is the information found in /default_teams.json file.
 
-People who sign in and having email id’s ending in ‘ebi.ac.uk’ would be automatically in team EBI and those having email id’s ending in ‘embl.de’ would be in team EMBL.
+People who sign in and having email id’s ending in ‘ebi.ac.uk’ would be automatically be put in team EBI and those having email id’s ending in ‘embl.de’ would be in team EMBL.
 
-Developers can adopt this idea and customize to suit their organization.
+Developers can adopt this idea and customize it to suit their organization.
 
+But firstly, a developer would need an AAP account to do this, else users would not be logged in successfully.
+
+You can supply the AAP account credentials using the following 2 fields found in application.properties
+
+=> ecp.aap.username=your-aap-local-account-for-ecp
+=> ecp.aap.password=changeme
 
 
 
