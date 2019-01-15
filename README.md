@@ -82,13 +82,20 @@ People who sign in and having email id’s ending in ‘ebi.ac.uk’ would be au
 
 Developers can adopt this idea and customize it to suit their organization.
 
-But firstly, a developer would need an AAP account to do this, else users would not be logged in successfully.
+But firstly, a developer has to do the following:
 
-You can supply the AAP account credentials using the following 2 fields found in application.properties
+1. Create an AAP account.
+
+2. Create teams to which, people logging in would be added to. In the given scenerio, the teams from the json file would be 'EBI' and 'EMBL-EBI'.
+
+3. Supply the AAP account credentials (created in Step 1), via the following 2 fields found in application.properties
 
 => ecp.aap.username=your-aap-local-account-for-ecp
 
 => ecp.aap.password=changeme
+
+It has to be noted that, not doing the above, will result in failed logins.
+
 
 
 
