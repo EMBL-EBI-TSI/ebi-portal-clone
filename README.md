@@ -84,9 +84,9 @@ Developers can adopt this idea and customize it to suit their organization.
 
 But firstly, a developer has to do the following:
 
-1. Create an AAP account.
+1. Goto https://aai.ebi.ac.uk and create an AAP account.
 
-2. Create teams to which, people logging in would be added to. In the given scenerio, the teams from the json file would be 'EBI' and 'EMBL-EBI'.
+2. Create teams to which, people logging in would be added to. In the given scenerio, the teams from the json file would be 'EBI' and 'EMBL-EBI'. The 'teams' are called 'domains' in AAP.
 
 3. Supply the AAP account credentials (created in Step 1), via the following 2 fields found in application.properties
 
@@ -94,7 +94,7 @@ But firstly, a developer has to do the following:
 
 => ecp.aap.password=changeme
 
-It has to be noted that, not doing the above, will result in failed logins.
+It has to be noted that, not doing the above, will result in failed logins. Also the one who created the AAP account, should be the domain owner. 
 
 
 
