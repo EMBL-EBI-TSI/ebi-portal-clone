@@ -1,12 +1,15 @@
 package uk.ac.ebi.tsc.portal.api.deployment.controller;
 
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Matchers.isA;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.Matchers.isA;
 
 import java.io.IOException;
 import java.security.InvalidAlgorithmParameterException;
@@ -16,11 +19,17 @@ import java.security.NoSuchProviderException;
 import java.security.Principal;
 import java.security.spec.InvalidKeySpecException;
 import java.sql.Date;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Properties;
+import java.util.Set;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
+import javax.servlet.http.HttpServletRequest;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -35,42 +44,40 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import uk.ac.ebi.tsc.aap.client.repo.DomainRepository;
 import uk.ac.ebi.tsc.aap.client.repo.DomainService;
 import uk.ac.ebi.tsc.portal.api.account.repo.Account;
-import uk.ac.ebi.tsc.portal.api.account.repo.AccountRepository;
 import uk.ac.ebi.tsc.portal.api.account.service.AccountService;
 import uk.ac.ebi.tsc.portal.api.application.controller.InvalidApplicationInputException;
 import uk.ac.ebi.tsc.portal.api.application.repo.Application;
 import uk.ac.ebi.tsc.portal.api.application.repo.ApplicationCloudProvider;
-import uk.ac.ebi.tsc.portal.api.application.repo.ApplicationRepository;
 import uk.ac.ebi.tsc.portal.api.application.service.ApplicationNotFoundException;
 import uk.ac.ebi.tsc.portal.api.application.service.ApplicationService;
+import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.controller.CloudProviderParametersCopyResource;
+import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.controller.CloudProviderParametersResource;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParameters;
-import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParametersRepository;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParamsCopy;
-import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParamsCopyRepository;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParametersService;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParamsCopyService;
 import uk.ac.ebi.tsc.portal.api.configuration.controller.InvalidConfigurationInputException;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigDeploymentParamsCopy;
-import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigDeploymentParamsCopyRepository;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.Configuration;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationDeploymentParameters;
-import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationDeploymentParametersRepository;
-import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationRepository;
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigDeploymentParamsCopyService;
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationDeploymentParametersService;
-import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationNotFoundException;
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationService;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.*;
-import uk.ac.ebi.tsc.portal.api.deployment.service.*;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.Deployment;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentApplication;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentApplicationCloudProvider;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentConfiguration;
+import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentApplicationService;
+import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentConfigurationService;
+import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentNotFoundException;
+import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentSecretService;
+import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
 import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
 import uk.ac.ebi.tsc.portal.api.team.repo.Team;
 import uk.ac.ebi.tsc.portal.api.team.repo.TeamRepository;
 import uk.ac.ebi.tsc.portal.api.team.service.TeamService;
-import uk.ac.ebi.tsc.portal.api.volumeinstance.repo.VolumeInstanceRepository;
-import uk.ac.ebi.tsc.portal.api.volumeinstance.repo.VolumeInstanceStatusRepository;
 import uk.ac.ebi.tsc.portal.api.volumeinstance.service.VolumeInstanceService;
 import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployerBash;
 import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDeployerException;
@@ -92,24 +99,15 @@ public class DeploymentRestControllerTest {
 	String salt= "salt";
 	String password= "password";
 
-
-	@MockBean
-	private DeploymentRepository deploymentRepository;
-
 	@MockBean
 	private DeploymentService deploymentService;
 
 	@MockBean
 	private ConfigurationService configurationService;
 
-	@MockBean
-	private ConfigurationRepository configurationRepository;
 
 	@MockBean
 	private ConfigurationDeploymentParametersService configurationDeploymentParametersService;
-
-	@MockBean
-	private ConfigurationDeploymentParametersRepository configurationDeploymentParametersRepository;
 
 	@MockBean
 	private TeamService teamService;
@@ -119,22 +117,14 @@ public class DeploymentRestControllerTest {
 
 	@MockBean
 	DomainService domainService;
-
-	@MockBean
-	DomainRepository domainRepository;
-
+	
 	@MockBean
 	DeploymentConfigurationService deploymentConfigurationService;
-
-	@MockBean
-	DeploymentConfigurationRepository deploymentConfigurationRepository;
-
-	@MockBean
-	DeploymentApplicationRepository deploymentApplicationRepository;
-
+	
 	@MockBean
 	DeploymentApplicationService deploymentApplicationService;
 
+	@MockBean
 	DeploymentRestController subject;
 
 	@MockBean
@@ -143,22 +133,14 @@ public class DeploymentRestControllerTest {
 	String tempKey = "dGhlcG9ydGFsZGV2ZWxvcGVkYnl0c2lpc2F3ZXNvbWU=";
 
 	@MockBean
-	CloudProviderParamsCopyRepository cloudProviderParametersCopyRepository;
-
-	@MockBean
 	CloudProviderParamsCopyService cloudProviderParametersCopyService;
 
 	@MockBean
 	CloudProviderParametersService cloudProviderParametersService;
 
 	@MockBean
-	CloudProviderParametersRepository cloudProviderParametersRepository;
-
-	@MockBean
 	ConfigDeploymentParamsCopyService configurationDeploymentParamsCopyService;
 
-	@MockBean
-	ConfigDeploymentParamsCopyRepository configurationDeploymentParamsCopyRepository;
 
 	@MockBean
 	DeploymentConfiguration deploymentConfiguration;
@@ -170,22 +152,10 @@ public class DeploymentRestControllerTest {
 	AccountService accountService;
 
 	@MockBean
-	AccountRepository accountRepository;
-
-	@MockBean
-	ApplicationRepository applicationRepository;
-
-	@MockBean
 	ApplicationService applicationService;
 
 	@MockBean
-	DeploymentStatusRepository deploymentStatusRepository;
-
-	@MockBean
-	VolumeInstanceRepository volumeInstanceRepositoryRepository;
-
-	@MockBean
-	VolumeInstanceStatusRepository volumeInstanceStatusRepository;
+	VolumeInstanceService volumeInstanceService;
 
 	@MockBean
 	ApplicationDeployerBash applicationDeployerBash;
@@ -205,17 +175,16 @@ public class DeploymentRestControllerTest {
 	String cppReference = "cppReference";
 	@Before 
 	public void setUp() {
-
-		ReflectionTestUtils.setField(deploymentService, "deploymentRepository", deploymentRepository);
-		ReflectionTestUtils.setField(configurationDeploymentParametersService, "configurationDeploymentParametersRepository",
-				configurationDeploymentParametersRepository);
-		ReflectionTestUtils.setField(cloudProviderParametersCopyService, "cloudProviderParametersCopyRepository", cloudProviderParametersCopyRepository);
-		ReflectionTestUtils.setField(cloudProviderParametersService, "cloudProviderParametersRepository", cloudProviderParametersRepository);
-		ReflectionTestUtils.setField(configurationService, "configurationRepository", configurationRepository);
-		ReflectionTestUtils.setField(accountService, "accountRepository", accountRepository);
-		ReflectionTestUtils.setField(applicationService, "applicationRepository", applicationRepository);
-		ReflectionTestUtils.setField(deploymentApplicationService, "deploymentApplicationRepository", deploymentApplicationRepository);
-		ReflectionTestUtils.setField(teamService, "teamRepository", teamRepository);
+		
+		ReflectionTestUtils.setField(subject, "deploymentService", deploymentService);
+		ReflectionTestUtils.setField(subject, "cloudProviderParametersCopyService", cloudProviderParametersCopyService);
+		ReflectionTestUtils.setField(subject, "accountService", accountService);
+		ReflectionTestUtils.setField(subject, "applicationService", applicationService);
+		ReflectionTestUtils.setField(subject, "deploymentApplicationService", deploymentApplicationService);
+		ReflectionTestUtils.setField(subject, "configurationService", configurationService);
+		ReflectionTestUtils.setField(subject, "teamService", teamService);
+		ReflectionTestUtils.setField(subject, "cloudProviderParametersService", cloudProviderParametersService);
+		ReflectionTestUtils.setField(subject, "applicationDeployerBash", applicationDeployerBash);
 		Properties props = new Properties();
 		props.put("be.applications.root", "blah");    
 		props.put("be.deployments.root", "bleh");
@@ -230,15 +199,14 @@ public class DeploymentRestControllerTest {
 	public void can_delete_deployment_given_id() throws IOException, ApplicationDeployerException,
 	NoSuchPaddingException, InvalidAlgorithmParameterException, NoSuchAlgorithmException,
 	IllegalBlockSizeException, BadPaddingException, InvalidKeyException, InvalidKeySpecException {
+		
 		String theId = "blah";
 		deployment(theId);
-
 		CloudProviderParameters mockCloudProviderParameters = mock(CloudProviderParameters.class);
 		when(mockCloudProviderParameters.getReference()).thenReturn(cppReference);
-		when(cloudProviderParametersRepository.findByNameAndAccountUsername(A_CLOUD_PROVIDER_PARAMS_NAME, A_USER_NAME))
-		.thenReturn(Optional.of(mockCloudProviderParameters));
+		when(cloudProviderParametersService.findByNameAndAccountUsername(A_CLOUD_PROVIDER_PARAMS_NAME, A_USER_NAME))
+		.thenReturn(mockCloudProviderParameters);
 		when(cloudProviderParametersService.findByReference(cppReference)).thenReturn(mockCloudProviderParameters);
-		when(cloudProviderParametersRepository.findByReference(cppReference)).thenReturn(Optional.of(mockCloudProviderParameters));
 		Account mockAccount = mock(Account.class);
 		when(mockAccount.getUsername()).thenReturn(A_USER_NAME);
 		when(mockAccount.getId()).thenReturn(1L);
@@ -246,7 +214,7 @@ public class DeploymentRestControllerTest {
 		when(mockAccount.getPassword()).thenReturn("A password");
 		when(mockAccount.getOrganisation()).thenReturn("An organisation");
 		when(mockCloudProviderParameters.getAccount()).thenReturn(mockAccount);
-
+		when( subject.removeDeploymentByReference(principal, theId)).thenCallRealMethod();
 		ResponseEntity response = subject.removeDeploymentByReference(principal, theId);
 
 		assertThat(response.getStatusCode().value(), is(200));
@@ -261,9 +229,9 @@ public class DeploymentRestControllerTest {
 		deployment(theId);
 
 		CloudProviderParameters mockCloudProviderParameters = mock(CloudProviderParameters.class);
-		when(cloudProviderParametersRepository.findByNameAndAccountUsername(A_CLOUD_PROVIDER_PARAMS_NAME, A_USER_NAME))
-		.thenReturn(Optional.of(mockCloudProviderParameters));
-
+		when(cloudProviderParametersService.findByNameAndAccountUsername(A_CLOUD_PROVIDER_PARAMS_NAME, A_USER_NAME))
+		.thenReturn(mockCloudProviderParameters);
+		when(subject.readyToTearDown(tempKey, theId)).thenCallRealMethod();
 		ResponseEntity response = subject.readyToTearDown(tempKey, theId);
 		assertThat(response.getStatusCode().is2xxSuccessful(), is(true));
 	}
@@ -274,6 +242,7 @@ public class DeploymentRestControllerTest {
 			NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException,
 			InvalidAlgorithmParameterException, InvalidKeySpecException {
 		String anIncorrectKey = "hey";
+		when(subject.readyToTearDown(anIncorrectKey, null)).thenCallRealMethod();
 		ResponseEntity response = subject.readyToTearDown(anIncorrectKey, null);
 		assertThat(response.getStatusCode().value(), is(404));
 	}
@@ -283,8 +252,8 @@ public class DeploymentRestControllerTest {
 	NoSuchPaddingException, InvalidKeyException, NoSuchAlgorithmException, IllegalBlockSizeException,
 	BadPaddingException, InvalidAlgorithmParameterException, InvalidKeySpecException {
 		String aNonExistentDeployment = "foo";
-		when(deploymentRepository.findByReference(aNonExistentDeployment)).thenReturn(Optional.empty());
-
+		when(deploymentService.findByReference(aNonExistentDeployment)).thenThrow(DeploymentNotFoundException.class);
+		when(subject.readyToTearDown(tempKey, aNonExistentDeployment)).thenCallRealMethod();
 		subject.readyToTearDown(tempKey, aNonExistentDeployment);
 	}
 
@@ -296,15 +265,13 @@ public class DeploymentRestControllerTest {
 		String aDeploymentReference = "bar";
 		Deployment mockDeployment = deployment(aDeploymentReference);
 		when(mockDeployment.getId()).thenReturn(1234L);
-		//when(mockDeployment.getCloudProviderParameters().getCloudProvider()).thenReturn(A_CLOUD_PROVIDER);
-
 		CloudProviderParameters mockCloudProviderParameters = mock(CloudProviderParameters.class);
-		when(cloudProviderParametersRepository.findByNameAndAccountUsername(A_CLOUD_PROVIDER_PARAMS_NAME, A_USER_NAME))
-		.thenReturn(Optional.of(mockCloudProviderParameters));
-
+		when(cloudProviderParametersService.findByNameAndAccountUsername(A_CLOUD_PROVIDER_PARAMS_NAME, A_USER_NAME))
+		.thenReturn(mockCloudProviderParameters);
+		when(subject.readyToTearDown(tempKey, aDeploymentReference)).thenCallRealMethod();
 		subject.readyToTearDown(tempKey, aDeploymentReference);
 
-		verify(deploymentRepository).delete(1234L);
+		verify(deploymentService).delete(1234L);
 	}
 
 	@Test
@@ -315,15 +282,15 @@ public class DeploymentRestControllerTest {
 		String aReference = "bar";
 		Deployment mockDeployment = deployment(aReference);
 		when(mockDeployment.getAccessIp()).thenReturn(anIp);
-		when(deploymentRepository.findByAccessIp(anIp)).thenReturn(Optional.of(mockDeployment));
+		when(deploymentService.findByAccessIp(anIp)).thenReturn(mockDeployment);
 
 		CloudProviderParameters mockCloudProviderParameters = mock(CloudProviderParameters.class);
-		when(cloudProviderParametersRepository.findByNameAndAccountUsername(A_CLOUD_PROVIDER_PARAMS_NAME, A_USER_NAME))
-		.thenReturn(Optional.of(mockCloudProviderParameters));
-
+		when(cloudProviderParametersService.findByNameAndAccountUsername(A_CLOUD_PROVIDER_PARAMS_NAME, A_USER_NAME))
+		.thenReturn(mockCloudProviderParameters);
+		when(subject.readyToTearDown(tempKey, anIp)).thenCallRealMethod();
 		subject.readyToTearDown(tempKey, anIp);
 
-		verify(deploymentRepository).findByAccessIp(anIp);
+		verify(deploymentService).findByAccessIp(anIp);
 	}
 
 	@Test(expected = NullPointerException.class)
@@ -339,7 +306,7 @@ public class DeploymentRestControllerTest {
 		when(principal.getName()).thenReturn(accountUserName);
 		Account mockAccount = mock(Account.class);
 		when(mockAccount.getUsername()).thenReturn(accountUserName);
-		when(accountRepository.findByUsername(accountUserName)).thenReturn(Optional.of(mockAccount));
+		when(accountService.findByUsername(accountUserName)).thenReturn(mockAccount);
 
 		Application applicationMock = mock(Application.class);
 		when(applicationMock.getName()).thenReturn(appName);
@@ -347,15 +314,16 @@ public class DeploymentRestControllerTest {
 		Set applicationCollection = new HashSet<>();
 		applicationCollection.add(applicationMock);
 
-		when(applicationRepository.findByAccountUsername(accountUserName,new Sort("sort.name"))).thenReturn(applicationCollection);
+		when(applicationService.findByAccountUsername(accountUserName,new Sort("sort.name"))).thenReturn(applicationCollection);
 		when(deploymentResourceMock.getApplicationAccountUsername()).thenReturn(accountUserName);
 		when(deploymentResourceMock.getApplicationName()).thenReturn(appName);
 		when(deploymentResourceMock.getConfigurationAccountUsername()).thenReturn(accountUserName);
 		when(deploymentResourceMock.getConfigurationName()).thenReturn("some_configuration_name");
-		when(applicationRepository.findByAccountUsernameAndName(accountUserName, appName))
-		.thenReturn(Optional.of(applicationMock));
-
-		subject.addDeployment(new MockHttpServletRequest(), principal, deploymentResourceMock);
+		when(applicationService.findByAccountUsernameAndName(accountUserName, appName))
+		.thenReturn(applicationMock);
+		HttpServletRequest request = new MockHttpServletRequest();
+		when(subject.addDeployment(request, principal, deploymentResourceMock)).thenCallRealMethod();
+		subject.addDeployment(request, principal, deploymentResourceMock);
 
 	}
 
@@ -374,8 +342,7 @@ public class DeploymentRestControllerTest {
 		//get account of the user with whom application and configuration are shared
 		Account account = mock(Account.class);
 		String accountReference = "accountReference";
-		given(accountRepository.findByUsername(sharedWithUsername)).willReturn(Optional.of(account));
-		given(accountService.findByUsername(sharedWithUsername)).willCallRealMethod();
+		given(accountService.findByUsername(sharedWithUsername)).willReturn(account);
 		given(account.getGivenName()).willReturn(sharedWithUsername);
 		given(account.getUsername()).willReturn(sharedWithUsername);
 		given(account.getFirstJoinedDate()).willReturn(new Date(0, 0, 0));
@@ -385,7 +352,6 @@ public class DeploymentRestControllerTest {
 		Account owner =  mock(Account.class);
 		String username = "username";
 		given(owner.getUsername()).willReturn(username);
-		given(accountRepository.findByUsername(username)).willReturn(Optional.of(owner));
 		given(accountService.findByUsername(username)).willReturn(owner);
 		given(owner.getGivenName()).willReturn(username);
 		given(owner.getUsername()).willReturn(username);
@@ -411,9 +377,7 @@ public class DeploymentRestControllerTest {
 		String applicationName = "applicationName";
 		given(input.getApplicationName()).willReturn(applicationName);
 		Application application = mock(Application.class);
-		given(application.getName()).willReturn(applicationName);
-		given(applicationRepository.findByAccountUsernameAndName(username,applicationName)).willReturn(Optional.of(application));
-		given(applicationService.findByAccountUsernameAndName(username,applicationName)).willReturn(application);
+		given(application.getName()).willReturn(applicationName);given(applicationService.findByAccountUsernameAndName(username,applicationName)).willReturn(application);
 
 		//set up teams, sharedwith user is a member of only one of these teams
 		Set<Account> teamAccounts = new HashSet<>();
@@ -424,8 +388,6 @@ public class DeploymentRestControllerTest {
 		sharedWithTeams.add(team);
 		
 		//application is shared not owned
-		given(applicationRepository.findByAccountUsernameAndName(sharedWithUsername,applicationName))
-		.willThrow(ApplicationNotFoundException.class);
 		given(applicationService.findByAccountUsernameAndName(sharedWithUsername,applicationName))
 		.willThrow(ApplicationNotFoundException.class);
 		
@@ -444,12 +406,8 @@ public class DeploymentRestControllerTest {
 		when(input.getConfigurationAccountUsername()).thenReturn(username);
 		when(input.getConfigurationName()).thenReturn(configurationName);
 		when(config.getName()).thenReturn(configurationName);
-		when(configurationRepository.findByNameAndAccountUsername(input.getConfigurationName(), account.getUsername())).thenThrow(ConfigurationNotFoundException.class);
-		when(configurationService.findByNameAndAccountUsername(input.getConfigurationName(), account.getUsername())).thenCallRealMethod();
 		when(configurationService.findByNameAndAccountUsername(input.getConfigurationName(), input.getConfigurationAccountUsername()))
 		.thenReturn(config);
-		when(configurationRepository.findByNameAndAccountUsername(input.getConfigurationName(), input.getConfigurationAccountUsername()))
-		.thenReturn(Optional.of(config));
 		when(config.getHardUsageLimit()).thenReturn(1.0);
 		when(configurationService.getTotalConsumption(config, deploymentIndexService)).thenReturn(0.5);
 		
@@ -460,17 +418,12 @@ public class DeploymentRestControllerTest {
 		ConfigDeploymentParamsCopy configDeploymentParamsCopy = mock(ConfigDeploymentParamsCopy.class);
 		given(configDeploymentParamsCopy.getName()).willReturn(cdpName);
 		given(configDeploymentParamsCopy.getConfigurationDeploymentParametersReference()).willReturn(cdpReference);
-		given(configurationDeploymentParamsCopyRepository.findByConfigurationDeploymentParametersReference(cdpReference))
-		.willReturn(Optional.of(configDeploymentParamsCopy));
 		given(configurationDeploymentParamsCopyService.findByConfigurationDeploymentParametersReference(cdpReference))
 		.willReturn(configDeploymentParamsCopy);
 		List<ConfigDeploymentParamsCopy> cdpCopyList = new ArrayList<>();
 		cdpCopyList.add(configDeploymentParamsCopy);
-		given(configurationDeploymentParamsCopyRepository.findByName(cdpName)).willReturn(cdpCopyList);
-		given(configurationDeploymentParamsCopyService.findByName(cdpName)).willReturn(configDeploymentParamsCopy);
+		given(configurationDeploymentParamsCopyService.findByName(cdpName)).willReturn(cdpCopyList.get(0));
 		given(configurationService.isConfigurationSharedWithAccount(account, config)).willCallRealMethod();
-		given(configurationDeploymentParamsCopyRepository.findByConfigurationDeploymentParametersReference(cdpReference))
-		.willReturn(Optional.of(configDeploymentParamsCopy));
 		given(configurationDeploymentParamsCopyService.findByConfigurationDeploymentParametersReference(cdpReference))
 		.willReturn(configDeploymentParamsCopy);
 		
@@ -481,17 +434,14 @@ public class DeploymentRestControllerTest {
 		when(config.getCloudProviderParametersName()).thenReturn(cloudProviderParametersName);
 		when(cloudProviderParameters.getName()).thenReturn(cloudProviderParametersName);
 		CloudProviderParameters selectedCloudProviderParameters = mock(CloudProviderParameters.class);
-		given(cloudProviderParametersRepository.findByNameAndAccountUsername(cloudProviderParametersName,
-				username)).willReturn(Optional.of(selectedCloudProviderParameters));
 		given(cloudProviderParametersService.findByNameAndAccountUsername(cloudProviderParametersName,
-				username)).willReturn(selectedCloudProviderParameters);
-		given(selectedCloudProviderParameters.getAccount()).willReturn(account);
+				owner.getUsername())).willReturn(selectedCloudProviderParameters);
 		String cloudProviderParametersReference = "cppReference";
 		given(selectedCloudProviderParameters.getReference()).willReturn(cloudProviderParametersReference);
 		String cloudProvider = "ostack";
 		given(selectedCloudProviderParameters.getCloudProvider()).willReturn(cloudProvider);
 		given(cloudProviderParametersService.isCloudProviderParametersSharedWithAccount(account, selectedCloudProviderParameters)).willCallRealMethod();
-		
+		given(selectedCloudProviderParameters.getAccount()).willReturn(owner);
 		//application cloud providers
 		Collection<ApplicationCloudProvider> acpList = new ArrayList<>();
 		ApplicationCloudProvider acp = mock(ApplicationCloudProvider.class);
@@ -499,22 +449,25 @@ public class DeploymentRestControllerTest {
 		given(acp.getPath()).willReturn("somepath");
 		acpList.add(acp);
 		given(application.getCloudProviders()).willReturn(acpList);
+		given(selectedCloudProviderParameters.getName()).willReturn(cloudProviderParametersName);
 
 		//cloud provider parameters copy
 		CloudProviderParamsCopy cppCopy = mock(CloudProviderParamsCopy.class);
-		given(cloudProviderParametersCopyRepository.findByCloudProviderParametersReference(cloudProviderParametersReference))
-		.willReturn(Optional.of(cppCopy));
+		when(cloudProviderParametersService.findByReference(cloudProviderParametersReference)).thenReturn(selectedCloudProviderParameters);
+		given(cppCopy.getAccount()).willReturn(owner);
+		cppCopy.account = owner;
+		given(cppCopy.getCloudProviderParametersReference()).willReturn(cloudProviderParametersReference);
+		CloudProviderParametersCopyResource cppCopyResource = new CloudProviderParametersCopyResource(cppCopy);
+		when(input.getCloudProviderParametersCopy()).thenReturn(cppCopyResource);
 		given(cloudProviderParametersCopyService.findByCloudProviderParametersReference(cloudProviderParametersReference))
 		.willReturn(cppCopy);
-		given(cppCopy.getAccount()).willReturn(account);
-
+		
 		//deployment application
 		DeploymentApplication deploymentApplication = mock(DeploymentApplication.class);
 		given(deploymentApplicationService.createDeploymentApplication(application)).willReturn(deploymentApplication);
 		given(deploymentApplication.getName()).willReturn(applicationName);
 		given(deploymentApplication.getAccount()).willReturn(account);
 		Collection<DeploymentApplicationCloudProvider> dacpList = new ArrayList<>();
-		given(deploymentApplicationRepository.save(deploymentApplication)).willReturn(deploymentApplication);
 		given(deploymentApplicationService.save(deploymentApplication)).willReturn(deploymentApplication);
 
 		// application inputs 
@@ -527,12 +480,12 @@ public class DeploymentRestControllerTest {
 
 		Deployment deployment = mock(Deployment.class);
 		given(deployment.getId()).willReturn(1l);
-		given(deploymentService.save(isA(Deployment.class))).willCallRealMethod();
-		given(deploymentRepository.save(isA(Deployment.class))).willReturn(deployment);
+		given(deploymentService.save(isA(Deployment.class))).willReturn(deployment);
 		given(deployment.getAccount()).willReturn(account);
 		given(deployment.getDeploymentApplication()).willReturn(deploymentApplication);
-
-		ResponseEntity<?> addedDeployment = subject.addDeployment(new MockHttpServletRequest(), principal, input);
+		HttpServletRequest request = new MockHttpServletRequest();
+		when(subject.addDeployment(request, principal, input)).thenCallRealMethod();
+		ResponseEntity<?> addedDeployment = subject.addDeployment(request, principal, input);
 		assertNotNull(addedDeployment.getBody());
 		assertTrue(addedDeployment.getStatusCode().equals(HttpStatus.CREATED));
 		assertTrue(application.getCloudProviders().containsAll(deploymentApplication.getCloudProviders()));
@@ -552,7 +505,6 @@ public class DeploymentRestControllerTest {
 
 		//get account
 		Account account = mock(Account.class);
-		given(accountRepository.findByUsername(username)).willReturn(Optional.of(account));
 		given(accountService.findByUsername(username)).willReturn(account);
 		given(account.getGivenName()).willReturn(username);
 		given(account.getUsername()).willReturn(username);
@@ -563,10 +515,10 @@ public class DeploymentRestControllerTest {
 		Application application = mock(Application.class);
 		given(application.getName()).willReturn(applicationName);
 		given(application.getAccount()).willReturn(account);
-		given(applicationRepository.findByAccountUsernameAndName(username,applicationName)).willReturn(Optional.of(application));
-		given(applicationService.findByAccountUsernameAndName(username,applicationName)).willCallRealMethod();
-
-		ResponseEntity<?> addedDeployment = subject.addDeployment(new MockHttpServletRequest(), principal, input);
+		given(applicationService.findByAccountUsernameAndName(username,applicationName)).willReturn(application);
+		HttpServletRequest request = new MockHttpServletRequest();
+		when(subject.addDeployment(request, principal, input)).thenCallRealMethod();
+		subject.addDeployment(request, principal, input);
 	}
 
 
@@ -584,7 +536,6 @@ public class DeploymentRestControllerTest {
 
 		//get account
 		Account account = mock(Account.class);
-		given(accountRepository.findByUsername(username)).willReturn(Optional.of(account));
 		given(accountService.findByUsername(username)).willReturn(account);
 		given(account.getGivenName()).willReturn(username);
 		given(account.getUsername()).willReturn(username);
@@ -595,10 +546,10 @@ public class DeploymentRestControllerTest {
 		Application application = mock(Application.class);
 		given(application.getName()).willReturn(applicationName);
 		given(application.getAccount()).willReturn(account);
-		given(applicationRepository.findByAccountUsernameAndName(username,applicationName)).willReturn(Optional.of(application));
-		given(applicationService.findByAccountUsernameAndName(username,applicationName)).willCallRealMethod();
-
-		ResponseEntity<?> addedDeployment = subject.addDeployment(new MockHttpServletRequest(), principal, input);
+		given(applicationService.findByAccountUsernameAndName(username,applicationName)).willReturn(application);
+		HttpServletRequest request = new MockHttpServletRequest();
+		when(subject.addDeployment(request, principal, input)).thenCallRealMethod();
+		ResponseEntity<?> addedDeployment = subject.addDeployment(request, principal, input);
 	}
 
 	@Test(expected = InvalidApplicationInputException.class)
@@ -610,8 +561,9 @@ public class DeploymentRestControllerTest {
 
 		DeploymentResource input = mock(DeploymentResource.class);
 		given(input.getApplicationName()).willReturn(null);
-
-		ResponseEntity<?> addedDeployment = subject.addDeployment(new MockHttpServletRequest(), principal, input);
+		HttpServletRequest request = new MockHttpServletRequest();
+		when(subject.addDeployment(request, principal, input)).thenCallRealMethod();
+		ResponseEntity<?> addedDeployment = subject.addDeployment(request, principal, input);
 	}
 
 	@Test(expected = InvalidApplicationInputException.class)
@@ -623,8 +575,9 @@ public class DeploymentRestControllerTest {
 
 		DeploymentResource input = mock(DeploymentResource.class);
 		given(input.getApplicationAccountUsername()).willReturn(null);
-
-		ResponseEntity<?> addedDeployment = subject.addDeployment(new MockHttpServletRequest(), principal, input);
+		HttpServletRequest request = new MockHttpServletRequest();
+		when(subject.addDeployment(request, principal, input)).thenCallRealMethod();
+		ResponseEntity<?> addedDeployment = subject.addDeployment(request, principal, input);
 	}
 
 	@Test(expected=ApplicationNotFoundException.class)
@@ -641,7 +594,6 @@ public class DeploymentRestControllerTest {
 
 		//get account
 		Account account = mock(Account.class);
-		given(accountRepository.findByUsername(username)).willReturn(Optional.of(account));
 		given(accountService.findByUsername(username)).willReturn(account);
 		given(account.getGivenName()).willReturn(username);
 		given(account.getUsername()).willReturn(username);
@@ -652,16 +604,10 @@ public class DeploymentRestControllerTest {
 		Application application = mock(Application.class);
 		given(application.getName()).willReturn(applicationName);
 		given(application.getAccount()).willReturn(account);
-		
-		//team
-		String domainReference = "some ref";
-//		given(input.getDomainReference()).willReturn(domainReference);
-//		given(teamRepository.findByDomainReference(domainReference)).willReturn(Optional.of(mock(Team.class)));
-//		given(teamService.findByDomainReference(domainReference)).willCallRealMethod();
-		given(applicationRepository.findByAccountUsernameAndName(username,applicationName)).willThrow(ApplicationNotFoundException.class);
-		given(applicationService.findByAccountUsernameAndName(username,applicationName)).willCallRealMethod();
-
-		ResponseEntity<?> addedDeployment = subject.addDeployment(new MockHttpServletRequest(), principal, input);
+		given(applicationService.findByAccountUsernameAndName(username,applicationName)).willThrow(ApplicationNotFoundException.class);
+		HttpServletRequest request = new MockHttpServletRequest();
+		when(subject.addDeployment(request, principal, input)).thenCallRealMethod();
+		subject.addDeployment(request, principal, input);
 
 	}
 
@@ -675,13 +621,13 @@ public class DeploymentRestControllerTest {
 		Account mockAccount = mock(Account.class);
 		when(mockAccount.getUsername()).thenReturn(A_USER_NAME);
 		when(mockDeployment.getAccount()).thenReturn(mockAccount);
-		when(deploymentRepository.findByReference(reference)).thenReturn(Optional.of(mockDeployment));
+		when(deploymentService.findByReference(reference)).thenReturn(mockDeployment);
 		when(mockDeployment.getCloudProviderParametersReference()).thenReturn(cppReference);
 		DeploymentConfiguration deploymentConfiguration = mock(DeploymentConfiguration.class);
 		when(mockDeployment.getDeploymentConfiguration()).thenReturn(deploymentConfiguration);
 		when(deploymentConfiguration.getName()).thenReturn("some string");
 		when(deploymentConfiguration.getConfigDeploymentParametersReference()).thenReturn(reference);
-		when(cloudProviderParametersRepository.findByReference(Mockito.anyString())).thenReturn(Optional.of(mockCloudProviderParameters));
+		when(cloudProviderParametersService.findByReference(Mockito.anyString())).thenReturn(mockCloudProviderParameters);
 		when(mockCloudProviderParameters.getAccount()).thenReturn(mockAccount);
 		java.sql.Date date = mock(java.sql.Date.class);
 		when(mockAccount.getFirstJoinedDate()).thenReturn(date);
@@ -689,7 +635,6 @@ public class DeploymentRestControllerTest {
 		when(mockAccount.getGivenName()).thenReturn("given name");
 		ConfigurationDeploymentParameters cdps = mock(ConfigurationDeploymentParameters.class);
 		when(configurationDeploymentParametersService.findByReference(reference)).thenReturn(cdps);
-		when(configurationDeploymentParametersRepository.findByReference(reference)).thenReturn(Optional.of(cdps));
 		when(cdps.getReference()).thenReturn(reference);
 		return mockDeployment;
 	}
@@ -701,12 +646,14 @@ public class DeploymentRestControllerTest {
             Portal Dev          https://dev.api.portal.tsi.ebi.ac.uk
             Portal Master       https://api.portal.tsi.ebi.ac.uk
             Local Deployment    http://localhost:8080
-
             With server path    https://api.portal.tsi.ebi.ac.uk/deployments/TSI000000000000001/stopme
 
          */
-
-		assertEquals( "http://localhost:8080"               , subject.baseURL(mockRequest("localhost", 8080)) );
+		MockHttpServletRequest urlLocal = mockRequest("localhost", 8080);
+		when(subject.baseURL(urlLocal)).thenCallRealMethod();
+		when(subject.baseURL(mockRequest("dev.api.portal.tsi.ebi.ac.uk"))).thenCallRealMethod();
+		when(subject.baseURL(mockRequest("api.portal.tsi.ebi.ac.uk", -1, "/deployments/TSI000000000000001/stopme"))).thenCallRealMethod();
+		assertEquals( "http://localhost:8080"               , subject.baseURL(urlLocal) );
 		assertEquals( "http://dev.api.portal.tsi.ebi.ac.uk" , subject.baseURL(mockRequest("dev.api.portal.tsi.ebi.ac.uk")) );
 		assertEquals( "http://api.portal.tsi.ebi.ac.uk"     , subject.baseURL(mockRequest("api.portal.tsi.ebi.ac.uk", -1, "/deployments/TSI000000000000001/stopme")) );
 	}
