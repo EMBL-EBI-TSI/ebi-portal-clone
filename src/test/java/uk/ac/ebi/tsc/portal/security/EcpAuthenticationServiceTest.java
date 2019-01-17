@@ -1,9 +1,16 @@
 package uk.ac.ebi.tsc.portal.security;
 
+import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.util.InMemoryResource;
+import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.web.WebAppConfiguration;
+import org.springframework.test.util.ReflectionTestUtils;
+
 import uk.ac.ebi.tsc.aap.client.model.User;
 import uk.ac.ebi.tsc.aap.client.repo.DomainService;
 import uk.ac.ebi.tsc.aap.client.repo.TokenService;
@@ -33,8 +40,11 @@ import static org.mockito.Mockito.when;
 /**
  * @author Jose A. Dianes <jdianes@ebi.ac.uk>
  */
+@RunWith(SpringRunner.class)
+@WebAppConfiguration
 public class EcpAuthenticationServiceTest {
 
+	@MockBean
     private EcpAuthenticationService subject;
 
     private uk.ac.ebi.tsc.aap.client.security.TokenAuthenticationService mockAuthService =
@@ -42,17 +52,15 @@ public class EcpAuthenticationServiceTest {
 
     private AccountService mockAccountService = mock(AccountService.class);
     private TokenService mockTokenService = mock(TokenService.class);
-    private DeploymentService mockDeploymentService = mock(DeploymentService.class);
-    private DeploymentConfigurationService mockDeploymentConfigurationService = mock(DeploymentConfigurationService.class);
-    private DeploymentStatusRepository mockDeploymentStatusRepository = mock(DeploymentStatusRepository.class);
-    private CloudProviderParamsCopyRepository mockCloudProviderParamsCopyRepository = mock(CloudProviderParamsCopyRepository.class);
-    private TeamRepository mockTeamRepository = mock(TeamRepository.class);
-    private ApplicationDeployerBash mockApplicationDeployerBash = mock(ApplicationDeployerBash.class);
-    private DomainService mockDomainService = mock(DomainService.class);
-    private EncryptionService mockEncryptionService = mock(EncryptionService.class);
     private ResourceLoader mockResourceLoader = mock(ResourceLoader.class);
 
-
+    @Before
+    public void setUp(){
+    	ReflectionTestUtils.setField(subject, "accountService", mockAccountService);
+    	ReflectionTestUtils.setField(subject, "tokenService", mockTokenService);
+    	ReflectionTestUtils.setField(subject, "tokenAuthenticationService", mockAuthService);
+    }
+    
     public EcpAuthenticationServiceTest() throws IOException {
         when(mockResourceLoader.getResource("ecp.default.teams.file")).thenReturn(new InMemoryResource("[\n" +
                 "  {\n" +
@@ -92,7 +100,7 @@ public class EcpAuthenticationServiceTest {
 
         when(mockAuthService.getAuthentication(mockRequest)).thenReturn(mockAuth);
         when(mockTokenService.getAAPToken("ecp-account-username","ecp-account-password")).thenReturn("ecp-aap-pretend-valid-token");
-
+        when(subject.getAuthentication(mockRequest)).thenCallRealMethod();
         Authentication auth = subject.getAuthentication(mockRequest);
         assertEquals(auth.getName(), "pretend-username");
 
@@ -103,6 +111,7 @@ public class EcpAuthenticationServiceTest {
         HttpServletRequest request = withAuthorizationHeader("Bearer pretend-invalid-token");
         when(request.getHeader("Authorization").
                 equals("Bearer pretend-invalid-token")).thenReturn(null);
+        when(subject.getAuthentication(request)).thenCallRealMethod();
         Authentication auth = subject.getAuthentication(request);
         assertNull(auth);
     }
