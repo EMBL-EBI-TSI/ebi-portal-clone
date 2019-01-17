@@ -234,6 +234,11 @@ public class VolumeInstanceRestController {
         selectedCloudProviderParameters = this.cloudProviderParametersService.findByNameAndAccountUsername(
                 theVolumeInstance.getCloudProviderParameters().getName(), theVolumeInstance.getAccount().getUsername());
 
+        logger.info("repo path" + theVolumeInstance.getVolumeSetup().getRepoPath());
+        logger.info("reference" + theVolumeInstance.getReference());
+        logger.info("deploymentsRoot" + deploymentsRoot);
+        logger.info("applicationsRoot" + deploymentsRoot);
+        
         this.volumeDeployerBash.destroy(
                 theVolumeInstance.getVolumeSetup().getRepoPath(),
                 theVolumeInstance.getReference(),

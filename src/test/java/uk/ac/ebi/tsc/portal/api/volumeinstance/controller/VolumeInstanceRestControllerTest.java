@@ -1,30 +1,10 @@
 package uk.ac.ebi.tsc.portal.api.volumeinstance.controller;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.springframework.http.ResponseEntity;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.test.context.web.WebAppConfiguration;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
-import uk.ac.ebi.tsc.aap.client.repo.DomainService;
-import uk.ac.ebi.tsc.portal.api.account.repo.Account;
-import uk.ac.ebi.tsc.portal.api.account.repo.AccountRepository;
-import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParameters;
-import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParametersRepository;
-import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParamsCopyRepository;
-import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
-import uk.ac.ebi.tsc.portal.api.volumeinstance.repo.VolumeInstance;
-import uk.ac.ebi.tsc.portal.api.volumeinstance.repo.VolumeInstanceRepository;
-import uk.ac.ebi.tsc.portal.api.volumeinstance.repo.VolumeInstanceStatusRepository;
-import uk.ac.ebi.tsc.portal.api.volumesetup.repo.VolumeSetup;
-import uk.ac.ebi.tsc.portal.api.volumesetup.repo.VolumeSetupRepository;
-import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDeployerException;
-import uk.ac.ebi.tsc.portal.clouddeployment.volume.VolumeDeployerBash;
-
-import javax.crypto.BadPaddingException;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
 import java.io.IOException;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
@@ -34,10 +14,31 @@ import java.sql.Date;
 import java.util.Optional;
 import java.util.Properties;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.ResponseEntity;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.web.WebAppConfiguration;
+import org.springframework.test.util.ReflectionTestUtils;
+
+import uk.ac.ebi.tsc.portal.api.account.repo.Account;
+import uk.ac.ebi.tsc.portal.api.account.repo.AccountRepository;
+import uk.ac.ebi.tsc.portal.api.account.service.AccountService;
+import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParameters;
+import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParametersService;
+import uk.ac.ebi.tsc.portal.api.volumeinstance.repo.VolumeInstance;
+import uk.ac.ebi.tsc.portal.api.volumeinstance.repo.VolumeInstanceRepository;
+import uk.ac.ebi.tsc.portal.api.volumeinstance.service.VolumeInstanceService;
+import uk.ac.ebi.tsc.portal.api.volumesetup.repo.VolumeSetup;
+import uk.ac.ebi.tsc.portal.api.volumesetup.service.VolumeSetupService;
+import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDeployerException;
+import uk.ac.ebi.tsc.portal.clouddeployment.volume.VolumeDeployerBash;
 
 /**
  * @author Jose A. Dianes <jdianes@ebi.ac.uk>
@@ -55,16 +56,22 @@ public class VolumeInstanceRestControllerTest {
     public final String A_REFERENCE = "acc-1010101";
     public final String A_CLOUD_PROVIDER = "OSTACK";
 
-    AccountRepository mockAccountRepo = mock(AccountRepository.class);
-    VolumeInstanceRepository mockVolumeInstanceRepo = mock(VolumeInstanceRepository.class);
-    VolumeInstanceStatusRepository mockVolumeInstanceStatusRepo = mock(VolumeInstanceStatusRepository.class);
-    VolumeSetupRepository mockVolumeSetupRepo = mock(VolumeSetupRepository.class);
-    CloudProviderParametersRepository mockCloudCredentialsRepo = mock(CloudProviderParametersRepository.class);
-    VolumeDeployerBash mockVolumeDeployerBash = mock(VolumeDeployerBash.class);
-    DomainService domainService = mock(DomainService.class);
-    CloudProviderParamsCopyRepository cloudProviderParametersCopyRepository = mock(CloudProviderParamsCopyRepository.class);
-    EncryptionService encryptionService = mock(EncryptionService.class);
-
+    @MockBean
+    AccountService accountService; 
+        
+    @MockBean
+    VolumeSetupService volumeSetupService;
+    
+    @MockBean
+    CloudProviderParametersService cloudCredentialsService;
+    
+    @MockBean
+    VolumeInstanceService volumeInstanceService;
+    
+    @MockBean
+    VolumeDeployerBash volumeDeployerBash;
+    
+    @MockBean
     VolumeInstanceRestController subject;
 
     @Before
@@ -77,6 +84,11 @@ public class VolumeInstanceRestControllerTest {
         props.put("os.tenancy.name", "bluh");
         props.put("os.auth.url", "blyh");
         subject.setProperties(props);
+        ReflectionTestUtils.setField(subject, "cloudProviderParametersService", cloudCredentialsService);
+        ReflectionTestUtils.setField(subject, "volumeSetupService", volumeSetupService);
+        ReflectionTestUtils.setField(subject, "accountService", accountService);
+        ReflectionTestUtils.setField(subject, "volumeInstanceService", volumeInstanceService);
+        ReflectionTestUtils.setField(subject, "volumeDeployerBash", volumeDeployerBash);
     }
 
     @Test public void
@@ -89,15 +101,12 @@ public class VolumeInstanceRestControllerTest {
 
         CloudProviderParameters mockCloudProviderParameters = mockVolumeInstance.getCloudProviderParameters();
 
-        when(mockCloudCredentialsRepo.findByNameAndAccountUsername(
+        when(cloudCredentialsService.findByNameAndAccountUsername(
                 mockCloudProviderParameters.getName(),
                 mockAccount.getUsername()))
-                .thenReturn(Optional.of(mockCloudProviderParameters));
-        when(mockCloudCredentialsRepo.findByNameAndAccountUsername(
-                mockCloudProviderParameters.getName(),
-                mockAccount.getGivenName()))
-                .thenReturn(Optional.of(mockCloudProviderParameters));
-
+                .thenReturn(mockCloudProviderParameters);
+        
+        when(subject.removeVolumeInstanceByReference(theId)).thenCallRealMethod();
         ResponseEntity response = subject.removeVolumeInstanceByReference(theId);
 
         assertThat(response.getStatusCode().value(), is(200));
@@ -119,7 +128,7 @@ public class VolumeInstanceRestControllerTest {
         when(mockVolumeInstance.getVolumeSetup()).thenReturn(mockVolumeSetup);
 
         when(mockVolumeInstance.getAccount()).thenReturn(mockAccount);
-        when(mockVolumeInstanceRepo.findByReference(reference)).thenReturn(Optional.of(mockVolumeInstance));
+        when(volumeInstanceService.findByReference(reference)).thenReturn(mockVolumeInstance);
         return mockVolumeInstance;
     }
 
@@ -130,7 +139,7 @@ public class VolumeInstanceRestControllerTest {
         when(mockAccount.getFirstJoinedDate()).thenReturn(A_DATE);
         when(mockAccount.getReference()).thenReturn(A_REFERENCE);
 
-        when(this.mockAccountRepo.findByUsername(A_USER_NAME)).thenReturn(Optional.of(mockAccount));
+        when(this.accountService.findByUsername(A_USER_NAME)).thenReturn(mockAccount);
         return mockAccount;
     }
 
