@@ -3,14 +3,19 @@ package uk.ac.ebi.tsc.portal.api.volumesetup.controller;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
+import org.springframework.test.util.ReflectionTestUtils;
+
 import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDownloaderException;
 import uk.ac.ebi.tsc.portal.clouddeployment.volume.VolumeSetupDownloader;
 import uk.ac.ebi.tsc.portal.api.account.repo.Account;
 import uk.ac.ebi.tsc.portal.api.volumesetup.repo.VolumeSetup;
 import uk.ac.ebi.tsc.portal.api.volumesetup.repo.VolumeSetupRepository;
+import uk.ac.ebi.tsc.portal.api.volumesetup.service.VolumeSetupNotFoundException;
+import uk.ac.ebi.tsc.portal.api.volumesetup.service.VolumeSetupService;
 
 import java.io.File;
 import java.io.IOException;
@@ -37,12 +42,16 @@ public class VolumeSetupRestControllerTest {
     private static final int CREATED_HTTP_STATUS = 201;
     private static final int OK_HTTP_STATUS = 200;
 
-    VolumeSetupRepository mockVolumeSetupRepo = mock(VolumeSetupRepository.class);
-    VolumeSetupDownloader mockVolumeSetupDownloader = mock(VolumeSetupDownloader.class);
+    @MockBean
+    VolumeSetupService volumeSetupService;
+    
+    @MockBean
+    VolumeSetupDownloader volumeSetupDownloader; 
 
     private Account accountMock;
     private Principal principalMock;
 
+    @MockBean
     VolumeSetupRestController subject;
 
     @Before
@@ -50,7 +59,6 @@ public class VolumeSetupRestControllerTest {
 
         Properties props = new Properties();
         props.put("be.applications.root", APPS_ROOT_FOLDER);
-
         subject.setProperties(props);
 
         this.principalMock = mock(Principal.class);
@@ -62,20 +70,27 @@ public class VolumeSetupRestControllerTest {
         when(this.accountMock.getEmail()).thenReturn("an@email.com");
         when(this.accountMock.getPassword()).thenReturn("A password");
         when(this.accountMock.getOrganisation()).thenReturn("An organisation");
-
+        
+        ReflectionTestUtils.setField(subject, "volumeSetupService", volumeSetupService);
+        ReflectionTestUtils.setField(subject, "volumeSetupDownloader", volumeSetupDownloader);
+        ReflectionTestUtils.setField(subject, "applicationsRoot", APPS_ROOT_FOLDER);
     }
 
     @Test public void
     can_add_volume_setup_given_repo_uri() throws IOException, ApplicationDownloaderException {
+    	
         String theUri = "blah";
         String theName = "an-app-has-no-name";
         VolumeSetup mockVolumeSetup = mockVolumeSetup(theUri, APPS_ROOT_FOLDER + File.separator + theName, theName);
 
-        when(mockVolumeSetupRepo.save(mockVolumeSetup)).thenReturn(mockVolumeSetup);
+        when(volumeSetupService.save(mockVolumeSetup)).thenReturn(mockVolumeSetup);
         VolumeSetupResource inputResource = new VolumeSetupResource(mockVolumeSetup);
-        when(mockVolumeSetupRepo.findByAccountUsernameAndName(this.accountMock.getUsername(), inputResource.getName())).thenReturn(Optional.empty());
-        when(mockVolumeSetupDownloader.downloadVolumeSetup(APPS_ROOT_FOLDER, inputResource.getRepoUri(), this.accountMock.getUsername())).thenReturn(mockVolumeSetup);
+        when(volumeSetupDownloader.downloadVolumeSetup(APPS_ROOT_FOLDER, inputResource.getRepoUri(), this.accountMock.getUsername())).thenReturn(mockVolumeSetup);
+        when(volumeSetupService.findByAccountUsernameAndName(this.accountMock.getUsername(), inputResource.getName())).thenThrow(VolumeSetupNotFoundException.class);
 
+
+        when(subject.add(this.principalMock,inputResource)).thenCallRealMethod();
+        
         // do the request
         ResponseEntity response = subject.add(this.principalMock,inputResource);
 
@@ -90,6 +105,7 @@ public class VolumeSetupRestControllerTest {
         String theName = "an-app-has-no-name";
         mockSavedVolumeSetup(theUri, APPS_ROOT_FOLDER + File.separator + theName, theName);
 
+        when(subject.deleteVolumeSetupByAccountUsernameAndName(this.principalMock,theName)).thenCallRealMethod();
         ResponseEntity response = subject.deleteVolumeSetupByAccountUsernameAndName(this.principalMock,theName);
 
         assertThat(response.getStatusCode().value(), is(OK_HTTP_STATUS));
@@ -114,11 +130,12 @@ public class VolumeSetupRestControllerTest {
         when(mockVolumeSetup.getRepoUri()).thenReturn(repoUri);
         when(mockVolumeSetup.getId()).thenReturn(1L);
 
-        when(mockVolumeSetupRepo.findByAccountUsernameAndName(this.principalMock.getName(),name)).thenReturn(Optional.of(mockVolumeSetup));
-        when(mockVolumeSetupRepo.findById(1L)).thenReturn(Optional.of(mockVolumeSetup));
+        when(volumeSetupService.findByAccountUsernameAndName(this.principalMock.getName(),name))
+        .thenReturn(mockVolumeSetup);
+        when(volumeSetupService.findById(1L)).thenReturn(mockVolumeSetup);
 
-        when(mockVolumeSetupDownloader.removeVolumeSetup(mockVolumeSetup)).thenReturn(0);
-        when(mockVolumeSetupDownloader.downloadVolumeSetup(APPS_ROOT_FOLDER, repoUri, this.principalMock.getName())).thenReturn(mockVolumeSetup);
+        when(volumeSetupDownloader.removeVolumeSetup(mockVolumeSetup)).thenReturn(0);
+        when(volumeSetupDownloader.downloadVolumeSetup(APPS_ROOT_FOLDER, repoUri, this.principalMock.getName())).thenReturn(mockVolumeSetup);
 
         return mockVolumeSetup;
     }
