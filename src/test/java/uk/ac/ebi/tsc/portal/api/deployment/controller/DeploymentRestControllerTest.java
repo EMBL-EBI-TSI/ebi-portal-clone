@@ -12,6 +12,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.net.URL;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -111,9 +112,6 @@ public class DeploymentRestControllerTest {
 
 	@MockBean
 	private TeamService teamService;
-
-	@MockBean
-	private TeamRepository teamRepository;
 
 	@MockBean
 	DomainService domainService;
@@ -646,16 +644,20 @@ public class DeploymentRestControllerTest {
             Portal Dev          https://dev.api.portal.tsi.ebi.ac.uk
             Portal Master       https://api.portal.tsi.ebi.ac.uk
             Local Deployment    http://localhost:8080
+
             With server path    https://api.portal.tsi.ebi.ac.uk/deployments/TSI000000000000001/stopme
 
          */
-		MockHttpServletRequest urlLocal = mockRequest("localhost", 8080);
-		when(subject.baseURL(urlLocal)).thenCallRealMethod();
-		when(subject.baseURL(mockRequest("dev.api.portal.tsi.ebi.ac.uk"))).thenCallRealMethod();
-		when(subject.baseURL(mockRequest("api.portal.tsi.ebi.ac.uk", -1, "/deployments/TSI000000000000001/stopme"))).thenCallRealMethod();
-		assertEquals( "http://localhost:8080"               , subject.baseURL(urlLocal) );
-		assertEquals( "http://dev.api.portal.tsi.ebi.ac.uk" , subject.baseURL(mockRequest("dev.api.portal.tsi.ebi.ac.uk")) );
-		assertEquals( "http://api.portal.tsi.ebi.ac.uk"     , subject.baseURL(mockRequest("api.portal.tsi.ebi.ac.uk", -1, "/deployments/TSI000000000000001/stopme")) );
+		MockHttpServletRequest localURLRequest  = mockRequest("localhost", 8080);
+		when(subject.baseURL(localURLRequest)).thenCallRealMethod();
+		when(subject.getPortStr(Mockito.any(URL.class))).thenCallRealMethod();
+		assertEquals("http://localhost:8080", subject.baseURL(localURLRequest));
+		MockHttpServletRequest devURLRequest = mockRequest("dev.api.portal.tsi.ebi.ac.uk");
+		when(subject.baseURL( devURLRequest)).thenCallRealMethod();
+		assertEquals( "http://dev.api.portal.tsi.ebi.ac.uk" , subject.baseURL( devURLRequest) );
+		MockHttpServletRequest prodURLRequest = mockRequest("api.portal.tsi.ebi.ac.uk", -1, "/deployments/TSI000000000000001/stopme");
+		when(subject.baseURL( prodURLRequest)).thenCallRealMethod();
+		assertEquals( "http://api.portal.tsi.ebi.ac.uk"     , subject.baseURL(prodURLRequest));
 	}
 
 	MockHttpServletRequest mockRequest(String host)            {  return mockRequest(host, -1);	          }
@@ -668,16 +670,9 @@ public class DeploymentRestControllerTest {
 		if (path != null)
 			request.setRequestURI(path);
 
-//	    request.setLocalPort(8080);
-//	    request.setRemotePort(8080);
-
 		if (port != -1)
 			request.setServerPort(port);
 
-//	    request.setProtocol("https");
-
-//	    request.setRemoteHost("remoteHost");
-//	    request.setLocalName("remoteHost");
 		request.setServerName(host);
 
 		return request;

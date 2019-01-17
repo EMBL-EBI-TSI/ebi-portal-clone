@@ -519,7 +519,10 @@ public class DeploymentRestController {
 
 		// Let's remove it
 		URL url = new URL(requestUrl);
-
+		String x = String.format("%s://%s%s" , url.getProtocol()
+				, url.getHost()
+				, getPortStr(url)
+				);
 		return String.format("%s://%s%s" , url.getProtocol()
 				, url.getHost()
 				, getPortStr(url)
@@ -529,7 +532,9 @@ public class DeploymentRestController {
 	String getPortStr(URL url) {
 
 		int port = url.getPort();
-
+		String x = port == -1 ? ""
+				: format(":%d", port)
+				;
 		return port == -1 ? ""
 				: format(":%d", port)
 				;

@@ -72,12 +72,9 @@ import uk.ac.ebi.tsc.portal.clouddeployment.model.ApplicationManifest;
 @RunWith(SpringJUnit4ClassRunner.class)
 @WebAppConfiguration
 public class ApplicationRestControllerTest {
-
 	ApplicationRepository mockApplicationRepo = mock(ApplicationRepository.class);
 	ApplicationDownloader mockApplicationDownloader = mock(ApplicationDownloader.class);
-	AccountRepository mockAccountRepo = mock(AccountRepository.class);
 	AccountService accountServiceMock = mock(AccountService.class);
-	TeamRepository teamRepoMock = mock(TeamRepository.class);
 	ApplicationManifest applicationManifestMock = mock(ApplicationManifest.class);
 	ApplicationService applicationService = mock(ApplicationService.class);
 	AccountService accountService = mock(AccountService.class);
@@ -85,7 +82,6 @@ public class ApplicationRestControllerTest {
 	uk.ac.ebi.tsc.aap.client.security.TokenHandler tokenHandler = mock(uk.ac.ebi.tsc.aap.client.security.TokenHandler.class);
 	HttpServletRequest request = mock(HttpServletRequest.class);
 	DeploymentApplicationService deploymentApplicationService = mock(DeploymentApplicationService.class);
-	DeploymentApplicationRepository deploymentApplicationRepo = mock(DeploymentApplicationRepository.class);
 	Principal principalMock = mock(Principal.class);
 	ApplicationDownloader applicationDownloader = mock(ApplicationDownloader.class);
 	User user = mock(User.class);
@@ -213,7 +209,6 @@ public class ApplicationRestControllerTest {
 		String username = "username";
 
 		when(accountService.findByUsername(username)).thenReturn(accountMock);
-		when(mockAccountRepo.findByUsername(username)).thenReturn(Optional.of(accountMock));
 
 		//user is a member of one team which has one application
 		Set<Team> teams = new HashSet<>();
@@ -482,16 +477,16 @@ public class ApplicationRestControllerTest {
 		
 		List<Account> accounts = new ArrayList<>();
 		accounts.add(accountMock);
-		given(mockAccountRepo.findByEmail(userEmail)).willReturn(accounts);
+		given(accountService.findByEmail(userEmail)).willReturn(accounts.get(0));
 		when(accountMock.getApplications()).thenReturn((Set<Application>) mock(Set.class));
-		when(mockAccountRepo.save(accountMock)).thenReturn(accountMock);
+		when(accountService.save(accountMock)).thenReturn(accountMock);
 
 		return sharedApplicationResourceMock;
 
 	}
 
 	private void mockSavedApplicationNotToBeFound(Application mockApplication, String repoUri) throws IOException, ApplicationDownloaderException {
-		when(mockApplicationRepo.findByAccountUsernameAndName(this.principalMock.getName(), mockApplication.getName())).thenThrow(new ApplicationNotFoundException("noapp"));
+		when(applicationService.findByAccountUsernameAndName(this.principalMock.getName(), mockApplication.getName())).thenThrow(new ApplicationNotFoundException("noapp"));
 	}
 
 	private void getRequest(){

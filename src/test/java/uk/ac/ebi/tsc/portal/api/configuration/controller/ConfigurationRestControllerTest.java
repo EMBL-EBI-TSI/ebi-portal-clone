@@ -66,9 +66,6 @@ public class ConfigurationRestControllerTest {
 	private ConfigurationService configurationService;
 
 	@MockBean
-	private ConfigurationRepository configurationRepository;
-
-	@MockBean
 	private AccountService accountService;
 
 	@MockBean
@@ -103,6 +100,7 @@ public class ConfigurationRestControllerTest {
 
 	@MockBean
 	private CloudProviderParamsCopyService cppCopyService;
+	
 	@MockBean
 	private CloudProviderParamsCopy cppCopy;
 
@@ -117,7 +115,6 @@ public class ConfigurationRestControllerTest {
 		ReflectionTestUtils.setField(cdpsService, "domainService", domainService);
 		ReflectionTestUtils.setField(subject, "cloudProviderParametersService", cppService);
 		ReflectionTestUtils.setField(subject, "configDeploymentParamsCopyService", cdpsCopyService);
-		ReflectionTestUtils.setField(configurationService, "configurationRepository", configurationRepository);
 		ReflectionTestUtils.setField(subject, "tokenHandler", tokenHandler);
 		ReflectionTestUtils.setField(subject, "cloudProviderParametersCopyService", cppCopyService);
 		ReflectionTestUtils.setField(configurationService, "cloudProviderParametersCopyService", cppCopyService);

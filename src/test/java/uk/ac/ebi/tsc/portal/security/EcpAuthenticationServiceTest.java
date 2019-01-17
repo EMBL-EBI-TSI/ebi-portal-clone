@@ -9,11 +9,14 @@ import uk.ac.ebi.tsc.aap.client.repo.DomainService;
 import uk.ac.ebi.tsc.aap.client.repo.TokenService;
 import uk.ac.ebi.tsc.portal.api.account.repo.Account;
 import uk.ac.ebi.tsc.portal.api.account.repo.AccountRepository;
+import uk.ac.ebi.tsc.portal.api.account.service.AccountService;
 import uk.ac.ebi.tsc.portal.api.account.service.UserNotFoundException;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParamsCopyRepository;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentConfigurationRepository;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentRepository;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentStatusRepository;
+import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentConfigurationService;
+import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
 import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
 import uk.ac.ebi.tsc.portal.api.team.repo.TeamRepository;
 import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployerBash;
@@ -37,10 +40,10 @@ public class EcpAuthenticationServiceTest {
     private uk.ac.ebi.tsc.aap.client.security.TokenAuthenticationService mockAuthService =
             mock(uk.ac.ebi.tsc.aap.client.security.TokenAuthenticationService.class);
 
-    private AccountRepository mockAccountRepo = mock(AccountRepository.class);
+    private AccountService mockAccountService = mock(AccountService.class);
     private TokenService mockTokenService = mock(TokenService.class);
-    private DeploymentRepository mockDeploymentRepository = mock(DeploymentRepository.class);
-    private DeploymentConfigurationRepository mockDeploymentConfigurationRepository = mock(DeploymentConfigurationRepository.class);
+    private DeploymentService mockDeploymentService = mock(DeploymentService.class);
+    private DeploymentConfigurationService mockDeploymentConfigurationService = mock(DeploymentConfigurationService.class);
     private DeploymentStatusRepository mockDeploymentStatusRepository = mock(DeploymentStatusRepository.class);
     private CloudProviderParamsCopyRepository mockCloudProviderParamsCopyRepository = mock(CloudProviderParamsCopyRepository.class);
     private TeamRepository mockTeamRepository = mock(TeamRepository.class);
@@ -84,8 +87,8 @@ public class EcpAuthenticationServiceTest {
         when(mockAccount.getUsername()).thenReturn("pretend-username");
         when(mockAccount.getGivenName()).thenReturn("pretend-user-given-name");
         when(mockAccount.getEmail()).thenReturn("user@domain.com");
-        when(mockAccountRepo.findByUsername("pretend-username")).thenReturn(Optional.of(mockAccount));
-        when(mockAccountRepo.findByUsername("pretend-user-given-name")).thenThrow(UserNotFoundException.class);
+        when(mockAccountService.findByUsername("pretend-username")).thenReturn(mockAccount);
+        when(mockAccountService.findByUsername("pretend-user-given-name")).thenThrow(UserNotFoundException.class);
 
         when(mockAuthService.getAuthentication(mockRequest)).thenReturn(mockAuth);
         when(mockTokenService.getAAPToken("ecp-account-username","ecp-account-password")).thenReturn("ecp-aap-pretend-valid-token");

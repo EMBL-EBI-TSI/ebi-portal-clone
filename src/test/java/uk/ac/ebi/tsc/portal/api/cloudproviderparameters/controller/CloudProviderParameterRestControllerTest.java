@@ -72,11 +72,8 @@ import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDownloaderExce
 @RunWith(SpringJUnit4ClassRunner.class)
 @WebAppConfiguration
 public class CloudProviderParameterRestControllerTest {
-
 	
 	CloudProviderParametersRestController subject;
-	CloudProviderParametersRepository cppRepoMock;
-	AccountRepository accountRepoMock;
 	CloudProviderParametersResource cppResourceMock;
 	SharedCloudProviderParametersResource sharedCppResourceMock;
 	Account accountMock;
@@ -113,8 +110,6 @@ public class CloudProviderParameterRestControllerTest {
 	@Before
 	public void setUp(){
 		subject = mock(CloudProviderParametersRestController.class);
-		cppRepoMock = mock(CloudProviderParametersRepository.class);
-		accountRepoMock = mock(AccountRepository.class);
 		accountMock = mock(Account.class);
 		principalMock = mock(Principal.class);
 		cppMock = mock(CloudProviderParameters.class);
@@ -144,10 +139,10 @@ public class CloudProviderParameterRestControllerTest {
 		ReflectionTestUtils.setField(cppService, "encryptionService", encryptionService);
 		ReflectionTestUtils.setField(cppCopyService, "encryptionService", encryptionService);
 		accountMock();
-		accountRepoMock();
+		accountServiceMock();
 		principalMock();
 		cppMock();
-		cppRepoMock();
+		cppServiceMock();
 	}
 	
 	/**
@@ -258,7 +253,6 @@ public class CloudProviderParameterRestControllerTest {
 		CloudProviderParameters accountMockCpp = mock(CloudProviderParameters.class);
 		Set<CloudProviderParameters> accountCpp = new HashSet<>();
 		accountCpp.add(accountMockCpp);
-		when(cppRepoMock.findByAccountUsername(username)).thenReturn(accountCpp);
 		when(cppService.findByAccountUsername(username)).thenReturn(accountCpp);
 		getCppResoure(accountMockCpp);
 		when(subject.getCurrentUserCredentials(principalMock)).thenCallRealMethod();
@@ -296,7 +290,6 @@ public class CloudProviderParameterRestControllerTest {
 		String username = "username";
 		getRequest();
 		when(accountService.findByUsername(username)).thenReturn(accountMock);
-		when(accountRepoMock.findByUsername(username)).thenReturn(Optional.of(accountMock));
 		Set<CloudProviderParameters> cpps = new HashSet<>();
 		CloudProviderParameters cppMock = mock(CloudProviderParameters.class);
 		when(principalMock.getName()).thenReturn(username);
@@ -439,14 +432,14 @@ public class CloudProviderParameterRestControllerTest {
 		when(this.accountMock.getOrganisation()).thenReturn("An organisation");
 	}
 
-	private void accountRepoMock(){
+	private void accountServiceMock(){
 		List<Account> accounts = new ArrayList<>();
 		accounts.add(accountMock);
-		given(accountRepoMock.findByEmail(userEmail)).willReturn(accounts);
+		given(accountService.findByEmail(userEmail)).willReturn(accounts.get(0));
 		
-		when(accountRepoMock.findByUsername(userName)).thenReturn(Optional.of(accountMock));
-		when(accountRepoMock.findByEmail(userEmail)).thenReturn(accounts);
-		when(accountRepoMock.save(accountMock)).thenReturn(accountMock);
+		when(accountService.findByUsername(userName)).thenReturn(accountMock);
+		when(accountService.findByEmail(userEmail)).thenReturn(accounts.get(0));
+		when(accountService.save(accountMock)).thenReturn(accountMock);
 	}
 	private void principalMock(){
 		when(principalMock.getName()).thenReturn(userName);
@@ -461,8 +454,8 @@ public class CloudProviderParameterRestControllerTest {
 		when(cppMock.getReference()).thenReturn("somereference");
 	}
 
-	private void cppRepoMock(){
-		when(cppRepoMock.findByNameAndAccountUsername(cppName, userName)).thenReturn(Optional.of(cppMock));
+	private void cppServiceMock(){
+		when(cppService.findByNameAndAccountUsername(cppName, userName)).thenReturn(cppMock);
 	}
 
 	private void cppResourceMock(){
