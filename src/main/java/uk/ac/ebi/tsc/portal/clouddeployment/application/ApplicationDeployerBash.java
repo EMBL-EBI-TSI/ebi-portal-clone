@@ -84,6 +84,12 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 
 	@Value("${elasticsearch.password}")
 	private String elasticSearchPassword;
+
+	@Value("${ecp.executeScript.sudo}")
+	private boolean sudoExecuteScript;
+
+	@Value("${ecp.scriptUser}")
+	private String scriptUser;
 	
 	DeploymentStrategy deploymentStrategy;
 	
@@ -165,7 +171,7 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 		//generate keys
 		String keysFilePath = deploymentsRoot + File.separator + reference + File.separator + reference ;
 		logger.info(keysFilePath);
-		SSHKeyGenerator.generateKeys(userEmail, keysFilePath);
+		SSHKeyGenerator.generateKeys(userEmail, keysFilePath, sudoExecuteScript, scriptUser);
 		
 		// pass parameter assignments
 		Collection<ParameterDocument> deploymentParamDocs = new LinkedList<>();
