@@ -3,11 +3,15 @@ package uk.ac.ebi.tsc.portal.usage.deployment.service;
 import org.apache.tomcat.util.codec.binary.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import uk.ac.ebi.tsc.portal.usage.deployment.model.*;
 
@@ -20,16 +24,25 @@ import java.util.stream.Collectors;
  * @since v0.0.1
  * @author Navis Raj <navis@ebi.ac.uk>
  */
+@Service
 public class DeploymentIndexService {
 
     private static final Logger logger = LoggerFactory.getLogger(DeploymentIndexService.class);
 
+    @Autowired
     private RestTemplate restTemplate;
+    
     private String indexUrl;
+    
     private String username;
+  
     private String password;
 
-    public DeploymentIndexService(RestTemplate restTemplate, String indexUrl, String username, String password) {
+    @Autowired
+    public DeploymentIndexService(RestTemplate restTemplate,  
+    	    @Qualifier("elasticindexurl")  @Value("#{elasticindexurl}") String indexUrl, 
+    	    @Qualifier("elasticsearchusername") @Value("#{elasticsearchusername}") String username, 
+    	    @Qualifier("elasticsearchpassword") @Value("#{elasticsearchpassword}")  String password) {
         this.restTemplate = restTemplate;
         this.indexUrl = indexUrl;
         this.username = username;
@@ -169,4 +182,5 @@ public class DeploymentIndexService {
         return authHeader;
     }
 
+    
 }

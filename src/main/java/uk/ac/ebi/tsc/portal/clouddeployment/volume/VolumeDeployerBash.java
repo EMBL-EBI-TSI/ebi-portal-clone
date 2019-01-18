@@ -39,11 +39,10 @@ public class VolumeDeployerBash {
     private final VolumeSetupService volumeSetupService;
 
     @Autowired
-    public VolumeDeployerBash(VolumeInstanceRepository volumeInstanceRepository,
-                              VolumeInstanceStatusRepository volumeInstanceStatusRepository,
-                              VolumeSetupRepository volumeSetupRepository) {
-        this.volumeInstanceService = new VolumeInstanceService(volumeInstanceRepository, volumeInstanceStatusRepository);
-        this.volumeSetupService = new VolumeSetupService(volumeSetupRepository);
+    public VolumeDeployerBash(VolumeInstanceService volumeInstanceService,
+                              VolumeSetupService volumeSetupService) {
+        this.volumeInstanceService = volumeInstanceService;
+        this.volumeSetupService = volumeSetupService;
     }
 
 

@@ -2,6 +2,8 @@ package uk.ac.ebi.tsc.portal.clouddeployment.image;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+
 import uk.ac.ebi.tsc.portal.clouddeployment.utils.InputStreamLogger;
 
 import java.io.File;

@@ -108,32 +108,31 @@ public class TeamRestController {
 	private final CloudProviderParamsCopyService cloudProviderParametersCopyService;
 
 	@Autowired
-	public TeamRestController(TeamRepository teamRepository, AccountRepository  accountRepository, 
+	public TeamRestController(TeamService teamService, 
+			AccountService  accountService, 
 			ApplicationRestController applicationRestController, 
 			CloudProviderParametersRestController cloudProviderParametersRestController,
-			ApplicationRepository applicationRepository, CloudProviderParametersRepository cppRepository,
-			ConfigurationDeploymentParametersRepository configDepParamsRepository,
-			ConfigurationRepository configRepository, DomainService domainService,
+			ApplicationService applicationService, CloudProviderParametersService cppService,
+			ConfigurationDeploymentParametersService configDepParamsService,
+			ConfigurationService configService, DomainService domainService,
 		    uk.ac.ebi.tsc.aap.client.security.TokenHandler tokenHandler,
-			DeploymentConfigurationRepository deploymentConfigurationRepository,
-			DeploymentRepository deploymentRepository,
-			DeploymentStatusRepository deploymentStatusRepository,
+			DeploymentConfigurationService deploymentConfigurationService,
+			DeploymentService deploymentService,
 			DeploymentRestController deploymentRestController,
-			CloudProviderParamsCopyRepository cloudProviderParametersCopyRepository,
+			CloudProviderParamsCopyService cloudProviderParametersCopyService,
 			EncryptionService encryptionService,
-			ApplicationDeployerBash applicationDeployerBash){
-		this.cloudProviderParametersCopyService = new CloudProviderParamsCopyService(cloudProviderParametersCopyRepository, encryptionService);
-		this.accountService = new AccountService(accountRepository);
-		this.applicationService = new ApplicationService(applicationRepository, domainService);
-		this.cloudProviderParametersService = new CloudProviderParametersService(cppRepository, domainService, 
-				cloudProviderParametersCopyService, encryptionService);
-		this.configDepParamsService = new ConfigurationDeploymentParametersService(configDepParamsRepository, domainService);
-		this.deploymentService = new DeploymentService(deploymentRepository, deploymentStatusRepository);
-		this.configurationService = new ConfigurationService(configRepository, domainService, 
-				cloudProviderParametersService, configDepParamsService, cloudProviderParametersCopyService, deploymentService);
-		this.deploymentConfigurationService = new DeploymentConfigurationService(deploymentConfigurationRepository); 
-		this.teamService = new TeamService(teamRepository, accountRepository, domainService, deploymentService, cloudProviderParametersCopyService,
-				deploymentConfigurationService, applicationDeployerBash);
+			ApplicationDeployerBash applicationDeployerBash,
+			CloudProviderParametersService cloudProviderParametersService,
+			ConfigurationService configurationService){
+		this.cloudProviderParametersCopyService = cloudProviderParametersCopyService;
+		this.accountService = accountService;
+		this.applicationService = applicationService;
+		this.cloudProviderParametersService = cloudProviderParametersService;
+		this.configDepParamsService = configDepParamsService;
+		this.deploymentService = deploymentService;
+		this.configurationService = configurationService;
+		this.deploymentConfigurationService = deploymentConfigurationService; 
+		this.teamService = teamService;
 	}
 
 	@RequestMapping(method=RequestMethod.GET)

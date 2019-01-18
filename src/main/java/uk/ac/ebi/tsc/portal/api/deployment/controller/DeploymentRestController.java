@@ -191,54 +191,45 @@ public class DeploymentRestController {
 	private DeploymentSecretService deploymentSecretService;
 
 	@Autowired
-	DeploymentRestController(DeploymentRepository deploymentRepository,
-			DeploymentStatusRepository deploymentStatusRepository,
-			AccountRepository accountRepository,
-			ApplicationRepository applicationRepository,
-			VolumeInstanceRepository volumeInstanceRepository,
-			VolumeInstanceStatusRepository volumeInstanceStatusRepository,
-			CloudProviderParametersRepository cloudProviderParametersRepository,
-			ConfigurationRepository configurationRepository,
-			TeamRepository teamRepository,
+	DeploymentRestController(DeploymentService deploymentService,
+			AccountService accountService,
+			ApplicationService applicationService,
+			VolumeInstanceService volumeInstanceService,
+			CloudProviderParametersService cloudProviderParametersService,
+			ConfigurationService configurationService,
+			TeamService teamService,
 			ApplicationDeployerBash applicationDeployerBash,
 
 			DeploymentStatusTracker deploymentStatusTracker,
 
-			ConfigurationDeploymentParametersRepository deploymentParametersRepository,
+			ConfigurationDeploymentParametersService deploymentParametersService,
 			DomainService domainService,
-			DeploymentConfigurationRepository deploymentConfigurationRepository,
-			DeploymentApplicationRepository deploymentApplicationRepository,
+			DeploymentConfigurationService deploymentConfigurationService,
+			DeploymentApplicationService deploymentApplicationService,
 
-			CloudProviderParamsCopyRepository cloudProviderParametersCopyRepository,
-			ConfigDeploymentParamsCopyRepository configDeploymentParamsCopyRepository,
+			CloudProviderParamsCopyService cloudProviderParametersCopyService,
+			ConfigDeploymentParamsCopyService configDeploymentParamsCopyService,
 			EncryptionService encryptionService,
 			DeploymentSecretService deploymentSecretService,
-			@Value("${ecp.security.salt}") final String salt,
-			@Value("${ecp.security.password}") final String password
+			DeploymentGeneratedOutputService deploymentGeneratedOutputService
 			) {
-		this.cloudProviderParametersCopyService = new CloudProviderParamsCopyService(cloudProviderParametersCopyRepository, encryptionService);
-		this.deploymentService = new DeploymentService(deploymentRepository, deploymentStatusRepository);
-		this.accountService = new AccountService(accountRepository);
-		this.applicationService = new ApplicationService(applicationRepository, domainService);
-		this.volumeInstanceService = new VolumeInstanceService(volumeInstanceRepository,
-				volumeInstanceStatusRepository);
-		this.cloudProviderParametersService = new CloudProviderParametersService(cloudProviderParametersRepository, domainService, 
-				cloudProviderParametersCopyService, encryptionService);
+		this.cloudProviderParametersCopyService = cloudProviderParametersCopyService;
+		this.deploymentService = deploymentService;
+		this.accountService = accountService;
+		this.applicationService = applicationService;
+		this.volumeInstanceService = volumeInstanceService;
+		this.cloudProviderParametersService = cloudProviderParametersService;
 		this.applicationDeployerBash = applicationDeployerBash;
 		this.deploymentStatusTracker = deploymentStatusTracker;
 		this.deploymentStatusTracker.start(0, UPDATE_TRACKER_PERIOD);
-		this.deploymentParametersService = new ConfigurationDeploymentParametersService(deploymentParametersRepository, domainService);
-		this.configurationService = new ConfigurationService(configurationRepository, domainService,
-				cloudProviderParametersService, deploymentParametersService,
-				cloudProviderParametersCopyService, deploymentService
-				);
-		this.deploymentConfigurationService = new DeploymentConfigurationService(deploymentConfigurationRepository);
-		this.deploymentApplicationService = new DeploymentApplicationService(deploymentApplicationRepository);
-		this.configDeploymentParamsCopyService = new ConfigDeploymentParamsCopyService(configDeploymentParamsCopyRepository);
-		this.teamService = new TeamService(teamRepository, accountRepository, domainService,
-				deploymentService, cloudProviderParametersCopyService, deploymentConfigurationService, applicationDeployerBash);
+		this.deploymentParametersService = deploymentParametersService;
+		this.configurationService = configurationService;
+		this.deploymentConfigurationService = deploymentConfigurationService;
+		this.deploymentApplicationService = deploymentApplicationService;
+		this.configDeploymentParamsCopyService = configDeploymentParamsCopyService;
+		this.teamService = teamService;
 		this.deploymentSecretService = deploymentSecretService;
-		deploymentGeneratedOutputService = new DeploymentGeneratedOutputService(deploymentRepository);
+		this.deploymentGeneratedOutputService = deploymentGeneratedOutputService;
 	}
 
 	/* useful to inject values without involving spring - i.e. tests */
@@ -528,7 +519,10 @@ public class DeploymentRestController {
 
 		// Let's remove it
 		URL url = new URL(requestUrl);
-
+		String x = String.format("%s://%s%s" , url.getProtocol()
+				, url.getHost()
+				, getPortStr(url)
+				);
 		return String.format("%s://%s%s" , url.getProtocol()
 				, url.getHost()
 				, getPortStr(url)
@@ -538,7 +532,9 @@ public class DeploymentRestController {
 	String getPortStr(URL url) {
 
 		int port = url.getPort();
-
+		String x = port == -1 ? ""
+				: format(":%d", port)
+				;
 		return port == -1 ? ""
 				: format(":%d", port)
 				;

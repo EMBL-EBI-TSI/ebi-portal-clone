@@ -2,6 +2,7 @@ package uk.ac.ebi.tsc.portal.api.cloudprovidermetadata.controller;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.openstack4j.model.compute.Flavor;
@@ -19,10 +20,11 @@ public class CloudProviderMetadataRestController {
 
     private final CloudProviderMetadataService cloudProviderMetadataService;
 
-    CloudProviderMetadataRestController() {
-        this.cloudProviderMetadataService = new CloudProviderMetadataService();
+    @Autowired
+    CloudProviderMetadataRestController(CloudProviderMetadataService cloudProviderMetadataService) {
+        this.cloudProviderMetadataService = cloudProviderMetadataService;
     }
-
+    
     @RequestMapping(value = "/flavors",method = {RequestMethod.POST})
     public List<? extends Flavor> getFlavors(@RequestBody CloudProviderMetadataResource input) {
 

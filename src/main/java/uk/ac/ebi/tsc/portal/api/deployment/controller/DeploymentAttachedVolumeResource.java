@@ -1,6 +1,8 @@
 package uk.ac.ebi.tsc.portal.api.deployment.controller;
 
 import org.springframework.hateoas.ResourceSupport;
+import org.springframework.stereotype.Component;
+
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentAttachedVolume;
 import uk.ac.ebi.tsc.portal.api.volumeinstance.controller.VolumeInstanceRestController;
 

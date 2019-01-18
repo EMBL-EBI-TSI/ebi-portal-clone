@@ -2,6 +2,9 @@ package uk.ac.ebi.tsc.portal.usage.tracker;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParamsCopy;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParamsCopyService;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.Configuration;
@@ -25,6 +28,7 @@ import java.util.LinkedList;
  * @since v0.0.1
  * @author Navis Raj <navis@ebi.ac.uk>
  */
+@Component
 public class ConfigurationUsageMonitor implements Runnable {
 
     private static final Logger logger = LoggerFactory.getLogger(ConfigurationUsageMonitor.class);
@@ -39,6 +43,7 @@ public class ConfigurationUsageMonitor implements Runnable {
 
     public static final double NOTIFICATION_PERIOD = 6.048e+8;
 
+    @Autowired
     public ConfigurationUsageMonitor(DeploymentIndexService deploymentIndexService,
                                   DeploymentService deploymentService,
                                   ConfigurationService configurationService,

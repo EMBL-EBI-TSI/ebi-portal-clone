@@ -1,16 +1,5 @@
 package uk.ac.ebi.tsc.portal.clouddeployment.application;
 
-import org.slf4j.Logger;
-import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParamsCopy;
-import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParamsCopyField;
-import uk.ac.ebi.tsc.portal.clouddeployment.model.ErrorFromTerraformOutput;
-import uk.ac.ebi.tsc.portal.clouddeployment.model.MachineSpecs;
-import uk.ac.ebi.tsc.portal.clouddeployment.model.StateFromTerraformOutput;
-import uk.ac.ebi.tsc.portal.clouddeployment.model.terraform.TerraformModule;
-import uk.ac.ebi.tsc.portal.clouddeployment.model.terraform.TerraformResource;
-import uk.ac.ebi.tsc.portal.clouddeployment.model.terraform.TerraformState;
-import uk.ac.ebi.tsc.portal.usage.deployment.model.DeploymentDocument;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -21,9 +10,23 @@ import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.slf4j.Logger;
+import org.springframework.stereotype.Component;
+
+import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParamsCopy;
+import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParamsCopyField;
+import uk.ac.ebi.tsc.portal.clouddeployment.model.ErrorFromTerraformOutput;
+import uk.ac.ebi.tsc.portal.clouddeployment.model.MachineSpecs;
+import uk.ac.ebi.tsc.portal.clouddeployment.model.StateFromTerraformOutput;
+import uk.ac.ebi.tsc.portal.clouddeployment.model.terraform.TerraformModule;
+import uk.ac.ebi.tsc.portal.clouddeployment.model.terraform.TerraformResource;
+import uk.ac.ebi.tsc.portal.clouddeployment.model.terraform.TerraformState;
+import uk.ac.ebi.tsc.portal.usage.deployment.model.DeploymentDocument;
+
 /**
  * Created by jdianes on 26/09/2018.
  */
+@Component
 public class ApplicationDeployerHelper {
 
     private static final String OS_FLOATING_IP = "floating_ip";

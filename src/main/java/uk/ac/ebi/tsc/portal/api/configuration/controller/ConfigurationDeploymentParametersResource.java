@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.hateoas.ResourceSupport;
 import org.springframework.hateoas.mvc.ControllerLinkBuilder;
+import org.springframework.stereotype.Component;
 
 import uk.ac.ebi.tsc.portal.api.account.controller.AccountRestController;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationDeploymentParameters;
@@ -17,6 +18,7 @@ import uk.ac.ebi.tsc.portal.api.team.repo.Team;
  * @since v0.0.1
  * @author Navis Raj <navis@ebi.ac.uk>
  */
+@Component
 public class ConfigurationDeploymentParametersResource extends ResourceSupport {
 	
 	private String name;

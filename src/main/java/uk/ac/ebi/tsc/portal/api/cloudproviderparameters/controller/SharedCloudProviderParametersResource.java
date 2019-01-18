@@ -1,6 +1,7 @@
 package uk.ac.ebi.tsc.portal.api.cloudproviderparameters.controller;
 
 import org.springframework.hateoas.ResourceSupport;
+import org.springframework.stereotype.Component;
 
 /**
  * @author Jose A. Dianes <jdianes@ebi.ac.uk>

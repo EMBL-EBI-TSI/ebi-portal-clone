@@ -3,9 +3,8 @@ package uk.ac.ebi.tsc.portal.config;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
 
-import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionServiceImpl;
+import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
 
 /**
  * @author Jose A. Dianes <jdianes@ebi.ac.uk>
@@ -13,15 +12,14 @@ import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionServiceImpl;
  * @author Navis Raj <navis@ebi.ac.uk>
  */
 @Configuration
-@Import(EncryptionServiceImpl.class)
 class EncryptionConfiguration{
 
 	@Autowired
-	EncryptionServiceImpl encryptionService;
+	EncryptionService encryptionService;
 	
     @Bean
-    public EncryptionServiceImpl encryptionService() {
-    	EncryptionServiceImpl es = encryptionService;
+    public EncryptionService encryptionService() {
+    	EncryptionService es = encryptionService;
     	return es;
     }
 

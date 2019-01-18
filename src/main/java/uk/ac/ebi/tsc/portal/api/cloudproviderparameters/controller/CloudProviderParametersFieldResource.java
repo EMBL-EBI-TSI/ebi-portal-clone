@@ -1,6 +1,8 @@
 package uk.ac.ebi.tsc.portal.api.cloudproviderparameters.controller;
 
 import org.springframework.hateoas.ResourceSupport;
+import org.springframework.stereotype.Component;
+
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParametersField;
 
 

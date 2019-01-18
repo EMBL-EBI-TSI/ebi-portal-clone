@@ -1,5 +1,7 @@
 package uk.ac.ebi.tsc.portal.clouddeployment.model;
 
+import org.springframework.stereotype.Component;
+
 /**
  * @author Jose A. Dianes <jdianes@ebi.ac.uk>
  * @since v0.0.1

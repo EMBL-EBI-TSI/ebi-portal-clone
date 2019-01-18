@@ -75,31 +75,16 @@ public class TeamRestControllerTest {
 	private TeamService teamService;
 
 	@MockBean
-	private ApplicationRepository applicationRepository;
-
-	@MockBean
 	private ApplicationService applicationService;
-
-	@MockBean
-	private CloudProviderParametersRepository cppRepository;
 
 	@MockBean
 	private CloudProviderParametersService cppService;
 
 	@MockBean
-	private ConfigurationRepository configurationRepository;
-
-	@MockBean
 	private ConfigurationService configurationService;
 
 	@MockBean
-	private ConfigurationDeploymentParametersRepository configDepParamsRepository;
-
-	@MockBean
 	private ConfigurationDeploymentParametersService configDepParamsService;
-
-	@MockBean
-	private TeamRepository teamRepository;
 
 	@MockBean
 	private AccountService accountService;
@@ -167,15 +152,6 @@ public class TeamRestControllerTest {
 	
 	@MockBean
 	DeploymentConfigurationService depConfigService;
-	
-	@MockBean
-	DeploymentConfigurationRepository deploymentConfigurationRepository;
-	
-	@MockBean
-    DeploymentRepository deploymentRepository;
-	
-	@MockBean
-    DeploymentStatusRepository deploymentStatusRepository;
 
 	@MockBean
 	DeploymentService deploymentService;
@@ -193,21 +169,13 @@ public class TeamRestControllerTest {
 
 		ReflectionTestUtils.setField(subject, "teamService", teamService);
 		ReflectionTestUtils.setField(subject, "accountService", accountService);
-		ReflectionTestUtils.setField(teamService, "teamRepository", teamRepository);
 		ReflectionTestUtils.setField(teamService, "accountService", accountService);
 		ReflectionTestUtils.setField(teamService, "domainService", domainService);
 		ReflectionTestUtils.setField(subject, "applicationService", applicationService);
-		ReflectionTestUtils.setField(applicationService, "applicationRepository", applicationRepository);
 		ReflectionTestUtils.setField(subject, "cloudProviderParametersService", cppService);
-		ReflectionTestUtils.setField(cppService, "cloudProviderParametersRepository", cppRepository);
 		ReflectionTestUtils.setField(subject, "configurationService", configurationService );
-		ReflectionTestUtils.setField(configurationService, "configurationRepository", configurationRepository );
 		ReflectionTestUtils.setField(subject, "configDepParamsService", configDepParamsService );
-		ReflectionTestUtils.setField(configDepParamsService, "configurationDeploymentParametersRepository", configDepParamsRepository );
-		ReflectionTestUtils.setField(depConfigService, "deploymentConfigurationRepository", deploymentConfigurationRepository);
 		ReflectionTestUtils.setField(subject, "deploymentConfigurationService", depConfigService );
-		ReflectionTestUtils.setField(deploymentService, "deploymentRepository", deploymentRepository);
-		ReflectionTestUtils.setField(deploymentService, "deploymentStatusRepository", deploymentStatusRepository);
 		ReflectionTestUtils.setField(subject, "deploymentService", deploymentService);
 		ReflectionTestUtils.setField(subject, "cloudProviderParametersCopyService", cppCopyService);
 		ReflectionTestUtils.setField(cppCopyService, "encryptionService", encryptionService);
@@ -231,8 +199,7 @@ public class TeamRestControllerTest {
 		getPrincipal();
 		getAccount();
 		Set<Team> teams = new HashSet<>();teams.add(team);
-		given(teamRepository.findByAccountUsername(principalName)).willReturn(teams);
-		given(teamService.findByAccountUsername(principalName)).willCallRealMethod();
+		given(teamService.findByAccountUsername(principalName)).willReturn(teams);
 		getTeamResoure(team);
 		given(subject.getAllTeamsForCurrentUser(principal)).willCallRealMethod();
 		Resources<TeamResource> teamResource = subject.getAllTeamsForCurrentUser(principal);
@@ -245,8 +212,7 @@ public class TeamRestControllerTest {
 		getPrincipal();
 		getAccount();
 		getTeamResoure(team);
-		given(teamService.findByName(teamName)).willCallRealMethod();
-		given(teamRepository.findByName(teamName)).willReturn(Optional.of(team));
+		given(teamService.findByName(teamName)).willReturn(team);
 		given(subject.getTeamByName(principal, teamName)).willCallRealMethod();
 		TeamResource teamResource = subject.getTeamByName(principal, teamName);
 		assertTrue(teamResource.getName().equals(teamName));
@@ -335,8 +301,7 @@ public class TeamRestControllerTest {
 	public void testDeleteTeamPass(){
 		getRequest();
 		given(principal.getName()).willReturn(principalName);
-		given(teamService.findByNameAndAccountUsername(teamName, principalName)).willCallRealMethod();
-		given(teamRepository.findByNameAndAccountUsername(teamName, principalName)).willReturn(Optional.of(team));
+		given(teamService.findByNameAndAccountUsername(teamName, principalName)).willReturn(team);
 
 		given(subject.deleteTeam(request, principal, teamName)).willCallRealMethod();
 		ResponseEntity<?> teamDeleted = subject.deleteTeam(request, principal, teamName);
@@ -368,8 +333,7 @@ public class TeamRestControllerTest {
 		getDomain();
 		getRequest();
 		assertTrue(team.getAccountsBelongingToTeam().size() == 2);
-		given(teamService.findByName(teamName)).willCallRealMethod();
-		given(teamRepository.findByName(teamName)).willReturn(Optional.of(team));
+		given(teamService.findByName(teamName)).willReturn(team);
 
         TeamResource teamResource = new TeamResource();
         teamResource.setName(teamName);
@@ -392,8 +356,7 @@ public class TeamRestControllerTest {
 		Mockito.when(domainService.getAllUsersFromDomain(Mockito.anyString(), Mockito.anyString())).thenReturn(users);
 		given(accountService.save(toAddAccount)).willReturn(toAddAccount);
 		//given(teamService.getBaseURL(Mockito.any(HttpServletRequest.class))).willReturn("something.api");
-		given(teamService.save(team)).willCallRealMethod();
-		given(teamRepository.save(team)).willReturn(team);
+		given(teamService.save(team)).willReturn(team);
 		given(subject.addMember(request, principal, teamResource)).willCallRealMethod();
 		ResponseEntity<?> memberAdded = subject.addMember(request, principal, teamResource);
 		assertTrue(team.getAccountsBelongingToTeam().size() == 3);
@@ -418,9 +381,7 @@ public class TeamRestControllerTest {
 		getDomain();
 		getRequest();
 		assertTrue(team.getAccountsBelongingToTeam().size() == 2);
-		given(teamService.findByName(teamName)).willCallRealMethod();
-		given(teamRepository.findByName(teamName)).willReturn(Optional.of(team));
-
+		given(teamService.findByName(teamName)).willReturn(team);
         TeamResource teamResource = new TeamResource();
         teamResource.setName(teamName);
         Set<String> toBeMemberEmails = new HashSet<>();
@@ -451,8 +412,7 @@ public class TeamRestControllerTest {
 		getFailDomainNull();
 		getRequest();
 		assertTrue(team.getAccountsBelongingToTeam().size() == 2);
-		given(teamService.findByName(teamName)).willCallRealMethod();
-		given(teamRepository.findByName(teamName)).willReturn(Optional.of(team));
+		given(teamService.findByName(teamName)).willReturn(team);
 
 		TeamResource teamResource = new TeamResource();
 		teamResource.setName(teamName);
@@ -488,8 +448,7 @@ public class TeamRestControllerTest {
 		Mockito.when(team.getAccountsBelongingToTeam()).thenReturn(accounts);
 		getRequest();
 		assertTrue(team.getAccountsBelongingToTeam().size() == 2);
-		given(teamService.findByName(teamName)).willCallRealMethod();
-		given(teamRepository.findByName(teamName)).willReturn(Optional.of(team));
+		given(teamService.findByName(teamName)).willReturn(team);
 
 
 		String accountToAddEmail = "accountToAddEmail";
@@ -534,8 +493,7 @@ public class TeamRestControllerTest {
 		assertTrue(someotherAccount.getMemberOfTeams().size() == 2);
 		assertTrue(team.getAccountsBelongingToTeam().size() == 2);
 		given(accountService.findByEmail(userEmail)).willReturn(someotherAccount);
-		given(teamService.findByName(teamName)).willCallRealMethod();
-		given(teamRepository.findByName(teamName)).willReturn(Optional.of(team));
+		given(teamService.findByName(teamName)).willReturn(team);
 		Mockito.when(teamService.save(team)).thenReturn(team);
 		Mockito.when(domainService.getDomainByReference(team.getDomainReference(), token )).thenReturn(domain);
 		Mockito.when(someotherAccount.getEmail()).thenReturn(userEmail);
@@ -560,8 +518,7 @@ public class TeamRestControllerTest {
 		assertTrue(someotherAccount.getMemberOfTeams().size() == 2);
 		assertTrue(team.getAccountsBelongingToTeam().size() == 2);
 		given(accountService.findByEmail(userEmail)).willReturn(someotherAccount);
-		given(teamService.findByName(teamName)).willCallRealMethod();
-		given(teamRepository.findByName(teamName)).willReturn(Optional.of(team));
+		given(teamService.findByName(teamName)).willReturn(team);
 		Mockito.when(teamService.save(team)).thenReturn(team);
 		Mockito.when(someotherAccount.getEmail()).thenReturn(userEmail);
 		Mockito.when(someotherAccount.getUsername()).thenReturn(someotherusername);
@@ -584,8 +541,7 @@ public class TeamRestControllerTest {
 		assertTrue(someotherAccount.getMemberOfTeams().size() == 2);
 		assertTrue(team.getAccountsBelongingToTeam().size() == 2);
 		given(accountService.findByEmail(userEmail)).willReturn(null);
-		given(teamService.findByName(teamName)).willCallRealMethod();
-		given(teamRepository.findByName(teamName)).willReturn(Optional.of(team));
+		given(teamService.findByName(teamName)).willReturn(team);
 		Mockito.when(teamService.save(team)).thenReturn(team);
 		Mockito.when(someotherAccount.getEmail()).thenReturn(userEmail);
 		Mockito.when(someotherAccount.getUsername()).thenReturn(someotherusername);given(subject.removeMemberFromTeam(request, principal, teamName, userEmail)).willCallRealMethod();
@@ -606,8 +562,7 @@ public class TeamRestControllerTest {
 		assertTrue(application.getSharedWithTeams().size() == 0);
 		given(teamService.findByNameAndAccountUsername(Mockito.anyString(), Mockito.anyString())).willReturn(team);
 		given(teamService.save(team)).willReturn(team);
-		given(applicationService.findByAccountUsernameAndName(principalName, applicationName)).willCallRealMethod();
-		given(applicationRepository.findByAccountUsernameAndName(principalName, applicationName)).willReturn(Optional.of(application));
+		given(applicationService.findByAccountUsernameAndName(principalName, applicationName)).willReturn(application);
 		given(subject.addApplicationToTeam(principal, applicationResource, teamName)).willCallRealMethod();
 		ResponseEntity<?> applicationAdded = subject.addApplicationToTeam(principal, applicationResource, teamName);
 		assertTrue(applicationAdded.getStatusCode().equals(HttpStatus.OK));
@@ -626,8 +581,7 @@ public class TeamRestControllerTest {
 		applications.add(application);
 		given(application.getRepoUri()).willReturn("repoUri");
 		given(team.getApplicationsBelongingToTeam()).willReturn(applications);
-		given(teamService.findByName(teamName)).willCallRealMethod();
-		given(teamRepository.findByName(teamName)).willReturn(Optional.of(team));
+		given(teamService.findByName(teamName)).willReturn(team);
 		given(subject.getAllTeamApplications(principal, teamName)).willCallRealMethod();
 		Resources<ApplicationResource> applicationResourceList =
 				subject.getAllTeamApplications(principal, teamName);
@@ -646,9 +600,7 @@ public class TeamRestControllerTest {
 		given(team.getApplicationsBelongingToTeam()).willReturn(applications);
 		assertTrue(team.getApplicationsBelongingToTeam().size() == 2);
 		given(applicationService.findByAccountUsernameAndName(principal.getName(), name))
-		.willCallRealMethod();
-		given(applicationRepository.findByAccountUsernameAndName(principal.getName(), name))
-		.willReturn(Optional.of(toRemove));
+		.willReturn(toRemove);
 		given(teamService.findByNameAndAccountUsername(teamName, principal.getName())).willReturn(team);
 		given(subject.removeApplicationFromTeam(principal, teamName, name)).willCallRealMethod();
 		subject.removeApplicationFromTeam(principal, teamName, name);
@@ -667,8 +619,7 @@ public class TeamRestControllerTest {
 		given(cpp.getAccount()).willReturn(account);
 		given(teamService.findByNameAndAccountUsername(Mockito.anyString(), Mockito.anyString() )).willReturn(team);
 		given(teamService.save(team)).willReturn(team);
-		given(cppService.findByNameAndAccountUsername(cppName, principalName)).willCallRealMethod();
-		given(cppRepository.findByNameAndAccountUsername(cppName, principalName)).willReturn(Optional.of(cpp));
+		given(cppService.findByNameAndAccountUsername(cppName, principalName)).willReturn(cpp);
 		given(subject.addCloudProviderParametersToTeam(principal, cppResource, teamName)).willCallRealMethod();
 		ResponseEntity<?> cppAdded = subject.addCloudProviderParametersToTeam(principal, cppResource, teamName);
 		assertTrue(cppAdded.getStatusCode().equals(HttpStatus.OK));
@@ -701,15 +652,12 @@ public class TeamRestControllerTest {
 		given(toRemove.getId()).willReturn(1L);
 		assertTrue(toRemove.getSharedWithTeams().size() == 1);
 		assertTrue(team.getCppBelongingToTeam().size() == 1);
-		given(cppService.findByNameAndAccountUsername(name, principalName)).willCallRealMethod();
-		given(cppRepository.findByNameAndAccountUsername(name, principalName)).willReturn(Optional.of(toRemove));
+		given(cppService.findByNameAndAccountUsername(name, principalName)).willReturn(toRemove);
 		given(toRemove.getAccount().getUsername()).willReturn(principalName);
 		given(team.getAccount()).willReturn(account);
 		given(team.getAccount().getUsername()).willReturn(principalName);
-		given(teamService.findByNameAndAccountUsername(teamName, principalName)).willCallRealMethod();
-		given(teamRepository.findByNameAndAccountUsername(teamName, principalName)).willReturn(Optional.of(team));
-		given(teamService.save(team)).willCallRealMethod();
-		given(teamRepository.save(team)).willReturn(team);
+		given(teamService.findByNameAndAccountUsername(teamName, principalName)).willReturn(team);
+		given(teamService.save(team)).willReturn(team);
 		
 		//set deployments
 		List<Deployment> deployments = new ArrayList<>();
@@ -717,8 +665,7 @@ public class TeamRestControllerTest {
 		String deploymentReference = "some_ref";
 		given(deployment.getReference()).willReturn(deploymentReference);
 		deployments.add(deployment);
-		given(deploymentRepository.findAll()).willReturn(deployments);
-		given(deploymentService.findAll()).willCallRealMethod();
+		given(deploymentService.findAll()).willReturn(deployments);
 		
 		given(subject.removeCloudProviderParametersFromTeam(principal, teamName, name)).willCallRealMethod();
 		ResponseEntity<?> response = subject.removeCloudProviderParametersFromTeam(principal, teamName, name);
@@ -738,14 +685,11 @@ public class TeamRestControllerTest {
 		given(configuration.getAccount()).willReturn(account);
 		given(teamService.findByNameAndAccountUsername(Mockito.anyString(), Mockito.anyString())).willReturn(team);
 		given(teamService.save(team)).willReturn(team);
-		given(cppService.findByNameAndAccountUsername(cppName, principalName)).willCallRealMethod();
-		given(cppRepository.findByNameAndAccountUsername(cppName, principalName)).willReturn(Optional.of(cpp));
+		given(cppService.findByNameAndAccountUsername(cppName, principalName)).willReturn(cpp);
 		
-		given(configDepParamsService.findByNameAndAccountUserName(configDepParamsName, principalName)).willCallRealMethod();
-		given(configDepParamsRepository.findByNameAndAccountUsername(configDepParamsName, principalName)).willReturn(Optional.of(configDepParams));
+		given(configDepParamsService.findByNameAndAccountUserName(configDepParamsName, principalName)).willReturn(configDepParams);
 
-		given(configurationService.findByNameAndAccountUsername(Mockito.anyString(), Mockito.anyString())).willCallRealMethod();
-		given(configurationRepository.findByNameAndAccountUsername(Mockito.anyString(), Mockito.anyString())).willReturn(Optional.of(configuration));
+		given(configurationService.findByNameAndAccountUsername(Mockito.anyString(), Mockito.anyString())).willReturn(configuration);
 		given(subject.addConfigurationToTeam(principal, configurationResource, teamName)).willCallRealMethod();
 		ResponseEntity<?> configurationAdded = subject.addConfigurationToTeam(principal, configurationResource, teamName);
 		assertTrue(configurationAdded.getStatusCode().equals(HttpStatus.OK));
@@ -778,15 +722,12 @@ public class TeamRestControllerTest {
 		given(toRemove.getSharedWithTeams()).willReturn(teams);
 		assertTrue(toRemove.getSharedWithTeams().size() == 1);
 		assertTrue(team.getConfigurationsBelongingToTeam().size() == 1);
-		given(configurationService.findByNameAndAccountUsername(name, principalName)).willCallRealMethod();
-		given(configurationRepository.findByNameAndAccountUsername(name, principalName)).willReturn(Optional.of(toRemove));
+		given(configurationService.findByNameAndAccountUsername(name, principalName)).willReturn(toRemove);
 		given(toRemove.getAccount().getUsername()).willReturn(principalName);
 		given(team.getAccount()).willReturn(account);
 		given(team.getAccount().getUsername()).willReturn(principalName);
-		given(teamService.findByNameAndAccountUsername(teamName, principalName)).willCallRealMethod();
-		given(teamRepository.findByNameAndAccountUsername(teamName, principalName)).willReturn(Optional.of(team));
-		given(teamService.save(team)).willCallRealMethod();
-		given(teamRepository.save(team)).willReturn(team);
+		given(teamService.findByNameAndAccountUsername(teamName, principalName)).willReturn(team);
+		given(teamService.save(team)).willReturn(team);
 		
 		//set deployments
 		List<DeploymentConfiguration> deploymentConfigurations = new ArrayList<>();
@@ -798,8 +739,7 @@ public class TeamRestControllerTest {
 		given(deployment.getDeploymentConfiguration()).willReturn(depConfiguration);
 		given(depConfiguration.getDeployment()).willReturn(deployment);
 		deploymentConfigurations.add(depConfiguration);
-		given(deploymentConfigurationRepository.findAll()).willReturn(deploymentConfigurations);
-		given(depConfigService.findAll()).willCallRealMethod();
+		given(depConfigService.findAll()).willReturn(deploymentConfigurations);
 		given(subject.removeConfigurationFromTeam(principal, teamName, name)).willCallRealMethod();
 		ResponseEntity<?> response = subject.removeConfigurationFromTeam(principal, teamName, name);
 		assertTrue(toRemove.getSharedWithTeams().size() == 0);
@@ -829,15 +769,12 @@ public class TeamRestControllerTest {
 		given(toRemove.getSharedWithTeams()).willReturn(teams);
 		assertTrue(toRemove.getSharedWithTeams().size() == 1);
 		assertTrue(team.getConfigDepParamsBelongingToTeam().size() == 1);
-		given(configDepParamsService.findByNameAndAccountUserName(name, principalName)).willCallRealMethod();
-		given(configDepParamsRepository.findByNameAndAccountUsername(name, principalName)).willReturn(Optional.of(toRemove));
+		given(configDepParamsService.findByNameAndAccountUserName(name, principalName)).willReturn(toRemove);
 		given(toRemove.getAccount().getUsername()).willReturn(principalName);
 		given(team.getAccount()).willReturn(account);
 		given(team.getAccount().getUsername()).willReturn(principalName);
-		given(teamService.findByNameAndAccountUsername(teamName, principalName)).willCallRealMethod();
-		given(teamRepository.findByNameAndAccountUsername(teamName, principalName)).willReturn(Optional.of(team));
-		given(teamService.save(team)).willCallRealMethod();
-		given(teamRepository.save(team)).willReturn(team);
+		given(teamService.findByNameAndAccountUsername(teamName, principalName)).willReturn(team);
+		given(teamService.save(team)).willReturn(team);
 		given(subject.removeConfigurationDeploymentParametersFromTeam(principal, teamName, name)).willCallRealMethod();
 		ResponseEntity<?> response = subject.removeConfigurationDeploymentParametersFromTeam(principal, teamName, name);
 		assertTrue(toRemove.getSharedWithTeams().size() == 0);

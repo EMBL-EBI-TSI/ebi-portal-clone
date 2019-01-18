@@ -1,20 +1,25 @@
 package uk.ac.ebi.tsc.portal.api.deployment.service;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
-
-import uk.ac.ebi.tsc.portal.api.deployment.repo.*;
-
 import java.util.Collection;
 import java.util.List;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import uk.ac.ebi.tsc.portal.api.deployment.repo.Deployment;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentRepository;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentStatus;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentStatusEnum;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentStatusRepository;
 
 /**
  * @author Jose A. Dianes <jdianes@ebi.ac.uk>
  * @since v0.0.1
  * @author Navis Raj <navis@ebi.ac.uk>
  */
-@Component
+@Service
 public class DeploymentService {
 
     private static final Logger logger = LoggerFactory.getLogger(DeploymentService.class);
@@ -22,7 +27,8 @@ public class DeploymentService {
     private final DeploymentRepository deploymentRepository;
     private final DeploymentStatusRepository deploymentStatusRepository;
 
-    public DeploymentService(DeploymentRepository deploymentRepository,
+   @Autowired
+   public DeploymentService(DeploymentRepository deploymentRepository,
                              DeploymentStatusRepository deploymentStatusRepository) {
         this.deploymentRepository = deploymentRepository;
         this.deploymentStatusRepository = deploymentStatusRepository;

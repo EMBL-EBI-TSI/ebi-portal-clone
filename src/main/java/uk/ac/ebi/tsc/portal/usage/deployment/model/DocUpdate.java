@@ -1,10 +1,12 @@
 package uk.ac.ebi.tsc.portal.usage.deployment.model;
 
+import java.util.Date;
+
+import org.springframework.stereotype.Component;
+
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
-import java.util.Date;
 
 
 /**
@@ -13,6 +15,7 @@ import java.util.Date;
  * @author Navis Raj <navis@ebi.ac.uk>
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
+@Component
 public class DocUpdate {
 
     @JsonProperty("total_running_time")

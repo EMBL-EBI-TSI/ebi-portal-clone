@@ -2,6 +2,7 @@ package uk.ac.ebi.tsc.portal.api.error;
 
 import org.springframework.http.HttpStatus;
 
+
 public class ErrorMessage {
     private String error;
     private HttpStatus status;
