@@ -193,37 +193,37 @@ public class DeploymentRestController {
 
 	@Autowired
 	DeploymentRestController(DeploymentRepository deploymentRepository,
-			DeploymentStatusRepository deploymentStatusRepository,
-			AccountRepository accountRepository,
-			ApplicationRepository applicationRepository,
-			VolumeInstanceRepository volumeInstanceRepository,
-			VolumeInstanceStatusRepository volumeInstanceStatusRepository,
-			CloudProviderParametersRepository cloudProviderParametersRepository,
-			ConfigurationRepository configurationRepository,
-			TeamRepository teamRepository,
-			ApplicationDeployerBash applicationDeployerBash,
+							 DeploymentStatusRepository deploymentStatusRepository,
+							 AccountRepository accountRepository,
+							 ApplicationRepository applicationRepository,
+							 VolumeInstanceRepository volumeInstanceRepository,
+							 VolumeInstanceStatusRepository volumeInstanceStatusRepository,
+							 CloudProviderParametersRepository cloudProviderParametersRepository,
+							 ConfigurationRepository configurationRepository,
+							 TeamRepository teamRepository,
+							 ApplicationDeployerBash applicationDeployerBash,
 
-			DeploymentStatusTracker deploymentStatusTracker,
+							 DeploymentStatusTracker deploymentStatusTracker,
 
-			ConfigurationDeploymentParametersRepository deploymentParametersRepository,
-			DomainService domainService,
-			DeploymentConfigurationRepository deploymentConfigurationRepository,
-			DeploymentApplicationRepository deploymentApplicationRepository,
+							 ConfigurationDeploymentParametersRepository deploymentParametersRepository,
+							 DomainService domainService,
+							 DeploymentConfigurationRepository deploymentConfigurationRepository,
+							 DeploymentApplicationRepository deploymentApplicationRepository,
 
-			CloudProviderParamsCopyRepository cloudProviderParametersCopyRepository,
-			ConfigDeploymentParamsCopyRepository configDeploymentParamsCopyRepository,
-			EncryptionService encryptionService,
-			DeploymentSecretService deploymentSecretService,
-			@Value("${ecp.security.salt}") final String salt,
-			@Value("${ecp.security.password}") final String password
-			) {
+							 CloudProviderParamsCopyRepository cloudProviderParametersCopyRepository,
+							 ConfigDeploymentParamsCopyRepository configDeploymentParamsCopyRepository,
+							 EncryptionService encryptionService,
+							 DeploymentSecretService deploymentSecretService,
+							 @Value("${ecp.security.salt}") final String salt,
+							 @Value("${ecp.security.password}") final String password
+	) {
 		this.cloudProviderParametersCopyService = new CloudProviderParamsCopyService(cloudProviderParametersCopyRepository, encryptionService);
 		this.deploymentService = new DeploymentService(deploymentRepository, deploymentStatusRepository);
 		this.accountService = new AccountService(accountRepository);
 		this.applicationService = new ApplicationService(applicationRepository, domainService);
 		this.volumeInstanceService = new VolumeInstanceService(volumeInstanceRepository,
 				volumeInstanceStatusRepository);
-		this.cloudProviderParametersService = new CloudProviderParametersService(cloudProviderParametersRepository, domainService, 
+		this.cloudProviderParametersService = new CloudProviderParametersService(cloudProviderParametersRepository, domainService,
 				cloudProviderParametersCopyService, encryptionService);
 		this.applicationDeployerBash = applicationDeployerBash;
 		this.deploymentStatusTracker = deploymentStatusTracker;
@@ -232,7 +232,7 @@ public class DeploymentRestController {
 		this.configurationService = new ConfigurationService(configurationRepository, domainService,
 				cloudProviderParametersService, deploymentParametersService,
 				cloudProviderParametersCopyService, deploymentService
-				);
+		);
 		this.deploymentConfigurationService = new DeploymentConfigurationService(deploymentConfigurationRepository);
 		this.deploymentApplicationService = new DeploymentApplicationService(deploymentApplicationRepository);
 		this.configDeploymentParamsCopyService = new ConfigDeploymentParamsCopyService(configDeploymentParamsCopyRepository);
@@ -420,7 +420,7 @@ public class DeploymentRestController {
 				deploymentApplication,
 				selectedCloudProviderParameters.getReference(),
 				input.getUserSshKey()
-				);
+		);
 		Deployment resDeployment = this.deploymentService.save(deployment);
 
 		//Deploy
@@ -432,16 +432,16 @@ public class DeploymentRestController {
 				input.getAssignedInputs()!=null ?
 						input.getAssignedInputs().stream().collect(Collectors.toMap(s -> s.getInputName(), s-> s.getAssignedValue()))
 						: null,
-						//the following based on precedence discussion might change, so placeholder here
-						deploymentParameterKV!=null ? deploymentParameterKV :null,
-								input.getAttachedVolumes()!=null? toProviderIdHashMap(input.getAttachedVolumes()) : null,
-										deploymentParameterKV!=null ? deploymentParameterKV :null,
-												cloudProviderParametersCopy,
-												configuration,
-												new java.sql.Timestamp(startTime.getTime()),
-												input.getUserSshKey(),
-												baseURL(request)
-				);
+				//the following based on precedence discussion might change, so placeholder here
+				deploymentParameterKV!=null ? deploymentParameterKV :null,
+				input.getAttachedVolumes()!=null? toProviderIdHashMap(input.getAttachedVolumes()) : null,
+				deploymentParameterKV!=null ? deploymentParameterKV :null,
+				cloudProviderParametersCopy,
+				configuration,
+				new java.sql.Timestamp(startTime.getTime()),
+				input.getUserSshKey(),
+				baseURL(request)
+		);
 
 		// set input assignments
 		if (input.getAssignedInputs()!=null) {
@@ -452,7 +452,7 @@ public class DeploymentRestController {
 						assignment.getInputName(),
 						assignment.getAssignedValue(),
 						deployment
-						);
+				);
 				// add it to the volume
 				deployment.getAssignedInputs().add(newAssignment);
 			}
@@ -467,14 +467,14 @@ public class DeploymentRestController {
 					deployment,
 					configuration.getReference(),
 					configuration.getConfigDeployParamsReference()
-					);
+			);
 			// add it to the deployment
 			deployment.setDeploymentConfiguration(addedConfiguration);
 
 			if (deploymentParameterKV !=null) {
 				deploymentParameterKV.forEach((k,v) -> {
 					logger.debug("Setting deployment parameter assignment for " + k + " to value " + v);
-					DeploymentConfigurationParameter newAssignment = 
+					DeploymentConfigurationParameter newAssignment =
 							new DeploymentConfigurationParameter(k,v,addedConfiguration);
 					logger.debug("Setting configuration parameter " + newAssignment.getParameterName() + " to " + newAssignment.getParameterValue() );
 					addedConfiguration.getConfigurationParameters().add(newAssignment);
@@ -533,7 +533,7 @@ public class DeploymentRestController {
 		return String.format("%s://%s%s" , url.getProtocol()
 				, url.getHost()
 				, getPortStr(url)
-				);
+		);
 	}
 
 	String getPortStr(URL url) {
@@ -652,12 +652,12 @@ public class DeploymentRestController {
 
 		return new Resources<>(
 				theDeployment.getGeneratedOutputs().stream().map(DeploymentGeneratedOutputResource::new).collect(Collectors.toList())
-				);
+		);
 	}
 
 	@RequestMapping(value = "/{deploymentReference}/outputs", method = RequestMethod.PUT)
 	public ResponseEntity<?> addDeploymentOutputs(@PathVariable("deploymentReference") String reference, @RequestHeader("Deployment-Secret") String secret,
-			@RequestBody List<DeploymentGeneratedOutputResource> payLoadGeneratedOutputList) {
+												  @RequestBody List<DeploymentGeneratedOutputResource> payLoadGeneratedOutputList) {
 
 		DeploymentOutputsProcessResult deploymentOutputsProcessResult = deploymentGeneratedOutputService.saveOrUpdateDeploymentOutputs(reference, secret, payLoadGeneratedOutputList);
 		Optional<ErrorMessage> errorMessage = deploymentOutputsProcessResult.getErrorMessage();
@@ -679,7 +679,7 @@ public class DeploymentRestController {
 			Files.readAllLines(
 					FileSystems.getDefault().getPath(this.deploymentsRoot + File.separator + theDeployment.getReference() + File.separator + "output.log"),
 					StandardCharsets.UTF_8
-					).forEach(line -> logBuilder.append(line + System.lineSeparator()));
+			).forEach(line -> logBuilder.append(line + System.lineSeparator()));
 
 			return logBuilder.toString();
 		} else {
@@ -700,7 +700,7 @@ public class DeploymentRestController {
 			Files.readAllLines(
 					FileSystems.getDefault().getPath(this.deploymentsRoot + File.separator + theDeployment.getReference() + File.separator + "destroy.log"),
 					StandardCharsets.UTF_8
-					).forEach(line -> logBuilder.append(line + System.lineSeparator()));
+			).forEach(line -> logBuilder.append(line + System.lineSeparator()));
 
 			return logBuilder.toString();
 		} else {
@@ -716,43 +716,27 @@ public class DeploymentRestController {
 	}
 
 	@RequestMapping(value = "/{deploymentReference}/stopme", method = RequestMethod.PUT)
-	public void stopMe( @PathVariable("deploymentReference") String                     deploymentReference
-			, @RequestBody                         HashMap<String, String>    body
-			)
-					throws IOException, ApplicationDeployerException, NoSuchPaddingException, InvalidKeyException,
-					NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException,
-					InvalidAlgorithmParameterException, InvalidKeySpecException 
-	{
-		String secret = body.get("secret");
+	public void stopMe(@PathVariable("deploymentReference") String deploymentReference, @RequestHeader("Deployment-Secret") String secret)
+			throws IOException, ApplicationDeployerException {
 
 		if (secret == null || secret.isEmpty()) {
-
 			throw new MissingParameterException("secret");
 		}
-
 		if (!deploymentSecretService.exists(deploymentReference, secret)) {
-
 			throw new DeploymentNotFoundException(deploymentReference);
 		}
-
 		stop(deploymentReference);
 	}
 
 	@RequestMapping(value = "/{deploymentReference}/stop", method = RequestMethod.PUT)
 	public ResponseEntity<?> stopByReference(@PathVariable("deploymentReference") String reference)
-			throws IOException, ApplicationDeployerException, NoSuchPaddingException, InvalidKeyException,
-			NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException,
-			InvalidAlgorithmParameterException, InvalidKeySpecException 
-	{
+			throws IOException, ApplicationDeployerException {
 		stop(reference);
-
 		return new ResponseEntity<>(null, new HttpHeaders(), HttpStatus.OK);
 	}
 
 	void stop(String reference)
-			throws IOException, ApplicationDeployerException, NoSuchPaddingException, InvalidKeyException,
-			NoSuchAlgorithmException, IllegalBlockSizeException, BadPaddingException,
-			InvalidAlgorithmParameterException, InvalidKeySpecException 
+			throws IOException, ApplicationDeployerException
 	{
 		logger.info("Stopping deployment '" + reference + "'");
 
@@ -782,7 +766,7 @@ public class DeploymentRestController {
 				theDeployment.getAttachedVolumes(),
 				deploymentConfiguration,
 				theCloudProviderParametersCopy
-				);
+		);
 	}
 
 	@RequestMapping(value = "/{deploymentReference}", method = RequestMethod.DELETE)
@@ -819,9 +803,9 @@ public class DeploymentRestController {
 	public ResponseEntity<?> readyToTearDown(
 			@RequestHeader(value="api-key",required = false) String secret,
 			@PathVariable("deploymentReference") String referenceOrIp)
-					throws IOException, ApplicationDeployerException,
-					NoSuchPaddingException, InvalidAlgorithmParameterException, NoSuchAlgorithmException,
-					IllegalBlockSizeException, BadPaddingException, InvalidKeyException, InvalidKeySpecException {
+			throws IOException, ApplicationDeployerException,
+			NoSuchPaddingException, InvalidAlgorithmParameterException, NoSuchAlgorithmException,
+			IllegalBlockSizeException, BadPaddingException, InvalidKeyException, InvalidKeySpecException {
 
 		logger.info("Deployment '" + referenceOrIp + "' ready to be torn down");
 
@@ -862,7 +846,7 @@ public class DeploymentRestController {
 			res.put(
 					attachment.getName(),
 					this.volumeInstanceService.findByReference(attachment.getVolumeInstanceReference()).getProviderId()
-					);
+			);
 		}
 		return res;
 	}
@@ -884,7 +868,7 @@ public class DeploymentRestController {
 				DeploymentApplication newDepApp = new DeploymentApplication(deploymentApplication);
 
 
-				Collection<DeploymentApplicationCloudProvider> cloudProviders = deploymentApplication.getCloudProviders();	
+				Collection<DeploymentApplicationCloudProvider> cloudProviders = deploymentApplication.getCloudProviders();
 				List<DeploymentApplicationCloudProvider> toAddCP = new ArrayList<>();
 				cloudProviders.forEach(cp -> {
 					//create new cloud provider
