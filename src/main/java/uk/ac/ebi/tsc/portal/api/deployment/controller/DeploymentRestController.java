@@ -89,6 +89,7 @@ import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationNotFoundExcep
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationNotSharedException;
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationService;
 import uk.ac.ebi.tsc.portal.api.configuration.service.UsageLimitsException;
+import uk.ac.ebi.tsc.portal.api.deployment.bean.DeploymentOutputsProcessResult;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.Deployment;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentApplication;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentApplicationCloudProvider;
@@ -658,7 +659,8 @@ public class DeploymentRestController {
 	public ResponseEntity<?> addDeploymentOutputs(@PathVariable("deploymentReference") String reference, @RequestHeader("Deployment-Secret") String secret,
 			@RequestBody List<DeploymentGeneratedOutputResource> payLoadGeneratedOutputList) {
 
-		Optional<ErrorMessage> errorMessage = deploymentGeneratedOutputService.saveOrUpdateDeploymentOutputs(reference, secret, payLoadGeneratedOutputList);
+		DeploymentOutputsProcessResult deploymentOutputsProcessResult = deploymentGeneratedOutputService.saveOrUpdateDeploymentOutputs(reference, secret, payLoadGeneratedOutputList);
+		Optional<ErrorMessage> errorMessage = deploymentOutputsProcessResult.getErrorMessage();
 		if (errorMessage.isPresent())
 			return new ResponseEntity<>(errorMessage.get().getError(), null, errorMessage.get().getStatus());
 		return new ResponseEntity<>(null, null, HttpStatus.NO_CONTENT);
