@@ -202,6 +202,9 @@ public class DeploymentRestControllerTest {
 	@MockBean
 	DeploymentSecretService deploymentSecretService;
 
+	@MockBean
+	DeploymentGeneratedOutputService deploymentGeneratedOutputService;
+
 	String cppReference = "cppReference";
 	@Before 
 	public void setUp() {
@@ -225,6 +228,7 @@ public class DeploymentRestControllerTest {
 				configurationDeploymentParamsCopyRepository,
 				encryptionService,
 				deploymentSecretService,
+				deploymentGeneratedOutputService,
 				salt,
 				password);
 

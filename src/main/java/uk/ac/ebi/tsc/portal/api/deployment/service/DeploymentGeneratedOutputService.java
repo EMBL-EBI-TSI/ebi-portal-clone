@@ -1,6 +1,8 @@
 package uk.ac.ebi.tsc.portal.api.deployment.service;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
 import uk.ac.ebi.tsc.portal.api.deployment.bean.DeploymentOutputsProcessResult;
 import uk.ac.ebi.tsc.portal.api.deployment.controller.DeploymentGeneratedOutputResource;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.Deployment;
@@ -13,10 +15,12 @@ import java.util.stream.Collectors;
 /**
  * @author Felix Xavier <famaladoss@ebi.ac.uk>
  */
+@Service
 public class DeploymentGeneratedOutputService {
 
     private DeploymentRepository deploymentRepository;
 
+    @Autowired
     public DeploymentGeneratedOutputService(DeploymentRepository deploymentRepository) {
         this.deploymentRepository = deploymentRepository;
     }

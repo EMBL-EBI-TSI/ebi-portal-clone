@@ -7,9 +7,9 @@ import java.util.Optional;
 
 public class DeploymentOutputsProcessResult {
 
-    Optional<ErrorMessage> errorMessage;
+    private Optional<ErrorMessage> errorMessage;
 
-    List<DeploymentGeneratedOutput> deploymentGeneratedOutputList;
+    private List<DeploymentGeneratedOutput> deploymentGeneratedOutputList;
 
     public Optional<ErrorMessage> getErrorMessage() {
         return errorMessage;

@@ -161,7 +161,7 @@ public class DeploymentRestController {
 
 	private final DeploymentService deploymentService;
 
-	private final DeploymentGeneratedOutputService deploymentGeneratedOutputService;
+	private DeploymentGeneratedOutputService deploymentGeneratedOutputService;
 
 	private final AccountService accountService;
 
@@ -214,6 +214,7 @@ public class DeploymentRestController {
 							 ConfigDeploymentParamsCopyRepository configDeploymentParamsCopyRepository,
 							 EncryptionService encryptionService,
 							 DeploymentSecretService deploymentSecretService,
+							 DeploymentGeneratedOutputService deploymentGeneratedOutputService,
 							 @Value("${ecp.security.salt}") final String salt,
 							 @Value("${ecp.security.password}") final String password
 	) {
@@ -239,7 +240,7 @@ public class DeploymentRestController {
 		this.teamService = new TeamService(teamRepository, accountRepository, domainService,
 				deploymentService, cloudProviderParametersCopyService, deploymentConfigurationService, applicationDeployerBash);
 		this.deploymentSecretService = deploymentSecretService;
-		deploymentGeneratedOutputService = new DeploymentGeneratedOutputService(deploymentRepository);
+		this.deploymentGeneratedOutputService = deploymentGeneratedOutputService;
 	}
 
 	/* useful to inject values without involving spring - i.e. tests */
