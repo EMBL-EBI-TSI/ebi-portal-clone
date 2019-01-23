@@ -19,11 +19,6 @@ import java.util.stream.Collectors;
 public class DeploymentGeneratedOutputService {
 	
     private final DeploymentRepository deploymentRepository;
-    List<DeploymentGeneratedOutput> deploymentGeneratedOutputList;
-    List<String> payLoadKeyList;
-    Deployment theDeployment;
-    StringBuilder replacingOutputValues;
-    StringBuilder payLoadOutputValues;
 
     @Autowired
     public DeploymentGeneratedOutputService(DeploymentRepository deploymentRepository) {
