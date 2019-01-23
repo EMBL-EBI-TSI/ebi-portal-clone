@@ -72,6 +72,7 @@ import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentApplicationCloudProvid
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentConfiguration;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentApplicationService;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentConfigurationService;
+import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentGeneratedOutputService;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentNotFoundException;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentSecretService;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
@@ -169,6 +170,9 @@ public class DeploymentRestControllerTest {
 	
 	@MockBean
 	DeploymentSecretService deploymentSecretService;
+
+	@MockBean
+	DeploymentGeneratedOutputService deploymentGeneratedOutputService;
 
 	String cppReference = "cppReference";
 	@Before 
