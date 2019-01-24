@@ -94,15 +94,16 @@ public class CloudProviderParamsCopyService {
 
 	public CloudProviderParamsCopy save(CloudProviderParamsCopy cloudProviderParametersCopy) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException, InvalidKeySpecException, BadPaddingException, IllegalBlockSizeException {
 
-		Map<String, String> paramValues = new HashMap<>();
+		/*Map<String, String> paramValues = new HashMap<>();
 		cloudProviderParametersCopy.getFields().forEach(field -> {
 			paramValues.put(field.getKey(), field.getValue());
 		});
-
-		Map<String, String> encyptedValues = encryptionService.encrypt(paramValues);
+		Map<String, String> encyptedValues = encryptionService.encrypt(paramValues);*/
+		
+		Map<String, String> encryptedCloudProviderParametersCopy = encryptionService.encrypt(cloudProviderParametersCopy);
 		for (CloudProviderParamsCopyField cloudProviderParametersField : cloudProviderParametersCopy.getFields()) {
 			cloudProviderParametersField.setValue(
-					encyptedValues.get(cloudProviderParametersField.getKey()));
+					encryptedCloudProviderParametersCopy.get(cloudProviderParametersField.getKey()));
 		}
 		return this.cloudProviderParametersCopyRepository.save(cloudProviderParametersCopy);
 	}
@@ -129,12 +130,12 @@ public class CloudProviderParamsCopyService {
 
 	private CloudProviderParamsCopy decryptOne(CloudProviderParamsCopy encryptedCloudProviderParametersCopy) {
 
-		Map<String, String> paramValues = new HashMap<>();
+		/*Map<String, String> paramValues = new HashMap<>();
 		encryptedCloudProviderParametersCopy.getFields().forEach(field -> {
 			paramValues.put(field.getKey(), field.getValue());
-		});
+		});*/
 
-		Map<String, String> decryptedValues = encryptionService.decryptOne(paramValues);
+		Map<String, String> decryptedValues = encryptionService.decryptOne(encryptedCloudProviderParametersCopy);
 
 
 		CloudProviderParamsCopy decryptedCloudProviderParametersCopy =

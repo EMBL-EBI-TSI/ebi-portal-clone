@@ -115,15 +115,15 @@ public class CloudProviderParametersService {
 	public CloudProviderParameters save(CloudProviderParameters cloudProviderParameters) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException, InvalidKeySpecException, BadPaddingException, IllegalBlockSizeException {
 
 		//pass the cloud provider parameter fields to be encrypted
-		Map<String, String> paramValues = new HashMap<>();
-		cloudProviderParameters.getFields().forEach(field -> {
-			paramValues.put(field.getKey(), field.getValue());
-		});
-
-		Map<String, String> encyptedValues = encryptionService.encrypt(paramValues);
+//		Map<String, String> paramValues = new HashMap<>();
+//		cloudProviderParameters.getFields().forEach(field -> {
+//			paramValues.put(field.getKey(), field.getValue());
+//		});
+		//Map<String, String> encyptedValues = encryptionService.encrypt(paramValues);
+		Map<String, String> encryptedCloudProviderParameters = encryptionService.encrypt(cloudProviderParameters);
 		for (CloudProviderParametersField cloudProviderParametersField : cloudProviderParameters.getFields()) {
 			cloudProviderParametersField.setValue(
-					encyptedValues.get(cloudProviderParametersField.getKey()));
+					encryptedCloudProviderParameters.get(cloudProviderParametersField.getKey()));
 		}
 
 		return this.cloudProviderParametersRepository.save(cloudProviderParameters);
@@ -155,12 +155,12 @@ public class CloudProviderParametersService {
 
 	private CloudProviderParameters decryptOne(CloudProviderParameters encryptedCloudProviderParameters) {
 
-		Map<String, String> paramValues = new HashMap<>();
-		encryptedCloudProviderParameters.getFields().forEach(field -> {
-			paramValues.put(field.getKey(), field.getValue());
-		});
+//		Map<String, String> paramValues = new HashMap<>();
+//		encryptedCloudProviderParameters.getFields().forEach(field -> {
+//			paramValues.put(field.getKey(), field.getValue());
+//		});
 
-		Map<String, String> decryptedValues = encryptionService.decryptOne(paramValues);
+		Map<String, String> decryptedValues = encryptionService.decryptOne(encryptedCloudProviderParameters);
 
 		CloudProviderParameters decryptedCloudProviderParameters =
 				new CloudProviderParameters(
