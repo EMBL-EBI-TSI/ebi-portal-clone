@@ -72,7 +72,37 @@ The RESTful API is designed under the [HATEOAS](https://en.wikipedia.org/wiki/HA
 - [Spring Boot starter](http://start.spring.io/).  
 
 
+## Default Teams
+
+We wanted to group people in teams namely EMBL-EBI (UK based) and EMBL (whole EMBL except UK) so that sharing and un-sharing resources can be done organization wide, which would help people to adopt the Cloud Portal easily.
+
+This is the information found in /default_teams.json file.
+
+People who sign in and having email id’s ending in ‘ebi.ac.uk’ would be automatically be put in team EBI and 
+those having email id’s ending in ‘embl.de’ would be in team EMBL.
+
+Developers can adopt this idea and customize it to suit their organization.
+
+Before that bear in mind, ‘Team’ in ECP application is called a ‘Domain’ in AAP and that
+team name is universal.
 
 
+But firstly, a developer has to do the following:
 
+1.	Create teams from the ECP application. These are the teams to which, people logging in would be added to.
+    In the given scenario, as per the /default_teams.json the teams would be 'EBI' and 'EMBL-EBI'. 
+    
+2.	Go to AAP application (https://aai.ebi.ac.uk) and create an AAP account. (more like a system account)
 
+3.	The user who created the team, sign in into https://aai.ebi.ac.uk  and list the domains in AAP from under the ‘My Domains’     tab. Look for the domain in AAP. It would be in the following format: 
+
+                TEAM_{team_name_from_ECP}_PORTAL_{username-of-the-person-who-created-team}
+                
+    e.g. Team named ‘EBI’ in ECP would be like TEAM_EBI_PORTAL_USR-XXXXXXXX-XXXX-XXXX-XXXXXXXXXXXXXX  in AAP
+    
+4.	Once you have located the Domain, select it and add a Manager by supplying the username of the AAP account you created in Step 2
+
+5.	Supply the AAP account credentials (created in Step 2), via the following 2 fields found in application.properties
+
+    => ecp.aap.username=your-aap-local-account-for-ecp
+    => ecp.aap.password=changeme

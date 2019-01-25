@@ -38,9 +38,6 @@ public class AccountRestControllerTest {
 	private AccountService accountService;
 	
 	@MockBean
-	private AccountRepository accountRepository;
-	
-	@MockBean
 	private Account account;
 	
 	@MockBean
@@ -51,7 +48,6 @@ public class AccountRestControllerTest {
 	@Before
 	public void setUp(){
 		ReflectionTestUtils.setField(subject, "accountService", accountService);
-		ReflectionTestUtils.setField(accountService, "accountRepository", accountRepository);
 	}
 	
 	/**

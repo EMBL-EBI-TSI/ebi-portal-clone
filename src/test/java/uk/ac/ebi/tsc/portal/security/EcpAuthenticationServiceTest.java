@@ -1,19 +1,29 @@
 package uk.ac.ebi.tsc.portal.security;
 
+import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.util.InMemoryResource;
+import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.web.WebAppConfiguration;
+import org.springframework.test.util.ReflectionTestUtils;
+
 import uk.ac.ebi.tsc.aap.client.model.User;
 import uk.ac.ebi.tsc.aap.client.repo.DomainService;
 import uk.ac.ebi.tsc.aap.client.repo.TokenService;
 import uk.ac.ebi.tsc.portal.api.account.repo.Account;
 import uk.ac.ebi.tsc.portal.api.account.repo.AccountRepository;
+import uk.ac.ebi.tsc.portal.api.account.service.AccountService;
 import uk.ac.ebi.tsc.portal.api.account.service.UserNotFoundException;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParamsCopyRepository;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentConfigurationRepository;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentRepository;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentStatusRepository;
+import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentConfigurationService;
+import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
 import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
 import uk.ac.ebi.tsc.portal.api.team.repo.TeamRepository;
 import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployerBash;
@@ -30,26 +40,27 @@ import static org.mockito.Mockito.when;
 /**
  * @author Jose A. Dianes <jdianes@ebi.ac.uk>
  */
+@RunWith(SpringRunner.class)
+@WebAppConfiguration
 public class EcpAuthenticationServiceTest {
 
+	@MockBean
     private EcpAuthenticationService subject;
 
     private uk.ac.ebi.tsc.aap.client.security.TokenAuthenticationService mockAuthService =
             mock(uk.ac.ebi.tsc.aap.client.security.TokenAuthenticationService.class);
 
-    private AccountRepository mockAccountRepo = mock(AccountRepository.class);
+    private AccountService mockAccountService = mock(AccountService.class);
     private TokenService mockTokenService = mock(TokenService.class);
-    private DeploymentRepository mockDeploymentRepository = mock(DeploymentRepository.class);
-    private DeploymentConfigurationRepository mockDeploymentConfigurationRepository = mock(DeploymentConfigurationRepository.class);
-    private DeploymentStatusRepository mockDeploymentStatusRepository = mock(DeploymentStatusRepository.class);
-    private CloudProviderParamsCopyRepository mockCloudProviderParamsCopyRepository = mock(CloudProviderParamsCopyRepository.class);
-    private TeamRepository mockTeamRepository = mock(TeamRepository.class);
-    private ApplicationDeployerBash mockApplicationDeployerBash = mock(ApplicationDeployerBash.class);
-    private DomainService mockDomainService = mock(DomainService.class);
-    private EncryptionService mockEncryptionService = mock(EncryptionService.class);
     private ResourceLoader mockResourceLoader = mock(ResourceLoader.class);
 
-
+    @Before
+    public void setUp(){
+    	ReflectionTestUtils.setField(subject, "accountService", mockAccountService);
+    	ReflectionTestUtils.setField(subject, "tokenService", mockTokenService);
+    	ReflectionTestUtils.setField(subject, "tokenAuthenticationService", mockAuthService);
+    }
+    
     public EcpAuthenticationServiceTest() throws IOException {
         when(mockResourceLoader.getResource("ecp.default.teams.file")).thenReturn(new InMemoryResource("[\n" +
                 "  {\n" +
@@ -65,24 +76,6 @@ public class EcpAuthenticationServiceTest {
                 "    \"teamName\": \"TEST3\"\n" +
                 "  }\n" +
                 "]"));
-        subject = new EcpAuthenticationService(
-                mockAuthService,
-                mockAccountRepo,
-                mockDeploymentRepository,
-                mockDeploymentStatusRepository,
-                mockDeploymentConfigurationRepository,
-                mockCloudProviderParamsCopyRepository,
-                mockTeamRepository,
-                mockApplicationDeployerBash,
-                mockDomainService,
-                mockTokenService,
-                mockEncryptionService,
-                mockResourceLoader,
-                "aap.ecp.user",
-                "aap.ecp.password",
-                "ecp.default.teams.file"
-        );
-
     }
 
     @Test
@@ -102,12 +95,12 @@ public class EcpAuthenticationServiceTest {
         when(mockAccount.getUsername()).thenReturn("pretend-username");
         when(mockAccount.getGivenName()).thenReturn("pretend-user-given-name");
         when(mockAccount.getEmail()).thenReturn("user@domain.com");
-        when(mockAccountRepo.findByUsername("pretend-username")).thenReturn(Optional.of(mockAccount));
-        when(mockAccountRepo.findByUsername("pretend-user-given-name")).thenThrow(UserNotFoundException.class);
+        when(mockAccountService.findByUsername("pretend-username")).thenReturn(mockAccount);
+        when(mockAccountService.findByUsername("pretend-user-given-name")).thenThrow(UserNotFoundException.class);
 
         when(mockAuthService.getAuthentication(mockRequest)).thenReturn(mockAuth);
         when(mockTokenService.getAAPToken("ecp-account-username","ecp-account-password")).thenReturn("ecp-aap-pretend-valid-token");
-
+        when(subject.getAuthentication(mockRequest)).thenCallRealMethod();
         Authentication auth = subject.getAuthentication(mockRequest);
         assertEquals(auth.getName(), "pretend-username");
 
@@ -118,6 +111,7 @@ public class EcpAuthenticationServiceTest {
         HttpServletRequest request = withAuthorizationHeader("Bearer pretend-invalid-token");
         when(request.getHeader("Authorization").
                 equals("Bearer pretend-invalid-token")).thenReturn(null);
+        when(subject.getAuthentication(request)).thenCallRealMethod();
         Authentication auth = subject.getAuthentication(request);
         assertNull(auth);
     }

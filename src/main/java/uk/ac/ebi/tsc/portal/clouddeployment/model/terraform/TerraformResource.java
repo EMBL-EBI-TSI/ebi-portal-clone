@@ -1,5 +1,7 @@
 package uk.ac.ebi.tsc.portal.clouddeployment.model.terraform;
 
+import org.springframework.stereotype.Component;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 /**

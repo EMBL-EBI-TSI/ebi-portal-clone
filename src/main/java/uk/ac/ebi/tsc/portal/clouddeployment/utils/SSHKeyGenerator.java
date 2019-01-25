@@ -7,24 +7,30 @@ import java.io.InputStreamReader;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
 
 /**
  * @author Jose A. Dianes <jdianes@ebi.ac.uk>
  * @since v0.0.1
  * @author Navis Raj <navis@ebi.ac.uk>
  */
+@Component
 public class SSHKeyGenerator {
 
 	private static final Logger logger = LoggerFactory.getLogger(SSHKeyGenerator.class);
 
-	public static void generateKeys(String userEmail, String filePath) {
+	public static void generateKeys(String userEmail, String filePath,Boolean sudoExecuteScript,String scriptUser) {
 
 		if(!keysExist(filePath)){
 			
 			userEmail = "'" + userEmail + "'";
 			filePath = "'" + filePath + "'";
-			
-			ProcessBuilder processBuilder = new ProcessBuilder("/bin/bash", "-c",
+			ProcessBuilder processBuilder;
+
+			if(sudoExecuteScript)
+				processBuilder = new ProcessBuilder("sudo", "-u", scriptUser, "-E" ,"/bin/bash", "-c",
+					"ssh-keygen -t rsa -b 4096  -C " + userEmail + " -f " + filePath + " -P " + "''" );
+			else processBuilder = new ProcessBuilder("/bin/bash", "-c",
 					"ssh-keygen -t rsa -b 4096  -C " + userEmail + " -f " + filePath + " -P " + "''" );
 
 			Process process;

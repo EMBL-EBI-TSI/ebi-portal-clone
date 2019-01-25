@@ -7,6 +7,7 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigDeploymentParamsCopy;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigDeploymentParamsCopyRepository;
@@ -20,6 +21,7 @@ import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
  * @since v0.0.1
  * @author Navis Raj <navis@ebi.ac.uk>
  */
+@Service
 public class ConfigDeploymentParamsCopyService {
 
 	private static final Logger logger = LoggerFactory.getLogger(ConfigDeploymentParamsCopyService.class);

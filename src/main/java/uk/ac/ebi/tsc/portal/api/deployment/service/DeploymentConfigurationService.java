@@ -2,6 +2,9 @@ package uk.ac.ebi.tsc.portal.api.deployment.service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
 import uk.ac.ebi.tsc.portal.api.deployment.repo.Deployment;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentConfiguration;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentConfigurationRepository;
@@ -17,12 +20,14 @@ import java.util.List;
  * @since v0.0.1
  * @author Navis Raj <navis@ebi.ac.uk>
  */
+@Service
 public class DeploymentConfigurationService {
 
     private static final Logger logger = LoggerFactory.getLogger(DeploymentConfigurationService.class);
 
     private final DeploymentConfigurationRepository deploymentConfigurationRepository;
 
+    @Autowired
     public DeploymentConfigurationService(DeploymentConfigurationRepository deploymentConfigurationRepository) {
     	this.deploymentConfigurationRepository = deploymentConfigurationRepository;
     }

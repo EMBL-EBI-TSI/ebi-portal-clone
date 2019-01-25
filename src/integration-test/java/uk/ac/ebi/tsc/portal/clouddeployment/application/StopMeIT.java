@@ -37,107 +37,105 @@ public class StopMeIT {
 
     @Autowired
     DeploymentSecretRepository deploymentSecretRepository;
-    
+
     @Autowired
     DeploymentSecretService deploymentSecretService;
-    
+
     @Autowired
     DeploymentRepository deploymentRepository;
-    
+
     @Autowired
     private MockMvc mockMvc;
 
     Deployment aDeployment;
     String reference = "TSI000000001";
     static final String SECRET = "secret";
-    
-    
+
+
     @Before
     public void before() {
-        
+
         // I need to have at least one record in 'deployment'
-        
+
         // Erasing all the records
         deploymentSecretRepository.deleteAll();  // Need to erase these first ( FK(deployment.id) )
         deploymentRepository.deleteAll();
-        
+
         // Creating the one I need
-        this.aDeployment = deploymentRepository.save(new Deployment(reference, null, null, "cloudProviderParametersReference", null, null));
+        this.aDeployment = deploymentRepository.save(new Deployment(reference, null, null, "cloudProviderParametersReference", null));
     }
-    
+
     @Test
-    public void save() throws Exception 
+    public void save() throws Exception
     {
         assertFalse(deploymentSecretService.exists(reference, SECRET));
 
         deploymentSecretService.save(aDeployment, SECRET);
-        
+
         assertTrue(deploymentSecretService.exists(reference, SECRET));
     }
-    
+
     @Test
-    public void stopMe_non_existent_deployment() throws Exception 
+    public void stopMe_non_existent_deployment() throws Exception
     {
         assertFalse(deploymentSecretService.exists(reference, SECRET));
-        
+
         ResultActions r = callStopMe(reference, SECRET);
         assert404(r);
     }
-    
+
     @Test
-    public void stopMe_wrong_secret() throws Exception 
+    public void stopMe_wrong_secret() throws Exception
     {
         save();
         assertTrue(deploymentSecretService.exists(reference, SECRET));
-        
+
         ResultActions r = callStopMe(reference, "wrongSecret");
         assert404(r);
     }
 
     ResultActions callStopMe(String reference, String secret) throws Exception {
-        
-        String content = obj( keyValue("secret", secret) );
 
         return mockMvc.perform(
-                
+
                 put(format("/deployment/%s/stopme", reference))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(content)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("Deployment-Secret", secret)
+                        .content(obj())
         );
     }
-    
+
     void assertErrorResponse(ResultActions r, int statusCode, String message) throws Exception {
-        
+
         r.andExpect(status().is(statusCode))
-        
-        /*
-         * [
-         *     { "logref":     "error"
-         *     ,"message":     "Missing parameter: 'secret'."
-         *     ,"links":       []
-         *     }
-         * ]
-         * 
-         */
-        .andExpect(jsonPath("[0].message").value(message))
+
+                /*
+                 * [
+                 *     { "logref":     "error"
+                 *     ,"message":     "Missing parameter: 'secret'."
+                 *     ,"links":       []
+                 *     }
+                 * ]
+                 *
+                 */
+                .andExpect(jsonPath("[0].message").value(message))
         ;
     }
-    
+
     void assert404(ResultActions r) throws Exception {
-        
+
         assertErrorResponse(r, 404, "Could not find deployment with reference 'TSI000000001'.");
     }
-    
+
     @Test
-    public void stopMe_missing_secret() throws Exception 
+    public void stopMe_missing_secret() throws Exception
     {
         ResultActions r = mockMvc.perform(
-                
+
                 put(format("/deployment/%s/stopme", reference))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(obj())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(obj())
         );
-        
-        assertErrorResponse(r, 406, "Missing parameter: 'secret'.");
+        r.andExpect(status().is(400));
     }
 }

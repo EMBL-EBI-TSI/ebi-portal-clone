@@ -34,8 +34,8 @@ public class VolumeSetupDownloader {
     private final AccountService accountService;
 
     @Autowired
-    public VolumeSetupDownloader(AccountRepository accountRepository) {
-        this.accountService = new AccountService(accountRepository);
+    public VolumeSetupDownloader(AccountService accountService) {
+        this.accountService = accountService;
     }
 
     public VolumeSetup downloadVolumeSetup(String applicationsRoot, String repoUri, String username) throws IOException, ApplicationDownloaderException {

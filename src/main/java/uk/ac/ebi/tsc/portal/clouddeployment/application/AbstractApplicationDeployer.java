@@ -1,30 +1,5 @@
 package uk.ac.ebi.tsc.portal.clouddeployment.application;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.web.client.RestClientException;
-import uk.ac.ebi.tsc.aap.client.repo.DomainService;
-import uk.ac.ebi.tsc.portal.api.application.repo.Application;
-import uk.ac.ebi.tsc.portal.api.application.repo.ApplicationOutput;
-import uk.ac.ebi.tsc.portal.api.application.repo.ApplicationRepository;
-import uk.ac.ebi.tsc.portal.api.application.service.ApplicationService;
-import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParamsCopy;
-import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParamsCopyRepository;
-import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParamsCopyService;
-import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigDeploymentParamsCopyRepository;
-import uk.ac.ebi.tsc.portal.api.configuration.repo.Configuration;
-import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigDeploymentParamsCopyService;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.*;
-import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
-import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentSecretService;
-import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
-import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDeployerException;
-import uk.ac.ebi.tsc.portal.clouddeployment.model.ErrorFromTerraformOutput;
-import uk.ac.ebi.tsc.portal.clouddeployment.model.StateFromTerraformOutput;
-import uk.ac.ebi.tsc.portal.clouddeployment.model.terraform.TerraformState;
-import uk.ac.ebi.tsc.portal.usage.deployment.model.DeploymentDocument;
-import uk.ac.ebi.tsc.portal.usage.deployment.service.DeploymentIndexService;
-
 import java.io.IOException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
@@ -33,9 +8,39 @@ import java.util.Date;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestClientException;
+
+import uk.ac.ebi.tsc.portal.api.application.repo.Application;
+import uk.ac.ebi.tsc.portal.api.application.repo.ApplicationOutput;
+import uk.ac.ebi.tsc.portal.api.application.service.ApplicationService;
+import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParamsCopy;
+import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParamsCopyService;
+import uk.ac.ebi.tsc.portal.api.configuration.repo.Configuration;
+import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigDeploymentParamsCopyService;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.Deployment;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentAssignedInput;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentAssignedParameter;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentAttachedVolume;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentConfiguration;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentGeneratedOutput;
+import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentStatusEnum;
+import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentSecretService;
+import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
+import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDeployerException;
+import uk.ac.ebi.tsc.portal.clouddeployment.model.ErrorFromTerraformOutput;
+import uk.ac.ebi.tsc.portal.clouddeployment.model.StateFromTerraformOutput;
+import uk.ac.ebi.tsc.portal.clouddeployment.model.terraform.TerraformState;
+import uk.ac.ebi.tsc.portal.usage.deployment.model.DeploymentDocument;
+import uk.ac.ebi.tsc.portal.usage.deployment.service.DeploymentIndexService;
+
 /**
  * Created by jdianes on 01/10/2018.
  */
+@Component
 public abstract class AbstractApplicationDeployer {
 
     private static final Logger logger = LoggerFactory.getLogger(AbstractApplicationDeployer.class);
@@ -46,17 +51,16 @@ public abstract class AbstractApplicationDeployer {
     protected final ConfigDeploymentParamsCopyService configDeploymentParamsCopyService;
     protected final DeploymentSecretService secretService;
 
+    @Autowired
     public AbstractApplicationDeployer(DeploymentService deploymentService,
-                                       ApplicationRepository applicationRepository,
-                                       DomainService domainService,
-                                       CloudProviderParamsCopyRepository cloudProviderParametersRepository,
-                                       ConfigDeploymentParamsCopyRepository configDeploymentParamsCopyRepository,
-                                       EncryptionService encryptionService,
-                                       DeploymentSecretService secretService) {
+    								   ApplicationService applicationService,
+                                       ConfigDeploymentParamsCopyService configDeploymentParamsCopyService,
+                                       DeploymentSecretService secretService,
+                                       CloudProviderParamsCopyService cloudProviderParametersCopyService) {
         this.deploymentService = deploymentService;
-        this.applicationService = new ApplicationService(applicationRepository, domainService);
-        this.cloudProviderParametersCopyService = new CloudProviderParamsCopyService(cloudProviderParametersRepository, encryptionService);
-        this.configDeploymentParamsCopyService = new ConfigDeploymentParamsCopyService(configDeploymentParamsCopyRepository);
+        this.applicationService = applicationService;
+        this.cloudProviderParametersCopyService = cloudProviderParametersCopyService;
+        this.configDeploymentParamsCopyService = configDeploymentParamsCopyService;
         this.secretService = secretService;
 
     }

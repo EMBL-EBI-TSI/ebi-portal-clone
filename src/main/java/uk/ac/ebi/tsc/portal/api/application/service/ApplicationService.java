@@ -4,6 +4,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+
 import uk.ac.ebi.tsc.aap.client.model.Domain;
 import uk.ac.ebi.tsc.aap.client.model.User;
 import uk.ac.ebi.tsc.aap.client.repo.DomainService;
@@ -22,10 +24,11 @@ import java.util.Set;
  * @since v0.0.1
  * @author Navis Raj <navis@ebi.ac.uk>
  */
+@Service
 public class ApplicationService {
 
 	private final ApplicationRepository applicationRepository;
-	private DomainService domainService;
+	private final DomainService domainService;
 
 	private static final Logger logger = LoggerFactory.getLogger(ApplicationService.class);
 
@@ -35,6 +38,7 @@ public class ApplicationService {
 		this.domainService = domainService;
 
 	}
+
 
 	public Application save(Application application) {
 		return this.applicationRepository.save(application);

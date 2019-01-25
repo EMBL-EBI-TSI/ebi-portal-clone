@@ -33,11 +33,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import uk.ac.ebi.tsc.aap.client.repo.DomainService;
 import uk.ac.ebi.tsc.portal.api.application.repo.Application;
 import uk.ac.ebi.tsc.portal.api.application.repo.ApplicationRepository;
+import uk.ac.ebi.tsc.portal.api.application.service.ApplicationService;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParamsCopy;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParamsCopyRepository;
+import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParamsCopyService;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigDeploymentParamCopy;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigDeploymentParamsCopyRepository;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.Configuration;
+import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigDeploymentParamsCopyService;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.Deployment;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentAssignedInput;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentAssignedParameter;
@@ -81,26 +84,28 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 
 	@Value("${elasticsearch.password}")
 	private String elasticSearchPassword;
+
+	@Value("${ecp.executeScript.sudo}")
+	private boolean sudoExecuteScript;
+
+	@Value("${ecp.scriptUser}")
+	private String scriptUser;
 	
 	DeploymentStrategy deploymentStrategy;
 	
 
 	@Autowired
 	public ApplicationDeployerBash(DeploymentService deploymentService,
-	                               ApplicationRepository applicationRepository,
-								   DomainService domainService,
-								   CloudProviderParamsCopyRepository cloudProviderParametersRepository,
-								   ConfigDeploymentParamsCopyRepository configDeploymentParamsCopyRepository,
-								   EncryptionService encryptionService,
+	                               ApplicationService applicationService,
+								   CloudProviderParamsCopyService cloudProviderParamsCopyService,
+								   ConfigDeploymentParamsCopyService configDeploymentParamsCopyService,
 								   DeploymentSecretService secretService,
 								   DeploymentStrategy deploymentStrategy) {
 	    super(  deploymentService,
-	            applicationRepository,
-                domainService,
-                cloudProviderParametersRepository,
-                configDeploymentParamsCopyRepository,
-                encryptionService,
-				secretService
+	            applicationService,
+                configDeploymentParamsCopyService,
+				secretService,
+                cloudProviderParamsCopyService
         );
 	    
 	    this.deploymentStrategy = deploymentStrategy;
@@ -166,7 +171,7 @@ public class ApplicationDeployerBash extends AbstractApplicationDeployer {
 		//generate keys
 		String keysFilePath = deploymentsRoot + File.separator + reference + File.separator + reference ;
 		logger.info(keysFilePath);
-		SSHKeyGenerator.generateKeys(userEmail, keysFilePath);
+		SSHKeyGenerator.generateKeys(userEmail, keysFilePath, sudoExecuteScript, scriptUser);
 		
 		// pass parameter assignments
 		Collection<ParameterDocument> deploymentParamDocs = new LinkedList<>();
