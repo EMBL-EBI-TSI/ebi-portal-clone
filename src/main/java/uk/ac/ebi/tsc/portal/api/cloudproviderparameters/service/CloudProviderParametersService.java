@@ -152,7 +152,7 @@ public class CloudProviderParametersService {
 	}
 
 	private CloudProviderParameters decryptOne(CloudProviderParameters encryptedCloudProviderParameters) {
-
+		
 		return decryptCloudProviderParameters(encryptedCloudProviderParameters);
 	}
 

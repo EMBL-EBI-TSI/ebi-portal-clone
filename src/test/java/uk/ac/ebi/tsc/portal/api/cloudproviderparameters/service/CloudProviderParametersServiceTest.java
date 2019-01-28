@@ -218,18 +218,6 @@ public class CloudProviderParametersServiceTest {
 	}
 	
 	/**
-	 * CPP is saved after encryption, so if no account found 
-	 * 'NullPointerException' should be thrown
-	 */
-	@Test
-	public void testSaveThrowsException() throws InvalidKeyException, NoSuchPaddingException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeySpecException, BadPaddingException, IllegalBlockSizeException{
-		given(cloudProviderParametersRepository.save(cpp)).willReturn(cpp);
-		given(cloudProviderParametersService.save(cpp)).willCallRealMethod();
-		CloudProviderParameters cppSaved = cloudProviderParametersService.save(cpp);
-		assertEquals(cppSaved, cpp);
-	}
-	
-	/**
 	 * when domain returning a list of users
 	 */
 	@Test
