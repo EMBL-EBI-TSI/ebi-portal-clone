@@ -1,7 +1,6 @@
 package uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service;
 
 import java.io.IOException;
-import java.math.BigInteger;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -9,13 +8,12 @@ import java.security.Principal;
 import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import javax.crypto.BadPaddingException;
@@ -25,7 +23,6 @@ import javax.crypto.NoSuchPaddingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import uk.ac.ebi.tsc.aap.client.model.Domain;
@@ -38,7 +35,6 @@ import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParame
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParametersRepository;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParamsCopy;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParamsCopyField;
-import uk.ac.ebi.tsc.portal.api.configuration.repo.Configuration;
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationService;
 import uk.ac.ebi.tsc.portal.api.deployment.controller.DeploymentRestController;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentStatusEnum;
@@ -125,6 +121,7 @@ public class CloudProviderParametersService {
 		cloudProviderParameters.setFields(fields);
 
 		return this.cloudProviderParametersRepository.save(cloudProviderParameters);
+	
 	}
 
 	public void deleteByNameAndAccountName(String name, String username) {
@@ -134,6 +131,7 @@ public class CloudProviderParametersService {
 	}
 
 	public CloudProviderParameters findByNameAndAccountUsername(String name, String username) {
+
 		CloudProviderParameters encryptedRes = this.cloudProviderParametersRepository.findByNameAndAccountUsername(name, username).orElseThrow(
 				() -> new CloudProviderParametersNotFoundException(username, name)
 				);
@@ -153,9 +151,9 @@ public class CloudProviderParametersService {
 
 	private CloudProviderParameters decryptOne(CloudProviderParameters encryptedCloudProviderParameters) {
 		
-		return decryptCloudProviderParameters(encryptedCloudProviderParameters);
+			return decryptCloudProviderParameters(encryptedCloudProviderParameters);
 	}
-
+	
 	private CloudProviderParameters decryptCloudProviderParameters(CloudProviderParameters encryptedCloudProviderParameters) {
 
 		Map<String, String> decryptedValues = encryptionService.decryptOne(encryptedCloudProviderParameters);
@@ -381,7 +379,7 @@ public class CloudProviderParametersService {
 			}
 		}
 	}
-
+	
 	public boolean isCloudProviderParametersSharedWithAccount(Account account, CloudProviderParameters cloudParameters){
 		if(account.getMemberOfTeams().stream().anyMatch(t ->
 		t.getCppBelongingToTeam().stream().anyMatch(c -> c.getReference().equals(cloudParameters.getReference())))){
@@ -389,4 +387,5 @@ public class CloudProviderParametersService {
 		}
 		return false;
 	}
+
 }

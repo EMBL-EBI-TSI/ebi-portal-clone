@@ -1,12 +1,10 @@
 package uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service;
 
 import java.io.IOException;
-import java.math.BigInteger;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
-import java.sql.Date;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -22,7 +20,6 @@ import javax.crypto.NoSuchPaddingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParameters;
@@ -48,9 +45,9 @@ public class CloudProviderParamsCopyService {
 	private static final Logger logger = LoggerFactory.getLogger(CloudProviderParamsCopyService.class);
 
 	private final CloudProviderParamsCopyRepository cloudProviderParametersCopyRepository;
-	
+
 	private final EncryptionService encryptionService;
-	
+
 	@Autowired
 	public CloudProviderParamsCopyService(CloudProviderParamsCopyRepository cloudProviderParametersCopyRepository,
 			EncryptionService encryptionService) {
@@ -94,7 +91,7 @@ public class CloudProviderParamsCopyService {
 	}
 
 	public CloudProviderParamsCopy save(CloudProviderParamsCopy cloudProviderParametersCopy) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException, InvalidKeySpecException, BadPaddingException, IllegalBlockSizeException {
-	
+
 		Map<String, String> encryptedCloudProviderParameterCopyFields = encryptionService.encrypt(cloudProviderParametersCopy);
 		Collection<CloudProviderParamsCopyField> fields = new ArrayList<CloudProviderParamsCopyField>();
 		for (Entry<String, String> cloudProviderParamsCopyField : encryptedCloudProviderParameterCopyFields.entrySet()) {	
@@ -108,7 +105,6 @@ public class CloudProviderParamsCopyService {
 	}
 
 	public CloudProviderParamsCopy findByCloudProviderParametersReference(String reference) {
-		
 		CloudProviderParamsCopy encryptedRes = this.cloudProviderParametersCopyRepository.findByCloudProviderParametersReference(reference).
 				orElseThrow(
 						() -> new CloudProviderParamsCopyNotFoundException(reference)
@@ -135,6 +131,11 @@ public class CloudProviderParamsCopyService {
 	private CloudProviderParamsCopy decryptCloudProviderParametersCopy(
 			CloudProviderParamsCopy encryptedCloudProviderParametersCopy) {
 		
+		Map<String, String> paramValues = new HashMap<>();
+		encryptedCloudProviderParametersCopy.getFields().forEach(field -> {
+			paramValues.put(field.getKey(), field.getValue());
+		});
+		
 		Map<String, String> decryptedValues = encryptionService.decryptOne(encryptedCloudProviderParametersCopy);
 		
 		CloudProviderParamsCopy decryptedCloudProviderParametersCopy =
@@ -158,7 +159,6 @@ public class CloudProviderParamsCopyService {
 		return decryptedCloudProviderParametersCopy;
 	}
 
-	
 	public void checkAndDeleteCPPCopy(CloudProviderParamsCopy cppCopy, DeploymentService deploymentService, ConfigurationService configurationService) {
 		logger.info("Checking if any deployments refer to the cloud credential copy");
 		Deployment deploymentFound = deploymentService.findAll().stream().
@@ -182,9 +182,5 @@ public class CloudProviderParamsCopyService {
 
 	public void saveWithoutEncryption(CloudProviderParamsCopy cppCopy) {
 		this.cloudProviderParametersCopyRepository.save(cppCopy);
-	}
-	
-	public String toHex(String arg) {
-		return String.format("%040x", new BigInteger(1, arg.getBytes()));
 	}
 }
