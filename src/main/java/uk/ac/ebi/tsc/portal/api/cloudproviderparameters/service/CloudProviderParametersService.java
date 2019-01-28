@@ -15,6 +15,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
 import javax.crypto.BadPaddingException;
@@ -115,10 +116,13 @@ public class CloudProviderParametersService {
 	public CloudProviderParameters save(CloudProviderParameters cloudProviderParameters) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException, InvalidKeySpecException, BadPaddingException, IllegalBlockSizeException {
 
 		Map<String, String> encryptedCloudProviderParameters = encryptionService.encrypt(cloudProviderParameters);
-		for (CloudProviderParametersField cloudProviderParametersField : cloudProviderParameters.getFields()) {
-			cloudProviderParametersField.setValue(
-					encryptedCloudProviderParameters.get(cloudProviderParametersField.getKey()));
+		Collection<CloudProviderParametersField> fields = new ArrayList<CloudProviderParametersField>();
+		for (Entry<String, String> cloudProviderParametersField : encryptedCloudProviderParameters.entrySet()) {	
+			fields.add(new CloudProviderParametersField(cloudProviderParametersField.getKey(), cloudProviderParametersField.getValue(),
+					cloudProviderParameters));
 		}
+
+		cloudProviderParameters.setFields(fields);
 
 		return this.cloudProviderParametersRepository.save(cloudProviderParameters);
 	}
@@ -149,6 +153,11 @@ public class CloudProviderParametersService {
 
 	private CloudProviderParameters decryptOne(CloudProviderParameters encryptedCloudProviderParameters) {
 
+		return decryptCloudProviderParameters(encryptedCloudProviderParameters);
+	}
+
+	private CloudProviderParameters decryptCloudProviderParameters(CloudProviderParameters encryptedCloudProviderParameters) {
+
 		Map<String, String> decryptedValues = encryptionService.decryptOne(encryptedCloudProviderParameters);
 
 		CloudProviderParameters decryptedCloudProviderParameters =
@@ -157,25 +166,27 @@ public class CloudProviderParametersService {
 						encryptedCloudProviderParameters.getCloudProvider(),
 						encryptedCloudProviderParameters.getAccount()
 						);
-		for (CloudProviderParametersField encryptedCloudProviderParametersField : encryptedCloudProviderParameters.getFields()) {
 
-			CloudProviderParametersField decryptedCloudProviderParametersField =
-					new CloudProviderParametersField(
-							encryptedCloudProviderParametersField.getKey(),
-							decryptedValues.get(encryptedCloudProviderParametersField.getKey()),
-							decryptedCloudProviderParameters);
-			decryptedCloudProviderParametersField.setId(encryptedCloudProviderParametersField.getId());
-			decryptedCloudProviderParameters.getFields().add(decryptedCloudProviderParametersField);
+		//construct collection of fields
+		Map<String, String> decryptedFields = encryptionService.decryptOne(encryptedCloudProviderParameters);
+		for (Entry<String, String> cloudProviderParametersField : decryptedFields.entrySet()) {	
+			//create new decrypted cpp field
+			CloudProviderParametersField newDecryptedField = new CloudProviderParametersField(cloudProviderParametersField.getKey(), cloudProviderParametersField.getValue(),
+					decryptedCloudProviderParameters);
+			for(CloudProviderParametersField ecField: encryptedCloudProviderParameters.getFields()){
+				if(ecField.getKey().equals(cloudProviderParametersField.getKey())){
+					newDecryptedField.setId(ecField.getId());
+					decryptedCloudProviderParameters.getFields().add(newDecryptedField);
+				}
+			}
 		}
 
 		decryptedCloudProviderParameters.setId(encryptedCloudProviderParameters.getId());
 		decryptedCloudProviderParameters.setSharedWith(encryptedCloudProviderParameters.getSharedWith());
 		decryptedCloudProviderParameters.setSharedWithTeams(encryptedCloudProviderParameters.getSharedWithTeams());
 		decryptedCloudProviderParameters.setReference(encryptedCloudProviderParameters.getReference());
-
 		return decryptedCloudProviderParameters;
 	}
-
 
 	public Set<CloudProviderParameters> getSharedCppsByAccount(Account account,  String token, User user ){
 

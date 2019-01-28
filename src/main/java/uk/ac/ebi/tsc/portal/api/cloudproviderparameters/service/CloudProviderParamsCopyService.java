@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
@@ -94,11 +95,15 @@ public class CloudProviderParamsCopyService {
 
 	public CloudProviderParamsCopy save(CloudProviderParamsCopy cloudProviderParametersCopy) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException, InvalidKeySpecException, BadPaddingException, IllegalBlockSizeException {
 	
-		Map<String, String> encryptedCloudProviderParametersCopy = encryptionService.encrypt(cloudProviderParametersCopy);
-		for (CloudProviderParamsCopyField cloudProviderParametersField : cloudProviderParametersCopy.getFields()) {
-			cloudProviderParametersField.setValue(
-					encryptedCloudProviderParametersCopy.get(cloudProviderParametersField.getKey()));
+		Map<String, String> encryptedCloudProviderParameterCopyFields = encryptionService.encrypt(cloudProviderParametersCopy);
+		Collection<CloudProviderParamsCopyField> fields = new ArrayList<CloudProviderParamsCopyField>();
+		for (Entry<String, String> cloudProviderParamsCopyField : encryptedCloudProviderParameterCopyFields.entrySet()) {	
+			fields.add(new CloudProviderParamsCopyField(cloudProviderParamsCopyField.getKey(), cloudProviderParamsCopyField.getValue(),
+					cloudProviderParametersCopy));
 		}
+
+		cloudProviderParametersCopy.setFields(fields);
+
 		return this.cloudProviderParametersCopyRepository.save(cloudProviderParametersCopy);
 	}
 
@@ -124,9 +129,14 @@ public class CloudProviderParamsCopyService {
 	}
 
 	private CloudProviderParamsCopy decryptOne(CloudProviderParamsCopy encryptedCloudProviderParametersCopy) {
+		return decryptCloudProviderParametersCopy(encryptedCloudProviderParametersCopy);
+	}
 
+	private CloudProviderParamsCopy decryptCloudProviderParametersCopy(
+			CloudProviderParamsCopy encryptedCloudProviderParametersCopy) {
+		
 		Map<String, String> decryptedValues = encryptionService.decryptOne(encryptedCloudProviderParametersCopy);
-
+		
 		CloudProviderParamsCopy decryptedCloudProviderParametersCopy =
 				new CloudProviderParamsCopy(
 						encryptedCloudProviderParametersCopy.getName(),
@@ -147,6 +157,7 @@ public class CloudProviderParamsCopyService {
 		decryptedCloudProviderParametersCopy.setId(encryptedCloudProviderParametersCopy.getId());
 		return decryptedCloudProviderParametersCopy;
 	}
+
 	
 	public void checkAndDeleteCPPCopy(CloudProviderParamsCopy cppCopy, DeploymentService deploymentService, ConfigurationService configurationService) {
 		logger.info("Checking if any deployments refer to the cloud credential copy");

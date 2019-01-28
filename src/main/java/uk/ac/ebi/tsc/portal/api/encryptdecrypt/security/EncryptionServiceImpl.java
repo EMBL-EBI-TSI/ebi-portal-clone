@@ -55,10 +55,6 @@ public class EncryptionServiceImpl implements EncryptionService{
 		
 		return decryptedValues;
 	}
-	
-	public String toHex(String arg) {
-		return String.format("%040x", new BigInteger(1, arg.getBytes()));
-	}
 
 	@Override
 	public Map<String, String> encrypt(CloudProviderParamsCopy cloudProviderParamsCopy) {
@@ -84,5 +80,9 @@ public class EncryptionServiceImpl implements EncryptionService{
 		.forEach(f -> decryptedValues.put(f.getKey(), encryptor.decrypt(f.getValue())));
 		
 		return decryptedValues;
+	}
+	
+	public String toHex(String arg) {
+		return String.format("%040x", new BigInteger(1, arg.getBytes()));
 	}
 }
