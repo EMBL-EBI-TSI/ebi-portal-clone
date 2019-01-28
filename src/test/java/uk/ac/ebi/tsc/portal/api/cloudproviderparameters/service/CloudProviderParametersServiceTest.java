@@ -151,7 +151,7 @@ public class CloudProviderParametersServiceTest {
 		given(cloudProviderParametersRepository.findByAccountUsername(userName)).willReturn(cppCollection);
 		given(cloudProviderParametersService.findByAccountUsername(userName)).willCallRealMethod();
 		Map<String, String> decryptedValues = new HashMap<>();
-		given(encryptionService.decryptOne(Mockito.anyMap(), Mockito.any(Object[].class))).willReturn(decryptedValues);
+		given(encryptionService.decryptOne(cpp)).willReturn(decryptedValues);
 		Collection<CloudProviderParameters> cpps = cloudProviderParametersService.findByAccountUsername(userName);
 		assertTrue(cpps.size()==1);
 	}
