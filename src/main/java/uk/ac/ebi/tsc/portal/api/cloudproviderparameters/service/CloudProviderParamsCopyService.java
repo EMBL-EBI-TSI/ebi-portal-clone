@@ -131,11 +131,6 @@ public class CloudProviderParamsCopyService {
 	private CloudProviderParamsCopy decryptCloudProviderParametersCopy(
 			CloudProviderParamsCopy encryptedCloudProviderParametersCopy) {
 		
-		Map<String, String> paramValues = new HashMap<>();
-		encryptedCloudProviderParametersCopy.getFields().forEach(field -> {
-			paramValues.put(field.getKey(), field.getValue());
-		});
-		
 		Map<String, String> decryptedValues = encryptionService.decryptOne(encryptedCloudProviderParametersCopy);
 		
 		CloudProviderParamsCopy decryptedCloudProviderParametersCopy =
