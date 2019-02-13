@@ -35,7 +35,7 @@ import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
 import uk.ac.ebi.tsc.portal.api.team.repo.Team;
 import uk.ac.ebi.tsc.portal.api.team.service.TeamNotFoundException;
 import uk.ac.ebi.tsc.portal.api.team.service.TeamService;
-import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployerBash;
+import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployer;
 
 /**
  * Extracts user authentication details from Token using AAP domains API
@@ -59,28 +59,28 @@ public class EcpAuthenticationService {
     private final DeploymentService deploymentService;
     private final CloudProviderParamsCopyService cloudProviderParamsCopyService;
     private final DeploymentConfigurationService deploymentConfigurationService;
-    private final ApplicationDeployerBash applicationDeployerBash;
+    private final ApplicationDeployer applicationDeployer;
     private final String ecpAapUsername;
     private final String ecpAapPassword;
     private final Map<String, List<DefaultTeamMap>> defaultTeamsMap;
 
     @Autowired
 	public EcpAuthenticationService(
-			uk.ac.ebi.tsc.aap.client.security.TokenAuthenticationService tokenAuthenticationService,
-			AccountService accountService, DeploymentService deploymentService,
-			DeploymentConfigurationService deploymentConfigurationService,
-			CloudProviderParamsCopyService cloudProviderParamsCopyService, TeamService teamService,
-			ApplicationDeployerBash applicationDeployerBash, DomainService domainService, TokenService tokenService,
-			EncryptionService encryptionService, ResourceLoader resourceLoader,
-			@Value("${ecp.aap.username}") final String ecpAapUsername,
-			@Value("${ecp.aap.password}") final String ecpAapPassword,
-			@Value("${ecp.default.teams.file}") final String ecpDefaultTeamsFilePath) throws IOException {
+            uk.ac.ebi.tsc.aap.client.security.TokenAuthenticationService tokenAuthenticationService,
+            AccountService accountService, DeploymentService deploymentService,
+            DeploymentConfigurationService deploymentConfigurationService,
+            CloudProviderParamsCopyService cloudProviderParamsCopyService, TeamService teamService,
+            ApplicationDeployer applicationDeployer, DomainService domainService, TokenService tokenService,
+            EncryptionService encryptionService, ResourceLoader resourceLoader,
+            @Value("${ecp.aap.username}") final String ecpAapUsername,
+            @Value("${ecp.aap.password}") final String ecpAapPassword,
+            @Value("${ecp.default.teams.file}") final String ecpDefaultTeamsFilePath) throws IOException {
         this.tokenAuthenticationService = tokenAuthenticationService;
         this.ecpAapUsername = ecpAapUsername;
         this.ecpAapPassword = ecpAapPassword;
         this.tokenService = tokenService;
         this.accountService = accountService;
-        this.applicationDeployerBash = applicationDeployerBash;
+        this.applicationDeployer = applicationDeployer;
         this.deploymentService = deploymentService;
         this.deploymentConfigurationService = deploymentConfigurationService;
         this.cloudProviderParamsCopyService = cloudProviderParamsCopyService;

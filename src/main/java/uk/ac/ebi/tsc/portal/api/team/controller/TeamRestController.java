@@ -5,7 +5,6 @@ import org.apache.http.MethodNotSupportedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.hateoas.Resources;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -14,21 +13,17 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import uk.ac.ebi.tsc.aap.client.repo.DomainService;
 import uk.ac.ebi.tsc.portal.api.account.repo.Account;
-import uk.ac.ebi.tsc.portal.api.account.repo.AccountRepository;
 import uk.ac.ebi.tsc.portal.api.account.service.AccountService;
 import uk.ac.ebi.tsc.portal.api.application.controller.ApplicationResource;
 import uk.ac.ebi.tsc.portal.api.application.controller.ApplicationRestController;
 import uk.ac.ebi.tsc.portal.api.application.controller.InvalidApplicationInputException;
 import uk.ac.ebi.tsc.portal.api.application.repo.Application;
-import uk.ac.ebi.tsc.portal.api.application.repo.ApplicationRepository;
 import uk.ac.ebi.tsc.portal.api.application.service.ApplicationNotFoundException;
 import uk.ac.ebi.tsc.portal.api.application.service.ApplicationService;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.controller.CloudProviderParametersResource;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.controller.CloudProviderParametersRestController;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.controller.InvalidCloudProviderParametersInputException;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParameters;
-import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParametersRepository;
-import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParamsCopyRepository;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParametersNotFoundException;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParametersService;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParamsCopyService;
@@ -38,23 +33,17 @@ import uk.ac.ebi.tsc.portal.api.configuration.controller.InvalidConfigurationDep
 import uk.ac.ebi.tsc.portal.api.configuration.controller.InvalidConfigurationInputException;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.Configuration;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationDeploymentParameters;
-import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationDeploymentParametersRepository;
-import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationRepository;
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationDeploymentParametersNotFoundException;
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationDeploymentParametersService;
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationNotFoundException;
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationService;
 import uk.ac.ebi.tsc.portal.api.deployment.controller.DeploymentRestController;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentConfigurationRepository;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentRepository;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentStatusRepository;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentConfigurationService;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
 import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
 import uk.ac.ebi.tsc.portal.api.team.repo.Team;
-import uk.ac.ebi.tsc.portal.api.team.repo.TeamRepository;
 import uk.ac.ebi.tsc.portal.api.team.service.*;
-import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployerBash;
+import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployer;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
@@ -108,22 +97,22 @@ public class TeamRestController {
 	private final CloudProviderParamsCopyService cloudProviderParametersCopyService;
 
 	@Autowired
-	public TeamRestController(TeamService teamService, 
-			AccountService  accountService, 
-			ApplicationRestController applicationRestController, 
-			CloudProviderParametersRestController cloudProviderParametersRestController,
-			ApplicationService applicationService, CloudProviderParametersService cppService,
-			ConfigurationDeploymentParametersService configDepParamsService,
-			ConfigurationService configService, DomainService domainService,
-		    uk.ac.ebi.tsc.aap.client.security.TokenHandler tokenHandler,
-			DeploymentConfigurationService deploymentConfigurationService,
-			DeploymentService deploymentService,
-			DeploymentRestController deploymentRestController,
-			CloudProviderParamsCopyService cloudProviderParametersCopyService,
-			EncryptionService encryptionService,
-			ApplicationDeployerBash applicationDeployerBash,
-			CloudProviderParametersService cloudProviderParametersService,
-			ConfigurationService configurationService){
+	public TeamRestController(TeamService teamService,
+                              AccountService  accountService,
+                              ApplicationRestController applicationRestController,
+                              CloudProviderParametersRestController cloudProviderParametersRestController,
+                              ApplicationService applicationService, CloudProviderParametersService cppService,
+                              ConfigurationDeploymentParametersService configDepParamsService,
+                              ConfigurationService configService, DomainService domainService,
+                              uk.ac.ebi.tsc.aap.client.security.TokenHandler tokenHandler,
+                              DeploymentConfigurationService deploymentConfigurationService,
+                              DeploymentService deploymentService,
+                              DeploymentRestController deploymentRestController,
+                              CloudProviderParamsCopyService cloudProviderParametersCopyService,
+                              EncryptionService encryptionService,
+                              ApplicationDeployer applicationDeployer,
+                              CloudProviderParametersService cloudProviderParametersService,
+                              ConfigurationService configurationService){
 		this.cloudProviderParametersCopyService = cloudProviderParametersCopyService;
 		this.accountService = accountService;
 		this.applicationService = applicationService;

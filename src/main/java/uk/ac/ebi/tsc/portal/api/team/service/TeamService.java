@@ -10,7 +10,6 @@ import uk.ac.ebi.tsc.aap.client.model.Domain;
 import uk.ac.ebi.tsc.aap.client.model.User;
 import uk.ac.ebi.tsc.aap.client.repo.DomainService;
 import uk.ac.ebi.tsc.portal.api.account.repo.Account;
-import uk.ac.ebi.tsc.portal.api.account.repo.AccountRepository;
 import uk.ac.ebi.tsc.portal.api.account.service.AccountService;
 import uk.ac.ebi.tsc.portal.api.account.service.UserNotFoundException;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParameters;
@@ -30,7 +29,7 @@ import uk.ac.ebi.tsc.portal.api.team.controller.TeamResource;
 import uk.ac.ebi.tsc.portal.api.team.repo.Team;
 import uk.ac.ebi.tsc.portal.api.team.repo.TeamRepository;
 import uk.ac.ebi.tsc.portal.api.utils.SendMail;
-import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployerBash;
+import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployer;
 import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDeployerException;
 
 import javax.security.auth.login.AccountNotFoundException;
@@ -51,25 +50,25 @@ public class TeamService {
 	private final DomainService domainService;
 	private final DeploymentService deploymentService;
 	private final CloudProviderParamsCopyService cloudProviderParametersCopyService;
-	private final ApplicationDeployerBash applicationDeployerBash;
+	private final ApplicationDeployer applicationDeployer;
 
 	private static final Logger logger = LoggerFactory.getLogger(TeamService.class);
 
 	@Autowired
 	public TeamService(TeamRepository teamRepository,
-			AccountService accountService, 
-			DomainService domainService,
-			DeploymentService deploymentService,
-			CloudProviderParamsCopyService cloudProviderParametersCopyService,
-			DeploymentConfigurationService deploymentConfigurationService,
-			ApplicationDeployerBash applicationDeployerBash
+                       AccountService accountService,
+                       DomainService domainService,
+                       DeploymentService deploymentService,
+                       CloudProviderParamsCopyService cloudProviderParametersCopyService,
+                       DeploymentConfigurationService deploymentConfigurationService,
+                       ApplicationDeployer applicationDeployer
 			){
 		this.teamRepository = teamRepository;
 		this.accountService = accountService;
 		this.domainService = domainService;
 		this.deploymentService = deploymentService ;
 		this.cloudProviderParametersCopyService = cloudProviderParametersCopyService;
-		this.applicationDeployerBash = applicationDeployerBash;
+		this.applicationDeployer = applicationDeployer;
 
 	}
 
@@ -782,7 +781,7 @@ public class TeamService {
 		this.deploymentService.save(deployment);
 
 		// Proceed to destroy
-		this.applicationDeployerBash.destroy(
+		this.applicationDeployer.destroy(
 				deployment.getDeploymentApplication().getRepoPath(),
 				deployment.getReference(),
 				this.getCloudProviderPathFromDeploymentApplication(

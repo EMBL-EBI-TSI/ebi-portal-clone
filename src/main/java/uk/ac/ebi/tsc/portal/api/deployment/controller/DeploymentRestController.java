@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
-import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -58,19 +57,15 @@ import org.springframework.web.client.RestTemplate;
 
 import uk.ac.ebi.tsc.aap.client.repo.DomainService;
 import uk.ac.ebi.tsc.portal.api.account.repo.Account;
-import uk.ac.ebi.tsc.portal.api.account.repo.AccountRepository;
 import uk.ac.ebi.tsc.portal.api.account.service.AccountService;
 import uk.ac.ebi.tsc.portal.api.application.controller.InvalidApplicationInputException;
 import uk.ac.ebi.tsc.portal.api.application.repo.Application;
 import uk.ac.ebi.tsc.portal.api.application.repo.ApplicationCloudProvider;
-import uk.ac.ebi.tsc.portal.api.application.repo.ApplicationRepository;
 import uk.ac.ebi.tsc.portal.api.application.service.ApplicationNotFoundException;
 import uk.ac.ebi.tsc.portal.api.application.service.ApplicationNotSharedException;
 import uk.ac.ebi.tsc.portal.api.application.service.ApplicationService;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParameters;
-import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParametersRepository;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParamsCopy;
-import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParamsCopyRepository;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParametersNotFoundException;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParametersNotSharedException;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParametersService;
@@ -78,10 +73,7 @@ import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderPar
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParamsCopyService;
 import uk.ac.ebi.tsc.portal.api.configuration.controller.InvalidConfigurationInputException;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigDeploymentParamsCopy;
-import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigDeploymentParamsCopyRepository;
 import uk.ac.ebi.tsc.portal.api.configuration.repo.Configuration;
-import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationDeploymentParametersRepository;
-import uk.ac.ebi.tsc.portal.api.configuration.repo.ConfigurationRepository;
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigDeploymentParamsCopyNotFoundException;
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigDeploymentParamsCopyService;
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationDeploymentParametersService;
@@ -96,16 +88,12 @@ import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentApplicationCloudProvid
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentApplicationCloudProviderInput;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentApplicationCloudProviderOutput;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentApplicationCloudProviderVolume;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentApplicationRepository;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentAssignedInput;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentAssignedParameter;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentAttachedVolume;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentConfiguration;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentConfigurationParameter;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentConfigurationRepository;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentRepository;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentStatusEnum;
-import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentStatusRepository;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentApplicationService;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentConfigurationService;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentGeneratedOutputService;
@@ -115,14 +103,10 @@ import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
 import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
 import uk.ac.ebi.tsc.portal.api.error.ErrorMessage;
 import uk.ac.ebi.tsc.portal.api.error.MissingParameterException;
-import uk.ac.ebi.tsc.portal.api.team.repo.Team;
-import uk.ac.ebi.tsc.portal.api.team.repo.TeamRepository;
 import uk.ac.ebi.tsc.portal.api.team.service.TeamService;
 import uk.ac.ebi.tsc.portal.api.volumeinstance.repo.VolumeInstance;
-import uk.ac.ebi.tsc.portal.api.volumeinstance.repo.VolumeInstanceRepository;
-import uk.ac.ebi.tsc.portal.api.volumeinstance.repo.VolumeInstanceStatusRepository;
 import uk.ac.ebi.tsc.portal.api.volumeinstance.service.VolumeInstanceService;
-import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployerBash;
+import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployer;
 import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDeployerException;
 import uk.ac.ebi.tsc.portal.usage.deployment.model.DeploymentDocument;
 import uk.ac.ebi.tsc.portal.usage.deployment.service.DeploymentIndexService;
@@ -179,7 +163,7 @@ public class DeploymentRestController {
 
 	private final TeamService teamService;
 
-	private final ApplicationDeployerBash applicationDeployerBash;
+	private final ApplicationDeployer applicationDeployer;
 
 	private final DeploymentStatusTracker deploymentStatusTracker;
 
@@ -193,26 +177,26 @@ public class DeploymentRestController {
 
 	@Autowired
 	DeploymentRestController(DeploymentService deploymentService,
-			AccountService accountService,
-			ApplicationService applicationService,
-			VolumeInstanceService volumeInstanceService,
-			CloudProviderParametersService cloudProviderParametersService,
-			ConfigurationService configurationService,
-			TeamService teamService,
-			ApplicationDeployerBash applicationDeployerBash,
+                             AccountService accountService,
+                             ApplicationService applicationService,
+                             VolumeInstanceService volumeInstanceService,
+                             CloudProviderParametersService cloudProviderParametersService,
+                             ConfigurationService configurationService,
+                             TeamService teamService,
+                             ApplicationDeployer applicationDeployer,
 
-			DeploymentStatusTracker deploymentStatusTracker,
+                             DeploymentStatusTracker deploymentStatusTracker,
 
-			ConfigurationDeploymentParametersService deploymentParametersService,
-			DomainService domainService,
-			DeploymentConfigurationService deploymentConfigurationService,
-			DeploymentApplicationService deploymentApplicationService,
+                             ConfigurationDeploymentParametersService deploymentParametersService,
+                             DomainService domainService,
+                             DeploymentConfigurationService deploymentConfigurationService,
+                             DeploymentApplicationService deploymentApplicationService,
 
-			CloudProviderParamsCopyService cloudProviderParametersCopyService,
-			ConfigDeploymentParamsCopyService configDeploymentParamsCopyService,
-			EncryptionService encryptionService,
-			DeploymentSecretService deploymentSecretService,
-			DeploymentGeneratedOutputService deploymentGeneratedOutputService
+                             CloudProviderParamsCopyService cloudProviderParametersCopyService,
+                             ConfigDeploymentParamsCopyService configDeploymentParamsCopyService,
+                             EncryptionService encryptionService,
+                             DeploymentSecretService deploymentSecretService,
+                             DeploymentGeneratedOutputService deploymentGeneratedOutputService
 			) {
 		this.cloudProviderParametersCopyService = cloudProviderParametersCopyService;
 		this.deploymentService = deploymentService;
@@ -220,7 +204,7 @@ public class DeploymentRestController {
 		this.applicationService = applicationService;
 		this.volumeInstanceService = volumeInstanceService;
 		this.cloudProviderParametersService = cloudProviderParametersService;
-		this.applicationDeployerBash = applicationDeployerBash;
+		this.applicationDeployer = applicationDeployer;
 		this.deploymentStatusTracker = deploymentStatusTracker;
 		this.deploymentStatusTracker.start(0, UPDATE_TRACKER_PERIOD);
 		this.deploymentParametersService = deploymentParametersService;
@@ -416,7 +400,7 @@ public class DeploymentRestController {
 		Deployment resDeployment = this.deploymentService.save(deployment);
 
 		//Deploy
-		this.applicationDeployerBash.deploy(
+		this.applicationDeployer.deploy(
 				account.getEmail(),
 				theApplication,
 				theReference,
@@ -753,7 +737,7 @@ public class DeploymentRestController {
 		this.deploymentService.save(theDeployment);
 
 		// Proceed to destroy
-		this.applicationDeployerBash.destroy(
+		this.applicationDeployer.destroy(
 				theDeployment.getDeploymentApplication().getRepoPath(),
 				theDeployment.getReference(),
 				getCloudProviderPathFromDeploymentApplication(

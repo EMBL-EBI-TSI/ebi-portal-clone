@@ -19,7 +19,7 @@ import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationService;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentConfigurationService;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
 import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
-import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployerBash;
+import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployer;
 import uk.ac.ebi.tsc.portal.usage.deployment.service.DeploymentIndexService;
 
 /**
@@ -54,29 +54,29 @@ public class DeploymentStatusTracker {
 	private final DeploymentConfigurationService deploymentConfigurationService;
 	private final CloudProviderParametersService cloudProviderParametersService;
 	private final ConfigurationDeploymentParametersService configurationDeploymentParametersService;
-	private final ApplicationDeployerBash applicationDeployerBash;
+	private final ApplicationDeployer applicationDeployer;
 	private final CloudProviderParamsCopyService cloudProviderParametersCopyService;
 	private final CloudProviderParamsCopyRepository cloudProviderParametersCopyRepository;
 	private final EncryptionService encryptionService;
 
 	@Autowired
 	public DeploymentStatusTracker(DeploymentService deploymentService,
-			CloudProviderParamsCopyService cloudProviderParametersCopyService,
-			ConfigurationService configurationService,
-			DomainService domainService,
-			CloudProviderParametersService cloudProviderParametersService,
-			ConfigurationDeploymentParametersService configurationDeploymentParametersService,
-			DeploymentConfigurationService deploymentConfigurationService,
-			ApplicationDeployerBash applicationDeployerBash,
-			EncryptionService encryptionService,
-			CloudProviderParamsCopyRepository cloudProviderParametersCopyRepository) {
+                                   CloudProviderParamsCopyService cloudProviderParametersCopyService,
+                                   ConfigurationService configurationService,
+                                   DomainService domainService,
+                                   CloudProviderParametersService cloudProviderParametersService,
+                                   ConfigurationDeploymentParametersService configurationDeploymentParametersService,
+                                   DeploymentConfigurationService deploymentConfigurationService,
+                                   ApplicationDeployer applicationDeployer,
+                                   EncryptionService encryptionService,
+                                   CloudProviderParamsCopyRepository cloudProviderParametersCopyRepository) {
 		this.deploymentService = deploymentService;
 		this.cloudProviderParametersCopyService = cloudProviderParametersCopyService;
 		this.cloudProviderParametersService = cloudProviderParametersService;
 		this.configurationDeploymentParametersService = configurationDeploymentParametersService;
 		this.configurationService = configurationService;
 		this.deploymentConfigurationService = deploymentConfigurationService;
-		this.applicationDeployerBash = applicationDeployerBash;
+		this.applicationDeployer = applicationDeployer;
 		scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(4);
 		this.encryptionService = encryptionService;
 		this.cloudProviderParametersCopyRepository = cloudProviderParametersCopyRepository;
@@ -105,7 +105,7 @@ public class DeploymentStatusTracker {
 						configurationService,
 						cloudProviderParametersCopyService,
 						deploymentConfigurationService,
-						applicationDeployerBash),
+                        applicationDeployer),
 				initialDelay,
 				periodInSeconds,
 				TimeUnit.SECONDS
