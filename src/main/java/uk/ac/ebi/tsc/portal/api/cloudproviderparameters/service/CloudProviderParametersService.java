@@ -1,7 +1,6 @@
 package uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service;
 
 import java.io.IOException;
-import java.math.BigInteger;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -9,11 +8,11 @@ import java.security.Principal;
 import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -24,7 +23,6 @@ import javax.crypto.NoSuchPaddingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import uk.ac.ebi.tsc.aap.client.model.Domain;
@@ -37,7 +35,6 @@ import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParame
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParametersRepository;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParamsCopy;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParamsCopyField;
-import uk.ac.ebi.tsc.portal.api.configuration.repo.Configuration;
 import uk.ac.ebi.tsc.portal.api.configuration.service.ConfigurationService;
 import uk.ac.ebi.tsc.portal.api.deployment.controller.DeploymentRestController;
 import uk.ac.ebi.tsc.portal.api.deployment.repo.DeploymentStatusEnum;
@@ -114,19 +111,17 @@ public class CloudProviderParametersService {
 
 	public CloudProviderParameters save(CloudProviderParameters cloudProviderParameters) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException, InvalidKeySpecException, BadPaddingException, IllegalBlockSizeException {
 
-		//pass the cloud provider parameter fields to be encrypted
-		Map<String, String> paramValues = new HashMap<>();
-		cloudProviderParameters.getFields().forEach(field -> {
-			paramValues.put(field.getKey(), field.getValue());
-		});
-
-		Map<String, String> encyptedValues = encryptionService.encrypt(paramValues);
-		for (CloudProviderParametersField cloudProviderParametersField : cloudProviderParameters.getFields()) {
-			cloudProviderParametersField.setValue(
-					encyptedValues.get(cloudProviderParametersField.getKey()));
+		Map<String, String> encryptedCloudProviderParameters = encryptionService.encrypt(cloudProviderParameters);
+		Collection<CloudProviderParametersField> fields = new ArrayList<CloudProviderParametersField>();
+		for (Entry<String, String> cloudProviderParametersField : encryptedCloudProviderParameters.entrySet()) {	
+			fields.add(new CloudProviderParametersField(cloudProviderParametersField.getKey(), cloudProviderParametersField.getValue(),
+					cloudProviderParameters));
 		}
 
+		cloudProviderParameters.setFields(fields);
+
 		return this.cloudProviderParametersRepository.save(cloudProviderParameters);
+	
 	}
 
 	public void deleteByNameAndAccountName(String name, String username) {
@@ -136,6 +131,7 @@ public class CloudProviderParametersService {
 	}
 
 	public CloudProviderParameters findByNameAndAccountUsername(String name, String username) {
+
 		CloudProviderParameters encryptedRes = this.cloudProviderParametersRepository.findByNameAndAccountUsername(name, username).orElseThrow(
 				() -> new CloudProviderParametersNotFoundException(username, name)
 				);
@@ -154,13 +150,13 @@ public class CloudProviderParametersService {
 	}
 
 	private CloudProviderParameters decryptOne(CloudProviderParameters encryptedCloudProviderParameters) {
+		
+			return decryptCloudProviderParameters(encryptedCloudProviderParameters);
+	}
+	
+	private CloudProviderParameters decryptCloudProviderParameters(CloudProviderParameters encryptedCloudProviderParameters) {
 
-		Map<String, String> paramValues = new HashMap<>();
-		encryptedCloudProviderParameters.getFields().forEach(field -> {
-			paramValues.put(field.getKey(), field.getValue());
-		});
-
-		Map<String, String> decryptedValues = encryptionService.decryptOne(paramValues);
+		Map<String, String> decryptedValues = encryptionService.decryptOne(encryptedCloudProviderParameters);
 
 		CloudProviderParameters decryptedCloudProviderParameters =
 				new CloudProviderParameters(
@@ -168,25 +164,27 @@ public class CloudProviderParametersService {
 						encryptedCloudProviderParameters.getCloudProvider(),
 						encryptedCloudProviderParameters.getAccount()
 						);
-		for (CloudProviderParametersField encryptedCloudProviderParametersField : encryptedCloudProviderParameters.getFields()) {
 
-			CloudProviderParametersField decryptedCloudProviderParametersField =
-					new CloudProviderParametersField(
-							encryptedCloudProviderParametersField.getKey(),
-							decryptedValues.get(encryptedCloudProviderParametersField.getKey()),
-							decryptedCloudProviderParameters);
-			decryptedCloudProviderParametersField.setId(encryptedCloudProviderParametersField.getId());
-			decryptedCloudProviderParameters.getFields().add(decryptedCloudProviderParametersField);
+		//construct collection of fields
+		Map<String, String> decryptedFields = encryptionService.decryptOne(encryptedCloudProviderParameters);
+		for (Entry<String, String> cloudProviderParametersField : decryptedFields.entrySet()) {	
+			//create new decrypted cpp field
+			CloudProviderParametersField newDecryptedField = new CloudProviderParametersField(cloudProviderParametersField.getKey(), cloudProviderParametersField.getValue(),
+					decryptedCloudProviderParameters);
+			for(CloudProviderParametersField ecField: encryptedCloudProviderParameters.getFields()){
+				if(ecField.getKey().equals(cloudProviderParametersField.getKey())){
+					newDecryptedField.setId(ecField.getId());
+					decryptedCloudProviderParameters.getFields().add(newDecryptedField);
+				}
+			}
 		}
 
 		decryptedCloudProviderParameters.setId(encryptedCloudProviderParameters.getId());
 		decryptedCloudProviderParameters.setSharedWith(encryptedCloudProviderParameters.getSharedWith());
 		decryptedCloudProviderParameters.setSharedWithTeams(encryptedCloudProviderParameters.getSharedWithTeams());
 		decryptedCloudProviderParameters.setReference(encryptedCloudProviderParameters.getReference());
-
 		return decryptedCloudProviderParameters;
 	}
-
 
 	public Set<CloudProviderParameters> getSharedCppsByAccount(Account account,  String token, User user ){
 
@@ -381,7 +379,7 @@ public class CloudProviderParametersService {
 			}
 		}
 	}
-
+	
 	public boolean isCloudProviderParametersSharedWithAccount(Account account, CloudProviderParameters cloudParameters){
 		if(account.getMemberOfTeams().stream().anyMatch(t ->
 		t.getCppBelongingToTeam().stream().anyMatch(c -> c.getReference().equals(cloudParameters.getReference())))){
@@ -389,4 +387,5 @@ public class CloudProviderParametersService {
 		}
 		return false;
 	}
+
 }

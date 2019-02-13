@@ -151,7 +151,7 @@ public class CloudProviderParametersServiceTest {
 		given(cloudProviderParametersRepository.findByAccountUsername(userName)).willReturn(cppCollection);
 		given(cloudProviderParametersService.findByAccountUsername(userName)).willCallRealMethod();
 		Map<String, String> decryptedValues = new HashMap<>();
-		given(encryptionService.decryptOne(Mockito.anyMap(), Mockito.any(Object[].class))).willReturn(decryptedValues);
+		given(encryptionService.decryptOne(cpp)).willReturn(decryptedValues);
 		Collection<CloudProviderParameters> cpps = cloudProviderParametersService.findByAccountUsername(userName);
 		assertTrue(cpps.size()==1);
 	}
@@ -213,18 +213,6 @@ public class CloudProviderParametersServiceTest {
 		given(cloudProviderParametersRepository.save(cpp)).willReturn(cpp);
 		given(cloudProviderParametersService.save(cpp)).willCallRealMethod();
 		given(cpp.getAccount()).willReturn(account);
-		CloudProviderParameters cppSaved = cloudProviderParametersService.save(cpp);
-		assertEquals(cppSaved, cpp);
-	}
-	
-	/**
-	 * CPP is saved after encryption, so if no account found 
-	 * 'NullPointerException' should be thrown
-	 */
-	@Test
-	public void testSaveThrowsException() throws InvalidKeyException, NoSuchPaddingException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeySpecException, BadPaddingException, IllegalBlockSizeException{
-		given(cloudProviderParametersRepository.save(cpp)).willReturn(cpp);
-		given(cloudProviderParametersService.save(cpp)).willCallRealMethod();
 		CloudProviderParameters cppSaved = cloudProviderParametersService.save(cpp);
 		assertEquals(cppSaved, cpp);
 	}
