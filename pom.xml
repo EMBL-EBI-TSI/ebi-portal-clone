@@ -25,7 +25,7 @@
 	</properties>
 
 	<dependencies>
-	
+
 		<dependency>
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>
@@ -221,6 +221,131 @@
 					</execution>
 				</executions>
 			</plugin>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>build-helper-maven-plugin</artifactId>
+				<version>3.0.0</version>
+				<executions>
+					<execution>
+						<id>add-test-source</id>
+						<phase>generate-test-sources</phase>
+						<goals>
+							<goal>add-test-source</goal>
+						</goals>
+						<configuration>
+							<sources>
+								<source>src/integration-test/java</source>
+							</sources>
+						</configuration>
+					</execution>
+					<execution>
+						<id>add-resource</id>
+						<phase>generate-resources</phase>
+						<goals>
+							<goal>add-resource</goal>
+						</goals>
+						<configuration>
+							<resources>
+								<resource>
+									<directory>src/integration-test/resources</directory>
+									<targetPath>testResources</targetPath>
+								</resource>
+							</resources>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-failsafe-plugin</artifactId>
+				<version>2.19.1</version>
+				<configuration>
+					<excludes>
+						<exclude>**/*Test.java</exclude>
+					</excludes>
+					<includes>
+						<include>**/*IT.java</include>
+					</includes>
+					<environmentVariables>
+						<port>32000</port>
+					</environmentVariables>
+					<additionalClasspathElements>
+						<additionalClasspathElement>src/integration-test/resources</additionalClasspathElement>
+						<additionalClasspathElement>${basedir}/target/classes</additionalClasspathElement>
+					</additionalClasspathElements>
+					<parallel>none</parallel>
+				</configuration>
+				<executions>
+					<execution>
+						<id>integration-test</id>
+						<phase>integration-test</phase>
+						<goals>
+							<goal>integration-test</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>verify</id>
+						<phase>verify</phase>
+						<goals>
+							<goal>verify</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>io.fabric8</groupId>
+				<artifactId>docker-maven-plugin</artifactId>
+				<version>0.16.9</version>
+				<executions>
+					<execution>
+						<id>prepare-it-database</id>
+						<phase>pre-integration-test</phase>
+						<goals>
+							<goal>start</goal>
+						</goals>
+						<configuration>
+							<logDate>default</logDate>
+							<verbose>true</verbose>
+							<autoPull>always</autoPull>
+							<daemon>true</daemon>
+							<images>
+								<image>
+									<name>postgres:9.5.4</name>
+									<alias>ecpTest</alias>
+									<build>
+										<cleanup>true</cleanup>
+									</build>
+									<run>
+										<ports>
+											<port>32000:5432</port>
+										</ports>
+										<env>
+											<POSTGRES_DB>ecpTest</POSTGRES_DB>
+											<POSTGRES_USER>ecpTest</POSTGRES_USER>
+											<POSTGRES_PASSWORD>changeme</POSTGRES_PASSWORD>
+											<RESTART>always</RESTART>
+										</env>
+										<envPropertyFile>${project.basedir}/src/integration-test/resources/integrationTest.properties</envPropertyFile>
+										<wait>
+											<log>database system is ready to accept connections
+											</log>
+											<time>20000</time>
+										</wait>
+									</run>
+								</image>
+							</images>
+							<verbose>true</verbose>
+						</configuration>
+					</execution>
+					<execution>
+						<id>remove-it-database</id>
+						<phase>post-integration-test</phase>
+						<goals>
+							<goal>stop</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
 		</plugins>
 	</build>
 	<profiles>
@@ -239,6 +364,21 @@
 				<!-- Only unit tests are run when the development profile is active -->
 				<skip.integration.tests>false</skip.integration.tests>
 				<skip.unit.tests>false</skip.unit.tests>
+			</properties>
+		</profile>
+		<profile>
+			<id>integration-test</id>
+			<properties>
+				<!-- Specifies the build.profile.id property that must be equal than 
+					the name of the directory that contains the profile specific configuration 
+					file. Because the name of the directory that contains the configuration file 
+					of the integration-test profile is integration-test, we must set the value 
+					of the build.profile.id property to integration-test. -->
+				<!-- Only integration tests are run when the integration-test profile 
+					is active -->
+				<env>integration-test</env>
+				<skip.integration.tests>false</skip.integration.tests>
+				<skip.unit.tests>true</skip.unit.tests>
 			</properties>
 		</profile>
 	</profiles>

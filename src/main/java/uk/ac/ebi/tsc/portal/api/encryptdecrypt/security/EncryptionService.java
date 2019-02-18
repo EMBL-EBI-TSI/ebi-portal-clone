@@ -1,7 +1,9 @@
 package uk.ac.ebi.tsc.portal.api.encryptdecrypt.security;
 
-import java.util.Collection;
 import java.util.Map;
+
+import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParameters;
+import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParamsCopy;
 
 /**
  * @author Jose A. Dianes <jdianes@ebi.ac.uk>
@@ -9,7 +11,8 @@ import java.util.Map;
  * @author Navis Raj <navis@ebi.ac.uk>
  */
 public interface EncryptionService {
-	Map<String, String> encrypt(Map<String, String> params, Object ...values);
-	Map<String, String> decryptOne(Map<String, String> params, Object ...values);
-	Collection<Map<String, String>> decryptAll(Collection<Map<String, String>> fields, Object ...values);
+	Map<String, String> encrypt(CloudProviderParameters cloudProviderParameters);
+	Map<String, String> decryptOne(CloudProviderParameters cloudProviderParameters);
+	Map<String, String> encrypt(CloudProviderParamsCopy cloudProviderParamsCopy);
+	Map<String, String> decryptOne(CloudProviderParamsCopy encryptedCloudProviderParamsCopy);
 }
