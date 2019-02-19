@@ -54,7 +54,6 @@ import uk.ac.ebi.tsc.portal.api.application.repo.ApplicationCloudProvider;
 import uk.ac.ebi.tsc.portal.api.application.service.ApplicationNotFoundException;
 import uk.ac.ebi.tsc.portal.api.application.service.ApplicationService;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.controller.CloudProviderParametersCopyResource;
-import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.controller.CloudProviderParametersResource;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParameters;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.repo.CloudProviderParamsCopy;
 import uk.ac.ebi.tsc.portal.api.cloudproviderparameters.service.CloudProviderParametersService;
@@ -78,10 +77,9 @@ import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentSecretService;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
 import uk.ac.ebi.tsc.portal.api.encryptdecrypt.security.EncryptionService;
 import uk.ac.ebi.tsc.portal.api.team.repo.Team;
-import uk.ac.ebi.tsc.portal.api.team.repo.TeamRepository;
 import uk.ac.ebi.tsc.portal.api.team.service.TeamService;
 import uk.ac.ebi.tsc.portal.api.volumeinstance.service.VolumeInstanceService;
-import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployerBash;
+import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployer;
 import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDeployerException;
 import uk.ac.ebi.tsc.portal.usage.deployment.service.DeploymentIndexService;
 import uk.ac.ebi.tsc.portal.usage.tracker.DeploymentStatusTracker;
@@ -98,8 +96,6 @@ public class DeploymentRestControllerTest {
 	private static final String A_CLOUD_PROVIDER_PARAMS_NAME = "OS TEST";
 	public final String A_USER_NAME = "A User Name";
 	public final String A_CLOUD_PROVIDER = "OSTACK";
-	String salt= "salt";
-	String password= "password";
 
 	@MockBean
 	private DeploymentService deploymentService;
@@ -157,7 +153,7 @@ public class DeploymentRestControllerTest {
 	VolumeInstanceService volumeInstanceService;
 
 	@MockBean
-	ApplicationDeployerBash applicationDeployerBash;
+    ApplicationDeployer applicationDeployer;
 
 	@MockBean
 	DeploymentStatusTracker deploymentStatusTracker;
@@ -186,7 +182,7 @@ public class DeploymentRestControllerTest {
 		ReflectionTestUtils.setField(subject, "configurationService", configurationService);
 		ReflectionTestUtils.setField(subject, "teamService", teamService);
 		ReflectionTestUtils.setField(subject, "cloudProviderParametersService", cloudProviderParametersService);
-		ReflectionTestUtils.setField(subject, "applicationDeployerBash", applicationDeployerBash);
+		ReflectionTestUtils.setField(subject, "applicationDeployer", applicationDeployer);
 		Properties props = new Properties();
 		props.put("be.applications.root", "blah");    
 		props.put("be.deployments.root", "bleh");
@@ -198,9 +194,7 @@ public class DeploymentRestControllerTest {
 	}
 
 	@Test
-	public void can_delete_deployment_given_id() throws IOException, ApplicationDeployerException,
-	NoSuchPaddingException, InvalidAlgorithmParameterException, NoSuchAlgorithmException,
-	IllegalBlockSizeException, BadPaddingException, InvalidKeyException, InvalidKeySpecException {
+	public void can_delete_deployment_given_id()  {
 		
 		String theId = "blah";
 		deployment(theId);

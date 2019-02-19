@@ -13,7 +13,7 @@ import uk.ac.ebi.tsc.portal.api.deployment.repo.*;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentConfigurationService;
 import uk.ac.ebi.tsc.portal.api.deployment.service.DeploymentService;
 import uk.ac.ebi.tsc.portal.api.utils.SendMail;
-import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployerBash;
+import uk.ac.ebi.tsc.portal.clouddeployment.application.ApplicationDeployer;
 import uk.ac.ebi.tsc.portal.clouddeployment.exceptions.ApplicationDeployerException;
 import uk.ac.ebi.tsc.portal.usage.deployment.service.DeploymentIndexService;
 
@@ -39,23 +39,23 @@ public class ConfigurationUsageMonitor implements Runnable {
     private final CloudProviderParamsCopyService cloudProviderParamsCopyService;
     private final DeploymentConfigurationService deploymentConfigurationService;
 
-    private final ApplicationDeployerBash applicationDeployerBash;
+    private final ApplicationDeployer applicationDeployer;
 
     public static final double NOTIFICATION_PERIOD = 6.048e+8;
 
     @Autowired
     public ConfigurationUsageMonitor(DeploymentIndexService deploymentIndexService,
-                                  DeploymentService deploymentService,
-                                  ConfigurationService configurationService,
-                                  CloudProviderParamsCopyService cloudProviderParamsCopyService,
+                                     DeploymentService deploymentService,
+                                     ConfigurationService configurationService,
+                                     CloudProviderParamsCopyService cloudProviderParamsCopyService,
                                      DeploymentConfigurationService deploymentConfigurationService,
-                                     ApplicationDeployerBash applicationDeployerBash) {
+                                     ApplicationDeployer applicationDeployer) {
         this.deploymentIndexService = deploymentIndexService;
         this.deploymentService = deploymentService;
         this.configurationService = configurationService;
         this.cloudProviderParamsCopyService = cloudProviderParamsCopyService;
         this.deploymentConfigurationService = deploymentConfigurationService;
-        this.applicationDeployerBash = applicationDeployerBash;
+        this.applicationDeployer = applicationDeployer;
     }
 
     @Override
@@ -146,8 +146,8 @@ public class ConfigurationUsageMonitor implements Runnable {
         this.deploymentService.save(theDeployment);
 
         // Proceed to destroy
-        logger.info("DEPLOYER BASH = " + this.applicationDeployerBash);
-        this.applicationDeployerBash.destroy(
+        logger.info("DEPLOYER = " + this.applicationDeployer);
+        this.applicationDeployer.destroy(
                 theDeployment.getDeploymentApplication().getRepoPath(),
                 theDeployment.getReference(),
                 getCloudProviderPathFromDeploymentApplication(
