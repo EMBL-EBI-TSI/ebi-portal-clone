@@ -173,7 +173,6 @@ public class DeploymentRestControllerTest {
 	String cppReference = "cppReference";
 	@Before 
 	public void setUp() {
-		
 		ReflectionTestUtils.setField(subject, "deploymentService", deploymentService);
 		ReflectionTestUtils.setField(subject, "cloudProviderParametersCopyService", cloudProviderParametersCopyService);
 		ReflectionTestUtils.setField(subject, "accountService", accountService);
