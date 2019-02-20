@@ -1,7 +1,6 @@
 package uk.ac.ebi.tsi.portal.api.account;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
 import org.apache.log4j.Logger;
 import org.junit.Before;
 import org.junit.Test;
@@ -19,7 +18,6 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
-
 import uk.ac.ebi.tsc.portal.BePortalApiApplication;
 import uk.ac.ebi.tsc.portal.config.WebConfiguration;
 
@@ -38,7 +36,7 @@ public class AccountRestControllerIT {
 	@Autowired
 	private MockMvc mockMvc;
 	
-	@Value("${aapUserName}") 
+	@Value("${aapUserName}")
 	private String aapUserName;
 	
 	@Value("${aapPassword}")

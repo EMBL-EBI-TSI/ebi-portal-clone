@@ -119,7 +119,7 @@ public class ApplicationRestController {
 				.stream()
 				.map(ApplicationResource::new)
 				.collect(Collectors.toList());
-
+		logger.info("Returning the list of all applications");
 		return new Resources<>(applicationResourceList);
 
 	}

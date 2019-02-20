@@ -19,7 +19,6 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
-
 import uk.ac.ebi.tsc.portal.BePortalApiApplication;
 import uk.ac.ebi.tsc.portal.config.WebConfiguration;
 
@@ -37,7 +36,7 @@ public class DeploymentRestControllerIT {
 
 	@Autowired
 	private MockMvc mockMvc;
-	
+
 	@Value("${aapUserName}") 
 	private String aapUserName;
 	
